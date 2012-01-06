@@ -1,0 +1,2 @@
+@PREFIX@/bin/dlogutil
+/etc/rc.d/init.d/dlog.sh
