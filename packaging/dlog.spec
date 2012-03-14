@@ -1,10 +1,11 @@
 Name:       dlog
 Summary:    Logging service
-Version:    0.4.0
+Version:	0.4.1
 Release:    5.1
 Group:      TO_BE/FILLED_IN
-License:    TO BE FILLED IN
+License:    Apache-2.0
 Source0:    dlog-%{version}.tar.gz
+Patch0:		dev_error.patch
 Requires(post): /sbin/ldconfig
 Requires(postun): /sbin/ldconfig
 
@@ -32,6 +33,7 @@ dlog API library
 Summary:    print log data to the screen
 Group:      Development/Libraries
 Requires:   lib%{name} = %{version}-%{release}
+Requires(post): /bin/rm, /bin/ln
 
 %description -n dlogutil
 utilities for print log data
@@ -40,12 +42,12 @@ utilities for print log data
 
 %prep
 %setup -q 
+%patch0 -p1
 
 
 %build
-
-%autogen --disable-static
-%configure --disable-static
+%autogen
+%configure 
 make %{?jobs:-j%jobs}
 
 %install
@@ -54,6 +56,7 @@ rm -rf %{buildroot}
 
 %post -n dlogutil
 #Add boot sequence script
+mkdir -p /etc/rc.d/rc5.d
 rm -f /etc/rc.d/rc3.d/S05dlog /etc/rc.d/rc5.d/S05dlog
 ln -s /etc/rc.d/init.d/dlog.sh /etc/rc.d/rc3.d/S05dlog
 ln -s /etc/rc.d/init.d/dlog.sh /etc/rc.d/rc5.d/S05dlog
