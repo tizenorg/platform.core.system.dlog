@@ -4,8 +4,7 @@ Version:	0.4.1
 Release:    5.1
 Group:      TO_BE/FILLED_IN
 License:    Apache-2.0
-Source0:    dlog-%{version}.tar.gz
-Patch0:		dev_error.patch
+Source0:    %{name}-%{version}.tar.gz
 Requires(post): /sbin/ldconfig
 Requires(postun): /sbin/ldconfig
 
@@ -42,7 +41,6 @@ utilities for print log data
 
 %prep
 %setup -q 
-%patch0 -p1
 
 
 %build
