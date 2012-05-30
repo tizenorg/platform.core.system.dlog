@@ -5,6 +5,7 @@ Release:    5.1
 Group:      TO_BE/FILLED_IN
 License:    Apache-2.0
 Source0:    %{name}-%{version}.tar.gz
+Source1001: packaging/dlog.manifest 
 Requires(post): /sbin/ldconfig
 Requires(postun): /sbin/ldconfig
 
@@ -44,6 +45,7 @@ utilities for print log data
 
 
 %build
+cp %{SOURCE1001} .
 %autogen
 %configure 
 make %{?jobs:-j%jobs}
@@ -66,15 +68,18 @@ ln -s /etc/rc.d/init.d/dlog.sh /etc/rc.d/rc5.d/S05dlog
 
 
 %files  -n dlogutil
+%manifest dlog.manifest
 %{_bindir}/dlogutil
 %{_sysconfdir}/rc.d/init.d/dlog.sh
 
 %files  -n libdlog
+%manifest dlog.manifest
 %doc LICENSE
 %{_libdir}/libdlog.so.0
 %{_libdir}/libdlog.so.0.0.0
 
 %files -n libdlog-devel
+%manifest dlog.manifest
 %{_includedir}/dlog/dlog.h
 %{_libdir}/pkgconfig/dlog.pc
 %{_libdir}/libdlog.so
