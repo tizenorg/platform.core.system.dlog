@@ -1,0 +1,11 @@
+
+[Unit]
+Description=Start the dlog service
+DefaultDependencies=no
+
+[Service]
+ExecStart=/usr/bin/dlogutil -b system -v time *:W
+
+[Install]
+WantedBy=multi-user.target
+
