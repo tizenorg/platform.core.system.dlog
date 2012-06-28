@@ -65,8 +65,8 @@ mkdir -p %{buildroot}/%{_sysconfdir}/rc.d/rc3.d
 mkdir -p %{buildroot}/%{_sysconfdir}/rc.d/rc5.d
 rm -f %{buildroot}/%{_sysconfdir}/etc/rc.d/rc3.d/S05dlog
 rm -f %{buildroot}/%{_sysconfdir}/etc/rc.d/rc5.d/S05dlog
-ln -s ../etc/rc.d/init.d/dlog.sh %{buildroot}/%{_sysconfdir}/rc.d/rc3.d/S05dlog
-ln -s ../etc/rc.d/init.d/dlog.sh %{buildroot}/%{_sysconfdir}/rc.d/rc5.d/S05dlog
+ln -s ../init.d/dlog.sh %{buildroot}/%{_sysconfdir}/rc.d/rc3.d/S05dlog
+ln -s ../init.d/dlog.sh %{buildroot}/%{_sysconfdir}/rc.d/rc5.d/S05dlog
 
 mkdir -p %{buildroot}%{_libdir}/systemd/system/multi-user.target.wants
 mkdir -p %{buildroot}%{_libdir}/udev/rules.d
