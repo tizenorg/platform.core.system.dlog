@@ -336,13 +336,27 @@ int log_process_log_buffer(struct logger_entry *buf,log_entry *entry)
 
     entry->tv_sec = buf->sec;
     entry->tv_nsec = buf->nsec;
-    entry->priority = buf->msg[0];
     entry->pid = buf->pid;
     entry->tid = buf->tid;
-    entry->tag = buf->msg + 1;
-    tag_len = strlen(entry->tag);
-    entry->messageLen = buf->len - tag_len - 3;
-    entry->message = entry->tag + tag_len + 1;
+
+    if (buf->msg[0] < 0 || buf->msg[0] > DLOG_SILENT) { /* char can be signed too */
+
+	 /* There is no tag in this message - which is an error, but it might
+	  * happen when sombody redirects stdout/err to /dev/log_*.
+	  *
+	  * Pick ERROR priority as this shouldn't happen.
+	  */
+	 entry->priority = DLOG_ERROR;
+	 entry->tag = "[NO TAG]";
+	 entry->messageLen = buf->len;
+	 entry->message = buf->msg;
+    } else {
+	 entry->priority = buf->msg[0];
+	 entry->tag = buf->msg + 1;
+	 tag_len = strlen(entry->tag);
+	 entry->messageLen = buf->len - tag_len - 3;
+	 entry->message = entry->tag + tag_len + 1;
+    }
 
     return 0;
 }
