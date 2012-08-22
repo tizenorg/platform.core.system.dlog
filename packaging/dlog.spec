@@ -1,6 +1,6 @@
 Name:       dlog
 Summary:    Logging service
-Version:	0.4.1
+Version:    0.4.0
 Release:    5.1
 Group:      TO_BE/FILLED_IN
 License:    Apache-2.0
@@ -32,7 +32,6 @@ dlog API library
 Summary:    print log data to the screen
 Group:      Development/Libraries
 Requires:   lib%{name} = %{version}-%{release}
-Requires(post): /bin/rm, /bin/ln
 
 %description -n dlogutil
 utilities for print log data
@@ -40,37 +39,46 @@ utilities for print log data
 
 
 %prep
-%setup -q 
+%setup -q
 
 
 %build
-%autogen
-%configure 
+
+%autogen --disable-static
+%configure --disable-static
 make %{?jobs:-j%jobs}
 
 %install
 rm -rf %{buildroot}
 %make_install
+mkdir -p %{buildroot}/opt/etc/
+cp %{_builddir}/%{name}-%{version}/.debuglevel %{buildroot}/opt/etc/.debuglevel
 
 %post -n dlogutil
 #Add boot sequence script
 mkdir -p /etc/rc.d/rc5.d
-rm -f /etc/rc.d/rc3.d/S05dlog /etc/rc.d/rc5.d/S05dlog
-ln -s /etc/rc.d/init.d/dlog.sh /etc/rc.d/rc3.d/S05dlog
+rm -f /etc/rc.d/rc3.d/S47dlog /etc/rc.d/rc5.d/S05dlog
+ln -s /etc/rc.d/init.d/dlog.sh /etc/rc.d/rc3.d/S47dlog
 ln -s /etc/rc.d/init.d/dlog.sh /etc/rc.d/rc5.d/S05dlog
 
 
-%post -n libdlog -p /sbin/ldconfig
+%post -n libdlog
+chmod +x /opt/etc/.debuglevel
+rm -f /etc/profile.d/dlevel.sh
+ln -s /opt/etc/.debuglevel /etc/profile.d/dlevel.sh
+/sbin/ldconfig
 
-%postun -n libdlog -p /sbin/ldconfig
-
+%postun -n libdlog
+/sbin/ldconfig
 
 %files  -n dlogutil
+%manifest dlogutil.manifest
 %{_bindir}/dlogutil
 %{_sysconfdir}/rc.d/init.d/dlog.sh
 
 %files  -n libdlog
 %doc LICENSE
+/opt/etc/.debuglevel
 %{_libdir}/libdlog.so.0
 %{_libdir}/libdlog.so.0.0.0
 

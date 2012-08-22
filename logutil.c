@@ -260,6 +260,10 @@ static void read_log_lines(struct log_device_t* devices)
             for (dev=devices; dev; dev = dev->next) {
                 if (FD_ISSET(dev->fd, &readset)) {
                     struct queued_entry_t* entry = (struct queued_entry_t *)malloc(sizeof( struct queued_entry_t));
+					if (entry == NULL) {
+						fprintf(stderr,"Can't malloc queued_entry\n");
+						exit(-1);
+					}
 					entry->next = NULL;
 
                     /* NOTE: driver guarantees we read exactly one full entry */
@@ -484,11 +488,15 @@ int main(int argc, char **argv)
                 getLogSize = 1;
             break;
 
-            case 'b': {
-                char* buf = (char*) malloc(strlen(LOG_FILE_DIR) + strlen(optarg) + 1);
-		strcpy(buf, LOG_FILE_DIR);
-                strcat(buf, optarg);
-//		snprintf(buf, strlen(LOG_FILE_DIR) + strlen(optarg) + 1, "%s%s", LOG_FILE_DIR, optarg);
+			case 'b': {
+						  char* buf = (char*) malloc(strlen(LOG_FILE_DIR) + strlen(optarg) + 1);
+						  if (buf == NULL) {
+							  fprintf(stderr,"Can't malloc LOG_FILE_DIR\n");
+							  exit(-1);
+						  }
+						  strcpy(buf, LOG_FILE_DIR);
+						  strcat(buf, optarg);
+						  //		snprintf(buf, strlen(LOG_FILE_DIR) + strlen(optarg) + 1, "%s%s", LOG_FILE_DIR, optarg);
 
                 if (devices) {
 					dev = devices;
@@ -496,6 +504,10 @@ int main(int argc, char **argv)
 						dev = dev->next;
 					}
 					dev->next = (struct log_device_t *)malloc( sizeof(struct log_device_t));
+					if (dev->next == NULL) {
+						fprintf(stderr,"Can't malloc log_device\n");
+						exit(-1);
+					}
 					dev->next->device = buf;
 					dev->next->fd = -1;
 					dev->next->printed = false;
@@ -503,7 +515,11 @@ int main(int argc, char **argv)
 					dev->next->next = NULL;
 
                 } else {
-                    devices = (struct log_device_t *)malloc( sizeof(struct log_device_t));
+					devices = (struct log_device_t *)malloc( sizeof(struct log_device_t));
+					if (devices == NULL) {
+						fprintf(stderr,"Can't malloc log_device\n");
+						exit(-1);
+					}
 					devices->device = buf;
 					devices->fd = -1;
 					devices->printed = false;
@@ -569,6 +585,10 @@ int main(int argc, char **argv)
 
 	if (!devices) {
         devices = (struct log_device_t *)malloc( sizeof(struct log_device_t));
+		if (devices == NULL) {
+			fprintf(stderr,"Can't malloc log_device\n");
+			exit(-1);
+		}
 		devices->device = strdup("/dev/"LOGGER_LOG_MAIN);
 		devices->fd = -1;
 		devices->printed = false;
@@ -584,7 +604,24 @@ int main(int argc, char **argv)
         // only add this if it's available
 	if (0 == access("/dev/"LOGGER_LOG_SYSTEM, accessmode)) {
 		devices->next = (struct log_device_t *)malloc( sizeof(struct log_device_t));
+		if (devices->next == NULL) {
+			fprintf(stderr,"Can't malloc log_device\n");
+			exit(-1);
+		}
 		devices->next->device = strdup("/dev/"LOGGER_LOG_SYSTEM);
+		devices->next->fd = -1;
+		devices->next->printed = false;
+		devices->next->queue = NULL;
+		devices->next->next = NULL;
+		g_dev_count ++;
+	}
+	if (0 == access("/dev/"LOGGER_LOG_APPS, accessmode)) {
+		devices->next = (struct log_device_t *)malloc( sizeof(struct log_device_t));
+		if (devices->next == NULL) {
+			fprintf(stderr,"Can't malloc log_device\n");
+			exit(-1);
+		}
+		devices->next->device = strdup("/dev/"LOGGER_LOG_APPS);
 		devices->next->fd = -1;
 		devices->next->printed = false;
 		devices->next->queue = NULL;

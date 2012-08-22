@@ -17,6 +17,7 @@
 #ifdef HAVE_PTHREADS
 #include <pthread.h>
 #endif
+#include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
 #include <fcntl.h>
@@ -30,12 +31,12 @@
 #define LOG_MAIN	"log_main"
 #define LOG_RADIO	"log_radio"
 #define LOG_SYSTEM	"log_system"
+#define LOG_APPS	"log_apps"
 
 
-static int log_fds[(int)LOG_ID_MAX] = { -1, -1, -1 };
+static int log_fds[(int)LOG_ID_MAX] = { -1, -1, -1, -1 };
 
-static int default_log_prio= DLOG_DEFAULT;
-
+static int g_debug_level= DLOG_SILENT;
 
 static int __dlog_init(log_id_t, log_priority, const char *tag, const char *msg);
 static int (*write_to_log)(log_id_t, log_priority, const char *tag, const char *msg) = __dlog_init;
@@ -55,6 +56,10 @@ static int __write_to_log_kernel(log_id_t log_id, log_priority prio, const char 
 	int log_fd;
 	struct iovec vec[3];
 
+	if(log_id >= LOG_ID_APPS && prio<g_debug_level)
+	{
+		return 0;
+	}
 	if( log_id < LOG_ID_MAX )
 		log_fd = log_fds[log_id];
 	else
@@ -75,7 +80,20 @@ static int __write_to_log_kernel(log_id_t log_id, log_priority prio, const char 
 	return ret;
 }
 
-
+void init_debug_level(void)
+{
+	char *debuglevel=getenv("TIZEN_DEBUG_LEVEL");
+	if(!debuglevel) {
+#ifndef NDEBUG
+		fprintf(stderr, "Not matched env. variable, TIZEN_DEBUG_LEVEL");
+#endif
+		return;
+	}
+	g_debug_level=atoi(debuglevel);
+#ifndef NDEBUG
+	fprintf(stderr, "debug level init %d(%s) \n",g_debug_level,debuglevel);
+#endif
+}
 static int __dlog_init(log_id_t log_id, log_priority prio, const char *tag, const char *msg)
 {
 #ifdef HAVE_PTHREADS
@@ -89,6 +107,9 @@ static int __dlog_init(log_id_t log_id, log_priority prio, const char *tag, cons
 		log_fds[LOG_ID_MAIN] = open("/dev/"LOG_MAIN, O_WRONLY);
 		log_fds[LOG_ID_RADIO] = open("/dev/"LOG_RADIO, O_WRONLY);
 		log_fds[LOG_ID_SYSTEM] = open("/dev/"LOG_SYSTEM, O_WRONLY);
+		log_fds[LOG_ID_APPS] = open("/dev/"LOG_APPS, O_WRONLY);
+
+		init_debug_level();
 
 		if( log_fds[LOG_ID_MAIN] < 0 || log_fds[LOG_ID_RADIO] < 0 )
 		{
@@ -101,6 +122,11 @@ static int __dlog_init(log_id_t log_id, log_priority prio, const char *tag, cons
 		if( log_fds[LOG_ID_SYSTEM] < 0 )
 		{
 			log_fds[LOG_ID_SYSTEM] = log_fds[LOG_ID_MAIN];
+		}
+
+		if( log_fds[LOG_ID_APPS] < 0 )
+		{
+			log_fds[LOG_ID_APPS] = log_fds[LOG_ID_MAIN];
 		}
 	}
 #ifdef HAVE_PTHREADS
