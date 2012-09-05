@@ -56,8 +56,11 @@ static int __write_to_log_kernel(log_id_t log_id, log_priority prio, const char 
 	int log_fd;
 	struct iovec vec[3];
 
-	if(log_id >= LOG_ID_APPS && prio<g_debug_level)
-	{
+	if (log_id < LOG_ID_APPS) {
+		if(prio<g_debug_level) {
+			return 0;
+		}
+	} else if (LOG_ID_MAX <= log_id) {
 		return 0;
 	}
 	if( log_id < LOG_ID_MAX )
