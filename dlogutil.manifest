@@ -1,11 +1,8 @@
 <manifest>
-<define>
-<domain name="dlogutil" policy="restricted"/>
-</define>
-<request>
-<domain name="dlogutil"/>
-</request>
-<assign>
-<filesystem path="/usr/bin/dlogutil" label="dlogutil"/>
-</assign>
+  <define>
+     <domain name="dlogutil" policy="restricted"/>
+  </define>
+  <request>
+     <domain name="_"/>
+  </request>
 </manifest>
