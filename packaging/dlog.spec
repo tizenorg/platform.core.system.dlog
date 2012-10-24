@@ -9,7 +9,6 @@ Source0:    %{name}-%{version}.tar.gz
 Source1:    packaging/99-android-logger.rules
 Source101:  packaging/dlog-main.service
 Source102:  packaging/dlog-radio.service
-Source103:  packaging/dlog-system.service
 
 Requires(post): /sbin/ldconfig
 Requires(post): /usr/bin/systemctl
@@ -74,12 +73,10 @@ mkdir -p %{buildroot}%{_libdir}/udev/rules.d
 
 install -m 0644 %SOURCE101 %{buildroot}%{_libdir}/systemd/system/
 install -m 0644 %SOURCE102 %{buildroot}%{_libdir}/systemd/system/
-install -m 0644 %SOURCE103 %{buildroot}%{_libdir}/systemd/system/
 install -m 0644 %SOURCE1 %{buildroot}%{_libdir}/udev/rules.d/
 
 ln -s ../dlog-main.service %{buildroot}%{_libdir}/systemd/system/multi-user.target.wants/dlog-main.service
 ln -s ../dlog-radio.service %{buildroot}%{_libdir}/systemd/system/multi-user.target.wants/dlog-radio.service
-ln -s ../dlog-system.service %{buildroot}%{_libdir}/systemd/system/multi-user.target.wants/dlog-system.service
 
 mkdir -p %{buildroot}/opt/etc/
 cp %{_builddir}/%{name}-%{version}/.debuglevel %{buildroot}/opt/etc/.debuglevel
@@ -89,7 +86,6 @@ cp %{_builddir}/%{name}-%{version}/.debuglevel %{buildroot}/opt/etc/.debuglevel
 if [ $1 == 0 ]; then
     systemctl stop dlog-main.service
     systemctl stop dlog-radio.service
-    systemctl stop dlog-system.service
 fi
 
 %post -n dlogutil
@@ -97,7 +93,6 @@ systemctl daemon-reload
 if [ $1 == 1 ]; then
     systemctl restart dlog-main.service
     systemctl restart dlog-radio.service
-    systemctl restart dlog-system.service
 fi
 
 %postun -n dlogutil
@@ -120,10 +115,8 @@ ln -s /opt/etc/.debuglevel /etc/profile.d/dlevel.sh
 %{_sysconfdir}/rc.d/rc5.d/S05dlog
 %{_libdir}/systemd/system/dlog-main.service
 %{_libdir}/systemd/system/dlog-radio.service
-%{_libdir}/systemd/system/dlog-system.service
 %{_libdir}/systemd/system/multi-user.target.wants/dlog-main.service
 %{_libdir}/systemd/system/multi-user.target.wants/dlog-radio.service
-%{_libdir}/systemd/system/multi-user.target.wants/dlog-system.service
 %{_libdir}/udev/rules.d/99-android-logger.rules
 
 %files  -n libdlog
