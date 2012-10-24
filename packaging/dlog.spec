@@ -4,7 +4,7 @@ Summary:    Logging service
 Version:    0.4.0
 Release:    5.1
 Group:      TO_BE/FILLED_IN
-License:    TO BE FILLED IN
+License:    Apache License
 Source0:    %{name}-%{version}.tar.gz
 Source1:    packaging/99-android-logger.rules
 Source101:  packaging/dlog-main.service
@@ -80,6 +80,8 @@ ln -s ../dlog-radio.service %{buildroot}%{_libdir}/systemd/system/multi-user.tar
 
 mkdir -p %{buildroot}/opt/etc/
 cp %{_builddir}/%{name}-%{version}/.debuglevel %{buildroot}/opt/etc/.debuglevel
+mkdir -p %{buildroot}/usr/share/license
+cp LICENSE %{buildroot}/usr/share/license/%{name}
 
 
 %preun -n dlogutil
@@ -120,6 +122,7 @@ ln -s /opt/etc/.debuglevel /etc/profile.d/dlevel.sh
 %{_libdir}/udev/rules.d/99-android-logger.rules
 
 %files  -n libdlog
+/usr/share/license/%{name}
 %doc LICENSE
 /opt/etc/.debuglevel
 %{_libdir}/libdlog.so.0
