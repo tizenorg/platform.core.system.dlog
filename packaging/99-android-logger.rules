@@ -1,3 +1,0 @@
-# set proper permissions on the android logger device nodes in
-# /dev - make them writable by everyone, but not readable
-KERNEL=="log_events|log_main|log_radio|log_system", GROUP="log", MODE="0642"

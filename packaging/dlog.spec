@@ -6,7 +6,6 @@ Release:    5.1
 Group:      TO_BE/FILLED_IN
 License:    Apache License
 Source0:    %{name}-%{version}.tar.gz
-Source1:    packaging/99-android-logger.rules
 Source101:  packaging/dlog-main.service
 Source102:  packaging/dlog-radio.service
 
@@ -73,7 +72,6 @@ mkdir -p %{buildroot}%{_libdir}/udev/rules.d
 
 install -m 0644 %SOURCE101 %{buildroot}%{_libdir}/systemd/system/
 install -m 0644 %SOURCE102 %{buildroot}%{_libdir}/systemd/system/
-install -m 0644 %SOURCE1 %{buildroot}%{_libdir}/udev/rules.d/
 
 ln -s ../dlog-main.service %{buildroot}%{_libdir}/systemd/system/multi-user.target.wants/dlog-main.service
 ln -s ../dlog-radio.service %{buildroot}%{_libdir}/systemd/system/multi-user.target.wants/dlog-radio.service
@@ -119,7 +117,6 @@ ln -s /opt/etc/.debuglevel /etc/profile.d/dlevel.sh
 %{_libdir}/systemd/system/dlog-radio.service
 %{_libdir}/systemd/system/multi-user.target.wants/dlog-main.service
 %{_libdir}/systemd/system/multi-user.target.wants/dlog-radio.service
-%{_libdir}/udev/rules.d/99-android-logger.rules
 
 %files  -n libdlog
 /usr/share/license/%{name}
