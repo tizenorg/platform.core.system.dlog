@@ -1,13 +1,22 @@
+#sbs-git:slp/pkgs/d/dlog dlog 0.4.0 f2a67c71d044de4757f7eef9759c7f99d527462f
 Name:       dlog
 Summary:    Logging service
 Version:    0.4.0
 Release:    5.1
 Group:      TO_BE/FILLED_IN
-License:    Apache-2.0
+License:    TO BE FILLED IN
 Source0:    %{name}-%{version}.tar.gz
-Requires(post): /sbin/ldconfig
-Requires(postun): /sbin/ldconfig
+Source1:    packaging/99-android-logger.rules
+Source101:  packaging/dlog-main.service
+Source102:  packaging/dlog-radio.service
+Source103:  packaging/dlog-system.service
 
+Requires(post): /sbin/ldconfig
+Requires(post): /usr/bin/systemctl
+Requires(post): /usr/bin/vconftool
+Requires(postun): /sbin/ldconfig
+Requires(postun): /usr/bin/systemctl
+Requires(preun): /usr/bin/systemctl
 
 %description
 dlog API library
@@ -32,6 +41,7 @@ dlog API library
 Summary:    print log data to the screen
 Group:      Development/Libraries
 Requires:   lib%{name} = %{version}-%{release}
+Requires(post): /bin/rm, /bin/ln
 
 %description -n dlogutil
 utilities for print log data
@@ -51,16 +61,47 @@ make %{?jobs:-j%jobs}
 %install
 rm -rf %{buildroot}
 %make_install
+
+mkdir -p %{buildroot}/%{_sysconfdir}/rc.d/rc3.d
+mkdir -p %{buildroot}/%{_sysconfdir}/rc.d/rc5.d
+rm -f %{buildroot}/%{_sysconfdir}/etc/rc.d/rc3.d/S05dlog
+rm -f %{buildroot}/%{_sysconfdir}/etc/rc.d/rc5.d/S05dlog
+ln -s ../init.d/dlog.sh %{buildroot}/%{_sysconfdir}/rc.d/rc3.d/S05dlog
+ln -s ../init.d/dlog.sh %{buildroot}/%{_sysconfdir}/rc.d/rc5.d/S05dlog
+
+mkdir -p %{buildroot}%{_libdir}/systemd/system/multi-user.target.wants
+mkdir -p %{buildroot}%{_libdir}/udev/rules.d
+
+install -m 0644 %SOURCE101 %{buildroot}%{_libdir}/systemd/system/
+install -m 0644 %SOURCE102 %{buildroot}%{_libdir}/systemd/system/
+install -m 0644 %SOURCE103 %{buildroot}%{_libdir}/systemd/system/
+install -m 0644 %SOURCE1 %{buildroot}%{_libdir}/udev/rules.d/
+
+ln -s ../dlog-main.service %{buildroot}%{_libdir}/systemd/system/multi-user.target.wants/dlog-main.service
+ln -s ../dlog-radio.service %{buildroot}%{_libdir}/systemd/system/multi-user.target.wants/dlog-radio.service
+ln -s ../dlog-system.service %{buildroot}%{_libdir}/systemd/system/multi-user.target.wants/dlog-system.service
+
 mkdir -p %{buildroot}/opt/etc/
 cp %{_builddir}/%{name}-%{version}/.debuglevel %{buildroot}/opt/etc/.debuglevel
 
-%post -n dlogutil
-#Add boot sequence script
-mkdir -p /etc/rc.d/rc5.d
-rm -f /etc/rc.d/rc3.d/S47dlog /etc/rc.d/rc5.d/S05dlog
-ln -s /etc/rc.d/init.d/dlog.sh /etc/rc.d/rc3.d/S47dlog
-ln -s /etc/rc.d/init.d/dlog.sh /etc/rc.d/rc5.d/S05dlog
 
+%preun -n dlogutil
+if [ $1 == 0 ]; then
+    systemctl stop dlog-main.service
+    systemctl stop dlog-radio.service
+    systemctl stop dlog-system.service
+fi
+
+%post -n dlogutil
+systemctl daemon-reload
+if [ $1 == 1 ]; then
+    systemctl restart dlog-main.service
+    systemctl restart dlog-radio.service
+    systemctl restart dlog-system.service
+fi
+
+%postun -n dlogutil
+systemctl daemon-reload
 
 %post -n libdlog
 chmod +x /opt/etc/.debuglevel
@@ -75,6 +116,15 @@ ln -s /opt/etc/.debuglevel /etc/profile.d/dlevel.sh
 %manifest dlogutil.manifest
 %{_bindir}/dlogutil
 %{_sysconfdir}/rc.d/init.d/dlog.sh
+%{_sysconfdir}/rc.d/rc3.d/S05dlog
+%{_sysconfdir}/rc.d/rc5.d/S05dlog
+%{_libdir}/systemd/system/dlog-main.service
+%{_libdir}/systemd/system/dlog-radio.service
+%{_libdir}/systemd/system/dlog-system.service
+%{_libdir}/systemd/system/multi-user.target.wants/dlog-main.service
+%{_libdir}/systemd/system/multi-user.target.wants/dlog-radio.service
+%{_libdir}/systemd/system/multi-user.target.wants/dlog-system.service
+%{_libdir}/udev/rules.d/99-android-logger.rules
 
 %files  -n libdlog
 %doc LICENSE
