@@ -430,6 +430,97 @@ static void show_help(const char *cmd)
 }
 
 
+/*
+ * free one log_device_t and it doesn't take care of chain so it
+ * may break the chain list
+ */
+static void log_devices_free(struct log_device_t *dev)
+{
+	if (!dev)
+		return;
+
+	if (dev->device)
+		free(dev->device);
+
+	if (dev->queue) {
+		while (dev->queue->next) {
+			struct queued_entry_t *tmp = dev->queue->next;
+			dev->queue->next = tmp->next;
+			free(tmp);
+		}
+		free(dev->queue);
+	}
+
+	free(dev);
+	dev = NULL;
+}
+
+
+/*
+ * free all the nodes after the "dev" and includes itself
+ */
+static void log_devices_chain_free(struct log_device_t *dev)
+{
+	if (!dev)
+		return;
+
+	while (dev->next) {
+		struct log_device_t *tmp = dev->next;
+		dev->next = tmp->next;
+		log_devices_free(tmp);
+	}
+
+	log_devices_free(dev);
+	dev = NULL;
+}
+
+
+/*
+ * create a new log_device_t instance but don't care about
+ * the device node accessable or not
+ */
+static struct log_device_t *log_devices_new(const char *path)
+{
+	struct log_device_t *new;
+
+	if (!path || strlen(path) <= 0)
+		return NULL;
+
+	new = malloc(sizeof(*new));
+	if (!new) {
+		fprintf(stderr, "out of memory\n");
+		return NULL;
+	}
+
+	new->device = strdup(path);
+	new->fd = -1;
+	new->printed = false;
+	new->queue = NULL;
+	new->next = NULL;
+
+	return new;
+}
+
+
+/*
+ * add a new device to the tail of chain
+ */
+static int log_devices_add_to_tail(struct log_device_t *devices, struct log_device_t *new)
+{
+	struct log_device_t *tail = devices;
+
+	if (!devices || !new)
+		return -1;
+
+	while (tail->next)
+		tail = tail->next;
+
+	tail->next = new;
+	g_dev_count++;
+
+	return 0;
+}
+
 int main(int argc, char **argv)
 {
     int err;
@@ -489,44 +580,22 @@ int main(int argc, char **argv)
             break;
 
 			case 'b': {
-						  char* buf = (char*) malloc(strlen(LOG_FILE_DIR) + strlen(optarg) + 1);
-						  if (buf == NULL) {
-							  fprintf(stderr,"Can't malloc LOG_FILE_DIR\n");
+						  char *buf;
+						  if (asprintf(&buf, LOG_FILE_DIR "/%s", optarg) == -1) {
+							  asprintf(stderr,"Can't malloc LOG_FILE_DIR\n");
 							  exit(-1);
 						  }
-						  strcpy(buf, LOG_FILE_DIR);
-						  strcat(buf, optarg);
-						  //		snprintf(buf, strlen(LOG_FILE_DIR) + strlen(optarg) + 1, "%s%s", LOG_FILE_DIR, optarg);
 
+						  dev = log_devices_new(buf);
                 if (devices) {
-					dev = devices;
-                    while (dev->next) {
-						dev = dev->next;
-					}
-					dev->next = (struct log_device_t *)malloc( sizeof(struct log_device_t));
-					if (dev->next == NULL) {
-						fprintf(stderr,"Can't malloc log_device\n");
+					if (log_devices_add_to_tail(devices, dev)) {
+						fprintf(stderr, "Open log device %s failed\n", buf);
 						exit(-1);
 					}
-					dev->next->device = buf;
-					dev->next->fd = -1;
-					dev->next->printed = false;
-					dev->next->queue = NULL;
-					dev->next->next = NULL;
-
                 } else {
-					devices = (struct log_device_t *)malloc( sizeof(struct log_device_t));
-					if (devices == NULL) {
-						fprintf(stderr,"Can't malloc log_device\n");
-						exit(-1);
-					}
-					devices->device = buf;
-					devices->fd = -1;
-					devices->printed = false;
-					devices->queue = NULL;
-					devices->next = NULL;
+					devices = dev;
+					g_dev_count = 1;
                 }
-                g_dev_count++;
             }
             break;
 
@@ -584,49 +653,30 @@ int main(int argc, char **argv)
 	}
 
 	if (!devices) {
-        devices = (struct log_device_t *)malloc( sizeof(struct log_device_t));
+		devices = log_devices_new("/dev/"LOGGER_LOG_MAIN);
 		if (devices == NULL) {
-			fprintf(stderr,"Can't malloc log_device\n");
+			fprintf(stderr,"Can't add log device: %s\n", LOGGER_LOG_MAIN);
 			exit(-1);
 		}
-		devices->device = strdup("/dev/"LOGGER_LOG_MAIN);
-		devices->fd = -1;
-		devices->printed = false;
-		devices->queue = NULL;
-		devices->next = NULL;
         g_dev_count = 1;
-
 
         int accessmode =
                   (mode & O_RDONLY) ? R_OK : 0
                 | (mode & O_WRONLY) ? W_OK : 0;
 
-        // only add this if it's available
+	// only add this if it's available
 	if (0 == access("/dev/"LOGGER_LOG_SYSTEM, accessmode)) {
-		devices->next = (struct log_device_t *)malloc( sizeof(struct log_device_t));
-		if (devices->next == NULL) {
-			fprintf(stderr,"Can't malloc log_device\n");
+		if (log_devices_add_to_tail(devices, log_devices_new("/dev/"LOGGER_LOG_SYSTEM))) {
+			fprintf(stderr,"Can't add log device: %s\n", LOGGER_LOG_SYSTEM);
 			exit(-1);
 		}
-		devices->next->device = strdup("/dev/"LOGGER_LOG_SYSTEM);
-		devices->next->fd = -1;
-		devices->next->printed = false;
-		devices->next->queue = NULL;
-		devices->next->next = NULL;
-		g_dev_count ++;
 	}
+
 	if (0 == access("/dev/"LOGGER_LOG_APPS, accessmode)) {
-		devices->next = (struct log_device_t *)malloc( sizeof(struct log_device_t));
-		if (devices->next == NULL) {
-			fprintf(stderr,"Can't malloc log_device\n");
+		if (log_devices_add_to_tail(devices, log_devices_new("/dev/"LOGGER_LOG_APPS))) {
+			fprintf(stderr,"Can't add log device: %s\n", LOGGER_LOG_APPS);
 			exit(-1);
 		}
-		devices->next->device = strdup("/dev/"LOGGER_LOG_APPS);
-		devices->next->fd = -1;
-		devices->next->printed = false;
-		devices->next->queue = NULL;
-		devices->next->next = NULL;
-		g_dev_count ++;
 	}
 /*
         // only add this if it's available
@@ -766,6 +816,8 @@ int main(int argc, char **argv)
     }
 
     read_log_lines(devices);
+
+	log_devices_chain_free(devices);
 
     return 0;
 }
