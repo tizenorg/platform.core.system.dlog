@@ -421,7 +421,7 @@ static void show_help(const char *cmd)
                    "  E    Error\n"
                    "  F    Fatal\n"
                    "  S    Silent (supress all output)\n"
-                   "\n'*' means '*:d' and <tag> by itself means <tag>:v\n"
+                   "\n'*' means '*:D' and <tag> by itself means <tag>:V\n"
                    "If no filterspec is found, filter defaults to '*:I'\n"
                    "\nIf not specified with -v, format is set defaults to \"brief\"\n\n");
 
