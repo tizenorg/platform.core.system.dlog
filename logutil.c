@@ -402,11 +402,11 @@ static void show_help(const char *cmd)
                     "  -r [<kbytes>]   Rotate log every kbytes. (16 if unspecified). Requires -f\n"
                     "  -n <count>      Sets max number of rotated logs to <count>, default 4\n"
                     "  -v <format>     Sets the log print format, where <format> is one of:\n\n"
-                    "                  brief process tag thread raw time threadtime long\n\n"
-                    "  -c              clear (flush) the entire log and exit\n"
+                    "                  brief(by default) process tag thread raw time threadtime long\n\n"
+                    "  -c              clear (flush) the entire log and exit, conflicts with '-g'\n"
                     "  -d              dump the log and then exit (don't block)\n"
                     "  -t <count>      print only the most recent <count> lines (implies -d)\n"
-                    "  -g              get the size of the log's ring buffer and exit\n"
+                    "  -g              get the size of the log's ring buffer and exit, conflicts with '-c'\n"
                     "  -b <buffer>     request alternate ring buffer\n"
                     "                  ('main' (default), 'radio', 'system')");
 
@@ -422,11 +422,7 @@ static void show_help(const char *cmd)
                    "  F    Fatal\n"
                    "  S    Silent (supress all output)\n"
                    "\n'*' means '*:D' and <tag> by itself means <tag>:V\n"
-                   "If no filterspec is found, filter defaults to '*:I'\n"
-                   "\nIf not specified with -v, format is set defaults to \"brief\"\n\n");
-
-
-
+                   "If no filterspec is found, filter defaults to '*:I'\n\n");
 }
 
 
@@ -650,6 +646,12 @@ int main(int argc, char **argv)
 				exit(-1);
 			break;
 		}
+	}
+
+	/* get log size conflicts with write mode */
+	if (getLogSize && mode != O_RDONLY) {
+		show_help(argv[0]);
+		exit(-1);
 	}
 
 	if (!devices) {
