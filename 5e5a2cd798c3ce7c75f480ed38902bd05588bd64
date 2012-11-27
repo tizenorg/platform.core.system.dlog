@@ -1,0 +1,9 @@
+Change-Id: I5e5a2cd798c3ce7c75f480ed38902bd05588bd64
+Verified+1: Ryan Ware <ryan.r.ware@intel.com>
+Code-Review+2: Tracy Graydon <tracy.graydon@intel.com>
+Verified+1: Tracy Graydon <tracy.graydon@intel.com>
+Submitted-by: Tracy Graydon <tracy.graydon@intel.com>
+Submitted-at: Wed, 28 Nov 2012 05:56:04 +0900
+Reviewed-on: http://review.tizen.org/gerrit/2251
+Project: framework/system/dlog
+Branch: refs/heads/master
