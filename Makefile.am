@@ -14,7 +14,7 @@ libdlog_la_SOURCES =  \
 	log.c \
 	include/dlog.h
 
-libdlog_la_LIBADD = -lpthread
+libdlog_la_LIBADD = -lpthread -lsystemd-journal
 
 bin_PROGRAMS= dlogutil
 

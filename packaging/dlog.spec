@@ -1,4 +1,3 @@
-#sbs-git:slp/pkgs/d/dlog dlog 0.4.0 f2a67c71d044de4757f7eef9759c7f99d527462f
 Name:       dlog
 Summary:    Logging service
 Version:    0.4.0
@@ -8,7 +7,7 @@ License:    Apache License
 Source0:    %{name}-%{version}.tar.gz
 Source101:  packaging/dlog-main.service
 Source102:  packaging/dlog-radio.service
-
+BuildRequires: pkgconfig(systemd)
 Requires(post): /sbin/ldconfig
 Requires(post): /usr/bin/systemctl
 Requires(post): /usr/bin/vconftool
@@ -51,7 +50,6 @@ utilities for print log data
 
 
 %build
-
 %autogen --disable-static
 %configure --disable-static
 make %{?jobs:-j%jobs}
@@ -59,6 +57,12 @@ make %{?jobs:-j%jobs}
 %install
 rm -rf %{buildroot}
 %make_install
+mkdir -p %{buildroot}/opt/etc/
+cp %{_builddir}/%{name}-%{version}/.dloglevel %{buildroot}/opt/etc/.dloglevel
+mkdir -p %{buildroot}/etc/profile.d/
+cp %{_builddir}/%{name}-%{version}/tizen_platform_env.sh %{buildroot}/etc/profile.d/tizen_platform_env.sh
+mkdir -p %{buildroot}/usr/bin/
+cp %{_builddir}/%{name}-%{version}/dlogctrl %{buildroot}/usr/bin/dlogctrl
 
 mkdir -p %{buildroot}/%{_sysconfdir}/rc.d/rc3.d
 mkdir -p %{buildroot}/%{_sysconfdir}/rc.d/rc5.d
@@ -68,7 +72,6 @@ ln -s ../init.d/dlog.sh %{buildroot}/%{_sysconfdir}/rc.d/rc3.d/S05dlog
 ln -s ../init.d/dlog.sh %{buildroot}/%{_sysconfdir}/rc.d/rc5.d/S05dlog
 
 mkdir -p %{buildroot}%{_libdir}/systemd/system/multi-user.target.wants
-mkdir -p %{buildroot}%{_libdir}/udev/rules.d
 
 install -m 0644 %SOURCE101 %{buildroot}%{_libdir}/systemd/system/
 install -m 0644 %SOURCE102 %{buildroot}%{_libdir}/systemd/system/
@@ -76,8 +79,6 @@ install -m 0644 %SOURCE102 %{buildroot}%{_libdir}/systemd/system/
 ln -s ../dlog-main.service %{buildroot}%{_libdir}/systemd/system/multi-user.target.wants/dlog-main.service
 ln -s ../dlog-radio.service %{buildroot}%{_libdir}/systemd/system/multi-user.target.wants/dlog-radio.service
 
-mkdir -p %{buildroot}/opt/etc/
-cp %{_builddir}/%{name}-%{version}/.debuglevel %{buildroot}/opt/etc/.debuglevel
 mkdir -p %{buildroot}/usr/share/license
 cp LICENSE %{buildroot}/usr/share/license/%{name}
 
@@ -89,6 +90,10 @@ if [ $1 == 0 ]; then
 fi
 
 %post -n dlogutil
+mkdir -p /opt/etc/dlog
+chown 0:5000 /opt/etc/dlog
+chmod 775 /opt/etc/dlog
+chmod 755 /usr/bin/dlogctrl
 systemctl daemon-reload
 if [ $1 == 1 ]; then
     systemctl restart dlog-main.service
@@ -99,17 +104,14 @@ fi
 systemctl daemon-reload
 
 %post -n libdlog
-chmod +x /opt/etc/.debuglevel
-rm -f /etc/profile.d/dlevel.sh
-ln -s /opt/etc/.debuglevel /etc/profile.d/dlevel.sh
 /sbin/ldconfig
-
 %postun -n libdlog
 /sbin/ldconfig
 
 %files  -n dlogutil
 %manifest dlogutil.manifest
 %{_bindir}/dlogutil
+%{_bindir}/dlogctrl
 %{_sysconfdir}/rc.d/init.d/dlog.sh
 %{_sysconfdir}/rc.d/rc3.d/S05dlog
 %{_sysconfdir}/rc.d/rc5.d/S05dlog
@@ -121,7 +123,8 @@ ln -s /opt/etc/.debuglevel /etc/profile.d/dlevel.sh
 %files  -n libdlog
 /usr/share/license/%{name}
 %doc LICENSE
-/opt/etc/.debuglevel
+/opt/etc/.dloglevel
+/etc/profile.d/tizen_platform_env.sh
 %{_libdir}/libdlog.so.0
 %{_libdir}/libdlog.so.0.0.0
 

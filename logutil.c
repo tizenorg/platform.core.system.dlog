@@ -97,7 +97,7 @@ static void enqueue(struct log_device_t* device, struct queued_entry_t* entry)
 
 static int open_logfile (const char *pathname)
 {
-    return open(pathname, O_WRONLY | O_APPEND | O_CREAT, S_IRUSR | S_IWUSR);
+    return open(pathname, O_WRONLY | O_APPEND | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH);
 }
 
 static void rotate_logs()

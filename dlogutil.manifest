@@ -1,11 +1,15 @@
 <manifest>
-<define>
-<domain name="dlogutil" policy="restricted"/>
-</define>
-<request>
-<domain name="dlogutil"/>
-</request>
-<assign>
-<filesystem path="/usr/bin/dlogutil" label="dlogutil"/>
-</assign>
+	<define>
+		<domain name="dlogutil" policy="restricted"/>
+	<provide>
+		<label name="dlogutil::dlog"/>
+	</provide>
+	</define>
+	<request>
+		<domain name="dlogutil"/>
+	</request>
+	<assign>
+		<filesystem path="/usr/bin/dlogutil" label="dlogutil"/>
+		<filesystem path="/opt/etc/dlog" label="dlogutil::dlog"/>
+	</assign>
 </manifest>
