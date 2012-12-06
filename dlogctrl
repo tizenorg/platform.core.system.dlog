@@ -2,7 +2,7 @@
 MODE=none
 OBJ=none
 VAL=none
-#echo "tizen_platform_logging_ctrl"
+#echo "tizen_platform_dlog_logging_ctrl"
 case "$1" in
 get)
 	MODE=get
@@ -12,7 +12,7 @@ set)
 ;;
 
 *)
-echo "Usage: tplctrl {get|set} {platformlog} {1|0}"
+echo "Usage: dlogctrl {get|set} {platformlog} {1|0}"
 exit 1
 esac
 
@@ -21,7 +21,7 @@ platformlog)
 	OBJ=platformlog
 ;;
 *)
-	echo "Usage: tplctrl {get|set} {platformlog} {1|0}"
+	echo "Usage: dlogctrl {get|set} {platformlog} {1|0}"
 exit 1
 esac
 
@@ -34,7 +34,7 @@ if [ "$MODE" = "set" ]; then
 		VAL=0
 	;;
 	*)
-		echo "Usage: tplctrl {get|set} {platformlog} {1|0}"
+		echo "Usage: dlogctrl {get|set} {platformlog} {1|0}"
 	exit 1
 	esac
 fi
