@@ -14,8 +14,11 @@ libdlog_la_SOURCES =  \
 	log.c \
 	include/dlog.h
 
+if SD_JOURNAL_SUPPORT
 libdlog_la_LIBADD = -lpthread -lsystemd-journal
-
+else
+libdlog_la_LIBADD = -lpthread
+endif
 bin_PROGRAMS= dlogutil
 
 dlogutil_SOURCES = \

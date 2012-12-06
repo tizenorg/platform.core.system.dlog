@@ -3,6 +3,7 @@
 		<domain name="dlogutil" policy="restricted"/>
 	<provide>
 		<label name="dlogutil::dlog"/>
+		<label name="dlogutil::dlogscript"/>
 	</provide>
 	</define>
 	<request>
@@ -11,5 +12,6 @@
 	<assign>
 		<filesystem path="/usr/bin/dlogutil" label="dlogutil"/>
 		<filesystem path="/opt/etc/dlog" label="dlogutil::dlog"/>
+		<filesystem path="/etc/rc.d/init.d/dlog.sh" label="dlogutil::dlogscript"/>
 	</assign>
 </manifest>

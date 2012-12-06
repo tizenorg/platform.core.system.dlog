@@ -19,6 +19,12 @@ AC_PROG_LIBTOOL
 # checks arch
 AM_CONDITIONAL(DEVELOP_VER, test $DEVELOP_VER = yes)
 
+SD_JOURNAL_SUPPORT=no
+
+AC_DEFINE([SD_JOURNAL_SUPPORT], [], [Description])
+
+AM_CONDITIONAL(SD_JOURNAL_SUPPORT, test $SD_JOURNAL_SUPPORT = yes)
+
 #AM_CONDITIONAL([ARCH_IS_ARM], [test "x$ARCH" = "xarm"])
 if test "x$ARCH" = "xarm" ; then
 	DLOG_CFLAGS="-D__arm__"
@@ -27,6 +33,7 @@ else
 fi
 
 AC_SUBST(DLOG_CFLAGS)
+
 
 dnl AC_SUBST(ACLOCAL_AMFLAGS, "-I m4")
 # Checks for libraries.

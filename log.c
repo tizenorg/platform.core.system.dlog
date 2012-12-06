@@ -24,7 +24,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <dlog.h>
-#ifdef SD_JOURNAL_LOG
+#ifdef SD_JOURNAL_SUPPORT
 #include <systemd/sd-journal.h>
 #endif
 #define LOG_BUF_SIZE	1024
@@ -48,7 +48,7 @@ static int __write_to_log_null(log_id_t log_id, log_priority prio, const char *t
 {
 	return -1;
 }
-#ifdef SD_JOURNAL_LOG
+#ifdef SD_JOURNAL_SUPPORT
 static int dlog_pri_to_journal_pri(log_priority prio)
 {
 	int journal_prio = LOG_DEBUG;
@@ -149,7 +149,7 @@ static int __dlog_init(log_id_t log_id, log_priority prio, const char *tag, cons
 	// get filtering info
 	// open device
 	if (write_to_log == __dlog_init) {
-#ifdef SD_JOURNAL_LOG
+#ifdef SD_JOURNAL_SUPPORT
 		write_to_log = __write_to_log_sd_journal_print;
 #else
 		init_dlog_level();
@@ -198,7 +198,7 @@ int __dlog_print(log_id_t log_id, int prio, const char *tag, const char *fmt, ..
 
 	return write_to_log(log_id, prio, tag, buf);
 }
-int _get_logging_on()
+int _get_logging_on(void)
 {
 	return g_logging_on;
 }
