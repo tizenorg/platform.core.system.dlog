@@ -4,7 +4,7 @@ if [ -e "/opt/etc/dlog/.platformloggingon" ]; then
 	export TIZEN_PLATFORMLOGGING_MODE=1
 fi
 
-if [ "$TIZEN_PLATFORMLOGGING_MODE" -eq "1"]; then
+if [ "$TIZEN_PLATFORMLOGGING_MODE" -eq "1" ]; then
 	dlevel=$(cat /opt/etc/.dloglevel)
 	if [ "$dlevel" -eq "0" ]; then
 		export TIZEN_DLOG_LEVEL=0
