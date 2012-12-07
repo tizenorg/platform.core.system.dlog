@@ -7,6 +7,7 @@ License:    Apache License
 Source0:    %{name}-%{version}.tar.gz
 Source101:  packaging/dlog-main.service
 Source102:  packaging/dlog-radio.service
+Source103:  packaging/tizen-debug-level.service
 BuildRequires: pkgconfig(systemd)
 Requires(post): /sbin/ldconfig
 Requires(post): /usr/bin/systemctl
@@ -71,13 +72,16 @@ rm -f %{buildroot}/%{_sysconfdir}/etc/rc.d/rc5.d/S05dlog
 ln -s ../init.d/dlog.sh %{buildroot}/%{_sysconfdir}/rc.d/rc3.d/S05dlog
 ln -s ../init.d/dlog.sh %{buildroot}/%{_sysconfdir}/rc.d/rc5.d/S05dlog
 
+mkdir -p %{buildroot}%{_libdir}/systemd/system/basic.target.wants
 mkdir -p %{buildroot}%{_libdir}/systemd/system/multi-user.target.wants
 
 install -m 0644 %SOURCE101 %{buildroot}%{_libdir}/systemd/system/
 install -m 0644 %SOURCE102 %{buildroot}%{_libdir}/systemd/system/
+install -m 0644 %SOURCE103 %{buildroot}%{_libdir}/systemd/system/
 
 ln -s ../dlog-main.service %{buildroot}%{_libdir}/systemd/system/multi-user.target.wants/dlog-main.service
 ln -s ../dlog-radio.service %{buildroot}%{_libdir}/systemd/system/multi-user.target.wants/dlog-radio.service
+ln -s ../tizen-debug-level.service %{buildroot}%{_libdir}/systemd/system/basic.target.wants/tizen-debug-level.service
 
 mkdir -p %{buildroot}/usr/share/license
 cp LICENSE %{buildroot}/usr/share/license/%{name}
@@ -115,8 +119,10 @@ systemctl daemon-reload
 %{_sysconfdir}/rc.d/init.d/dlog.sh
 %{_sysconfdir}/rc.d/rc3.d/S05dlog
 %{_sysconfdir}/rc.d/rc5.d/S05dlog
+%{_libdir}/systemd/system/tizen-debug-level.service
 %{_libdir}/systemd/system/dlog-main.service
 %{_libdir}/systemd/system/dlog-radio.service
+%{_libdir}/systemd/system/basic.target.wants/tizen-debug-level.service
 %{_libdir}/systemd/system/multi-user.target.wants/dlog-main.service
 %{_libdir}/systemd/system/multi-user.target.wants/dlog-radio.service
 
