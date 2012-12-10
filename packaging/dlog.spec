@@ -1,7 +1,7 @@
 Name:       dlog
 Summary:    Logging service
 Version:    0.4.1
-Release:    0.0
+Release:    1
 Group:      System/Libraries
 License:    Apache License
 Source0:    %{name}-%{version}.tar.gz

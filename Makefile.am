@@ -1,8 +1,12 @@
 
 
+if SD_JOURNAL_SUPPORT
+AM_CFLAGS = @CFLAGS@ -I$(srcdir)/include \
+	      -I$(srcdir)/include/internal -DSD_JOURNAL_SUPPORT
+else
 AM_CFLAGS = @CFLAGS@ -I$(srcdir)/include \
 	      -I$(srcdir)/include/internal
-
+endif
 
 dlog_includedir = $(includedir)/dlog
 dlog_include_HEADERS = \

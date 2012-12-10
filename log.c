@@ -13,9 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifdef HAVE_PTHREADS
 #include <pthread.h>
-#endif
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
@@ -41,9 +39,7 @@ static int g_dlog_level = DLOG_SILENT;
 
 static int __dlog_init(log_id_t, log_priority, const char *tag, const char *msg);
 static int (*write_to_log)(log_id_t, log_priority, const char *tag, const char *msg) = __dlog_init;
-#ifdef HAVE_PTHREADS
 static pthread_mutex_t log_init_lock = PTHREAD_MUTEX_INITIALIZER;
-#endif
 static int __write_to_log_null(log_id_t log_id, log_priority prio, const char *tag, const char *msg)
 {
 	return -1;
@@ -81,7 +77,7 @@ static int dlog_pri_to_journal_pri(log_priority prio)
 	}
 	return journal_prio;
 }
-static int __write_to_log_kernel(log_id_t log_id, log_priority prio, const char *tag, const char *msg)
+static int __write_to_log_sd_journal_print(log_id_t log_id, log_priority prio, const char *tag, const char *msg)
 {
 	sd_journal_print(dlog_pri_to_journal_pri(prio), "%s %s", tag, msg);
 	return 1;
@@ -122,36 +118,34 @@ static int __write_to_log_kernel(log_id_t log_id, log_priority prio, const char 
 #endif
 void init_dlog_level(void)
 {
-	char *dlog_level;
-	char *logging_mode;
+	char *dlog_level_env;
+	char *logging_mode_env;
 	if (g_logging_on) {
-		logging_mode = getenv("TIZEN_PLATFORMLOGGING_MODE");
-		if (!logging_mode)
+		logging_mode_env = getenv("TIZEN_PLATFORMLOGGING_MODE");
+		if (!logging_mode_env)
 				g_logging_on = 0;
 			else
-				g_logging_on = atoi(logging_mode);
+				g_logging_on = atoi(logging_mode_env);
 	}
 	if (g_logging_on) {
-		dlog_level = getenv("TIZEN_DLOG_LEVEL");
-		if (!dlog_level) {
+		dlog_level_env = getenv("TIZEN_DLOG_LEVEL");
+		if (!dlog_level_env) {
 			g_dlog_level = 8;
 		} else {
-			g_dlog_level = atoi(dlog_level);
+			g_dlog_level = atoi(dlog_level_env);
 		}
 	} else
 		g_dlog_level = 8;
 }
 static int __dlog_init(log_id_t log_id, log_priority prio, const char *tag, const char *msg)
 {
-#ifdef HAVE_PTHREADS
 	pthread_mutex_lock(&log_init_lock);
-#endif
+#ifdef SD_JOURNAL_SUPPORT
+	write_to_log = __write_to_log_sd_journal_print;
+#else
 	// get filtering info
 	// open device
 	if (write_to_log == __dlog_init) {
-#ifdef SD_JOURNAL_SUPPORT
-		write_to_log = __write_to_log_sd_journal_print;
-#else
 		init_dlog_level();
 
 		log_fds[LOG_ID_MAIN] = open("/dev/"LOG_MAIN, O_WRONLY);
@@ -170,11 +164,9 @@ static int __dlog_init(log_id_t log_id, log_priority prio, const char *tag, cons
 
 		if (log_fds[LOG_ID_APPS] < 0)
 			log_fds[LOG_ID_APPS] = log_fds[LOG_ID_MAIN];
-#endif
 	}
-#ifdef HAVE_PTHREADS
-	pthread_mutex_unlock(&log_init_lock);
 #endif
+	pthread_mutex_unlock(&log_init_lock);
 	return write_to_log(log_id, prio, tag, msg);
 }
 

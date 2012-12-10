@@ -1,6 +1,6 @@
 #!/bin/sh
 
-if [ -e "/opt/etc/dlog/.platformloggingon" ]; then
+if [ -e "/opt/etc/dlog/.platformloggingmode" ]; then
 	export TIZEN_PLATFORMLOGGING_MODE=1
 fi
 
