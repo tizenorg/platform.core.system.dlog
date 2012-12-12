@@ -577,7 +577,7 @@ int main(int argc, char **argv)
 
 			case 'b': {
 						  char *buf;
-						  if (asprintf(&buf, LOG_FILE_DIR "/%s", optarg) == -1) {
+						  if (asprintf(&buf, LOG_FILE_DIR "%s", optarg) == -1) {
 							  asprintf(stderr,"Can't malloc LOG_FILE_DIR\n");
 							  exit(-1);
 						  }

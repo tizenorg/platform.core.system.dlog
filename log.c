@@ -23,6 +23,7 @@
 #include <errno.h>
 #include <dlog.h>
 #ifdef SD_JOURNAL_SUPPORT
+#include <syslog.h>
 #include <systemd/sd-journal.h>
 #endif
 #define LOG_BUF_SIZE	1024
