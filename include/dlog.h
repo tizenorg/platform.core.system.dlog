@@ -98,7 +98,7 @@ typedef enum {
 #define LOGV(...)   (0)
 #else
 #define LOGV(format, arg...) \
-	(LOG_ON() ? (LOG(LOG_VERBOSE, LOG_TAG, "%s:%s(%d)>"format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
+	(LOG_ON() ? (LOG(LOG_VERBOSE, LOG_TAG, "%s:%s(%d)>" format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
 #endif
 #endif
 /**
@@ -110,7 +110,7 @@ typedef enum {
 #else
 #define LOGV_IF(cond, format, arg...) \
 	(((CONDITION(cond)) && (LOG_ON())) ? \
-	  (LOG(LOG_VERBOSE, LOG_TAG, "%s:%s(%d)>"format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
+	  (LOG(LOG_VERBOSE, LOG_TAG, "%s:%s(%d)>" format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
 #endif
 #endif
 /**
@@ -118,7 +118,7 @@ typedef enum {
  */
 #ifndef LOGD
 #define LOGD(format, arg...) \
-	(LOG_ON() ? (LOG(LOG_DEBUG, LOG_TAG, "%s:%s(%d)>"format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
+	(LOG_ON() ? (LOG(LOG_DEBUG, LOG_TAG, "%s:%s(%d)>" format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
 #endif
 /**
  * Simplified macro to send a conditional verbose log message using the current LOG_TAG.
@@ -126,7 +126,7 @@ typedef enum {
 #ifndef LOGD_IF
 #define LOGD_IF(cond, format, arg...) \
 	(((CONDITION(cond)) && (LOG_ON())) ? \
-	  (LOG(LOG_DEBUG, LOG_TAG, "%s:%s(%d)>"format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
+	  (LOG(LOG_DEBUG, LOG_TAG, "%s:%s(%d)>" format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
 #endif
 
 /**
@@ -134,7 +134,7 @@ typedef enum {
  */
 #ifndef LOGI
 #define LOGI(format, arg...) \
-	(LOG_ON() ? (LOG(LOG_INFO, LOG_TAG, "%s:%s(%d)>"format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
+	(LOG_ON() ? (LOG(LOG_INFO, LOG_TAG, "%s:%s(%d)>" format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
 #endif
 /**
  * Simplified macro to send a conditional verbose log message using the current LOG_TAG.
@@ -142,7 +142,7 @@ typedef enum {
 #ifndef LOGI_IF
 #define LOGI_IF(cond, format, arg...) \
 	(((CONDITION(cond)) && (LOG_ON())) ? \
-	  (LOG(LOG_INFO, LOG_TAG, "%s:%s(%d)>"format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
+	  (LOG(LOG_INFO, LOG_TAG, "%s:%s(%d)>" format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
 #endif
 
 /**
@@ -150,7 +150,7 @@ typedef enum {
  */
 #ifndef LOGW
 #define LOGW(format, arg...) \
-	(LOG_ON() ? (LOG(LOG_WARN, LOG_TAG, "%s:%s(%d)>"format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
+	(LOG_ON() ? (LOG(LOG_WARN, LOG_TAG, "%s:%s(%d)>" format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
 #endif
 /**
  * Simplified macro to send a conditional verbose log message using the current LOG_TAG.
@@ -158,7 +158,7 @@ typedef enum {
 #ifndef LOGW_IF
 #define LOGW_IF(cond, format, arg...) \
 	(((CONDITION(cond)) && (LOG_ON())) ? \
-	  (LOG(LOG_WARN, LOG_TAG, "%s:%s(%d)>"format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
+	  (LOG(LOG_WARN, LOG_TAG, "%s:%s(%d)>" format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
 #endif
 
 /**
@@ -166,7 +166,7 @@ typedef enum {
  */
 #ifndef LOGE
 #define LOGE(format, arg...) \
-	(LOG_ON() ? (LOG(LOG_ERROR, LOG_TAG, "%s:%s(%d)>"format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
+	(LOG_ON() ? (LOG(LOG_ERROR, LOG_TAG, "%s:%s(%d)>" format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
 #endif
 /**
  * Simplified macro to send a conditional verbose log message using the current LOG_TAG.
@@ -174,14 +174,14 @@ typedef enum {
 #ifndef LOGE_IF
 #define LOGE_IF(cond, format, arg...) \
 	(((CONDITION(cond)) && (LOG_ON())) ? \
-	  (LOG(LOG_ERROR, LOG_TAG, "%s:%s(%d)>"format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
+	  (LOG(LOG_ERROR, LOG_TAG, "%s:%s(%d)>" format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
 #endif
 /**
  * Simplified macro to send an error log message using the current LOG_TAG.
  */
 #ifndef LOGF
 #define LOGF(format, arg...) \
-	(LOG_ON() ? (LOG(LOG_FATAL, LOG_TAG, "%s:%s(%d)>"format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
+	(LOG_ON() ? (LOG(LOG_FATAL, LOG_TAG, "%s:%s(%d)>" format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
 #endif
 /**
  * Simplified macro to send a conditional verbose log message using the current LOG_TAG.
@@ -189,7 +189,7 @@ typedef enum {
 #ifndef LOGF_IF
 #define LOGF_IF(cond, format, arg...) \
 	(((CONDITION(cond)) && (LOG_ON())) ? \
-	  (LOG(LOG_FATAL, LOG_TAG, "%s:%s(%d)>"format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
+	  (LOG(LOG_FATAL, LOG_TAG, "%s:%s(%d)>" format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
 #endif
 
 // ---------------------------------------------------------------------
@@ -201,7 +201,7 @@ typedef enum {
 #define RLOGV(...)   (0)
 #else
 #define RLOGV(format, arg...) \
-	(LOG_ON() ? (RLOG(LOG_VERBOSE, LOG_TAG, "%s:%s(%d)>"format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
+	(LOG_ON() ? (RLOG(LOG_VERBOSE, LOG_TAG, "%s:%s(%d)>" format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
 #endif
 #endif
 /**
@@ -213,7 +213,7 @@ typedef enum {
 #else
 #define RLOGV_IF(cond, format, arg...) \
 	(((CONDITION(cond)) && (LOG_ON())) ? \
-	  (RLOG(LOG_VERBOSE, LOG_TAG, "%s:%s(%d)>"format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
+	  (RLOG(LOG_VERBOSE, LOG_TAG, "%s:%s(%d)>" format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
 #endif
 #endif
 
@@ -222,7 +222,7 @@ typedef enum {
  */
 #ifndef RLOGD
 #define RLOGD(format, arg...) \
-	(LOG_ON() ? (RLOG(LOG_DEBUG, LOG_TAG, "%s:%s(%d)>"format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
+	(LOG_ON() ? (RLOG(LOG_DEBUG, LOG_TAG, "%s:%s(%d)>" format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
 #endif
 /**
  * Simplified radio macro to send a conditional verbose log message using the current LOG_TAG.
@@ -230,7 +230,7 @@ typedef enum {
 #ifndef RLOGD_IF
 #define RLOGD_IF(cond, format, arg...) \
 	(((CONDITION(cond)) && (LOG_ON())) ? \
-	  (RLOG(LOG_DEBUG, LOG_TAG, "%s:%s(%d)>"format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
+	  (RLOG(LOG_DEBUG, LOG_TAG, "%s:%s(%d)>" format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
 #endif
 
 /**
@@ -238,7 +238,7 @@ typedef enum {
  */
 #ifndef RLOGI
 #define RLOGI(format, arg...) \
-	(LOG_ON() ? (RLOG(LOG_INFO, LOG_TAG, "%s:%s(%d)>"format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
+	(LOG_ON() ? (RLOG(LOG_INFO, LOG_TAG, "%s:%s(%d)>" format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
 #endif
 /**
  * Simplified radio macro to send a conditional verbose log message using the current LOG_TAG.
@@ -246,7 +246,7 @@ typedef enum {
 #ifndef RLOGI_IF
 #define RLOGI_IF(cond, format, arg...) \
 	(((CONDITION(cond)) && (LOG_ON())) ? \
-	  (RLOG(LOG_INFO, LOG_TAG, "%s:%s(%d)>"format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
+	  (RLOG(LOG_INFO, LOG_TAG, "%s:%s(%d)>" format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
 #endif
 
 /**
@@ -254,7 +254,7 @@ typedef enum {
  */
 #ifndef RLOGW
 #define RLOGW(format, arg...) \
-	(LOG_ON() ? (RLOG(LOG_WARN, LOG_TAG, "%s:%s(%d)>"format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
+	(LOG_ON() ? (RLOG(LOG_WARN, LOG_TAG, "%s:%s(%d)>" format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
 #endif
 /**
  * Simplified radio macro to send a conditional verbose log message using the current LOG_TAG.
@@ -262,7 +262,7 @@ typedef enum {
 #ifndef RLOGW_IF
 #define RLOGW_IF(cond, format, arg...) \
 	(((CONDITION(cond)) && (LOG_ON())) ? \
-	  (RLOG(LOG_WARN, LOG_TAG, "%s:%s(%d)>"format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
+	  (RLOG(LOG_WARN, LOG_TAG, "%s:%s(%d)>" format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
 #endif
 
 /**
@@ -270,7 +270,7 @@ typedef enum {
  */
 #ifndef RLOGE
 #define RLOGE(format, arg...) \
-	(LOG_ON() ? (RLOG(LOG_ERROR, LOG_TAG, "%s:%s(%d)>"format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
+	(LOG_ON() ? (RLOG(LOG_ERROR, LOG_TAG, "%s:%s(%d)>" format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
 #endif
 /**
  * Simplified radio macro to send a conditional verbose log message using the current LOG_TAG.
@@ -278,14 +278,14 @@ typedef enum {
 #ifndef RLOGE_IF
 #define RLOGE_IF(cond, format, arg...) \
 	(((CONDITION(cond)) && (LOG_ON())) ? \
-	  (RLOG(LOG_ERROR, LOG_TAG, "%s:%s(%d)>"format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
+	  (RLOG(LOG_ERROR, LOG_TAG, "%s:%s(%d)>" format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
 #endif
 /**
  * Simplified radio macro to send an error log message using the current LOG_TAG.
  */
 #ifndef RLOGF
 #define RLOGF(format, arg...) \
-	(LOG_ON() ? (RLOG(LOG_FATAL, LOG_TAG, "%s:%s(%d)>"format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
+	(LOG_ON() ? (RLOG(LOG_FATAL, LOG_TAG, "%s:%s(%d)>" format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
 #endif
 /**
  * Simplified radio macro to send a conditional verbose log message using the current LOG_TAG.
@@ -293,7 +293,7 @@ typedef enum {
 #ifndef RLOGF_IF
 #define RLOGF_IF(cond, format, arg...) \
 	(((CONDITION(cond)) && (LOG_ON())) ? \
-	  (RLOG(LOG_FATAL, LOG_TAG, "%s:%s(%d)>"format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
+	  (RLOG(LOG_FATAL, LOG_TAG, "%s:%s(%d)>" format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
 #endif
 
 
@@ -306,7 +306,7 @@ typedef enum {
 #define SLOGV(...)   (0)
 #else
 #define SLOGV(format, arg...) \
-	(LOG_ON() ? (SLOG(LOG_VERBOSE, LOG_TAG, "%s:%s(%d)>"format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
+	(LOG_ON() ? (SLOG(LOG_VERBOSE, LOG_TAG, "%s:%s(%d)>" format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
 #endif
 #endif
 /**
@@ -318,7 +318,7 @@ typedef enum {
 #else
 #define SLOGV_IF(cond, format, arg...) \
 	(((CONDITION(cond)) && (LOG_ON())) ? \
-	  (SLOG(LOG_VERBOSE, LOG_TAG, "%s:%s(%d)>"format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
+	  (SLOG(LOG_VERBOSE, LOG_TAG, "%s:%s(%d)>" format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
 #endif
 #endif
 
@@ -327,7 +327,7 @@ typedef enum {
  */
 #ifndef SLOGD
 #define SLOGD(format, arg...) \
-	(LOG_ON() ? (SLOG(LOG_DEBUG, LOG_TAG, "%s:%s(%d)>"format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
+	(LOG_ON() ? (SLOG(LOG_DEBUG, LOG_TAG, "%s:%s(%d)>" format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
 #endif
 /**
  * Simplified system macro to send a conditional verbose log message using the current LOG_TAG.
@@ -335,7 +335,7 @@ typedef enum {
 #ifndef SLOGD_IF
 #define SLOGD_IF(cond, format, arg...) \
 	(((CONDITION(cond)) && (LOG_ON())) ? \
-	  (SLOG(LOG_DEBUG, LOG_TAG, "%s:%s(%d)>"format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
+	  (SLOG(LOG_DEBUG, LOG_TAG, "%s:%s(%d)>" format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
 #endif
 
 /**
@@ -343,7 +343,7 @@ typedef enum {
  */
 #ifndef SLOGI
 #define SLOGI(format, arg...) \
-	(LOG_ON() ? (SLOG(LOG_INFO, LOG_TAG, "%s:%s(%d)>"format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
+	(LOG_ON() ? (SLOG(LOG_INFO, LOG_TAG, "%s:%s(%d)>" format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
 #endif
 /**
  * Simplified system macro to send a conditional verbose log message using the current LOG_TAG.
@@ -351,7 +351,7 @@ typedef enum {
 #ifndef SLOGI_IF
 #define SLOGI_IF(cond, format, arg...) \
 	(((CONDITION(cond)) && (LOG_ON())) ? \
-	  (SLOG(LOG_INFO, LOG_TAG, "%s:%s(%d)>"format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
+	  (SLOG(LOG_INFO, LOG_TAG, "%s:%s(%d)>" format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
 #endif
 
 /**
@@ -359,7 +359,7 @@ typedef enum {
  */
 #ifndef SLOGW
 #define SLOGW(format, arg...) \
-	(LOG_ON() ? (SLOG(LOG_WARN, LOG_TAG, "%s:%s(%d)>"format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
+	(LOG_ON() ? (SLOG(LOG_WARN, LOG_TAG, "%s:%s(%d)>" format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
 #endif
 /**
  * Simplified system macro to send a conditional verbose log message using the current LOG_TAG.
@@ -367,7 +367,7 @@ typedef enum {
 #ifndef SLOGW_IF
 #define SLOGW_IF(cond, format, arg...) \
 	(((CONDITION(cond)) && (LOG_ON())) ? \
-	  (SLOG(LOG_WARN, LOG_TAG, "%s:%s(%d)>"format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
+	  (SLOG(LOG_WARN, LOG_TAG, "%s:%s(%d)>" format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
 #endif
 
 /**
@@ -375,7 +375,7 @@ typedef enum {
  */
 #ifndef SLOGE
 #define SLOGE(format, arg...) \
-	(LOG_ON() ? (SLOG(LOG_ERROR, LOG_TAG, "%s:%s(%d)>"format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
+	(LOG_ON() ? (SLOG(LOG_ERROR, LOG_TAG, "%s:%s(%d)>" format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
 #endif
 /**
  * Simplified system macro to send a conditional verbose log message using the current LOG_TAG.
@@ -383,14 +383,14 @@ typedef enum {
 #ifndef SLOGE_IF
 #define SLOGE_IF(cond, format, arg...) \
 	(((CONDITION(cond)) && (LOG_ON())) ? \
-	  (SLOG(LOG_ERROR, LOG_TAG, "%s:%s(%d)>"format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
+	  (SLOG(LOG_ERROR, LOG_TAG, "%s:%s(%d)>" format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
 #endif
 /**
  * Simplified system macro to send an error log message using the current LOG_TAG.
  */
 #ifndef SLOGF
 #define SLOGF(format, arg...) \
-	(LOG_ON() ? (SLOG(LOG_FATAL, LOG_TAG, "%s:%s(%d)>"format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
+	(LOG_ON() ? (SLOG(LOG_FATAL, LOG_TAG, "%s:%s(%d)>" format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
 #endif
 /**
  * Simplified system macro to send a conditional verbose log message using the current LOG_TAG.
@@ -398,7 +398,7 @@ typedef enum {
 #ifndef SLOGF_IF
 #define SLOGF_IF(cond, format, arg...) \
 	(((CONDITION(cond)) && (LOG_ON())) ? \
-	  (SLOG(LOG_FATAL, LOG_TAG, "%s:%s(%d)>"format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
+	  (SLOG(LOG_FATAL, LOG_TAG, "%s:%s(%d)>" format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
 #endif
 
 // ---------------------------------------------------------------------
