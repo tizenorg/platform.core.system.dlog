@@ -1,17 +1,18 @@
 Name:       dlog
 Summary:    Logging service
 Version:    0.4.1
-Release:    1
+Release:    2
 Group:      System/Libraries
 License:    Apache License
 Source0:    %{name}-%{version}.tar.gz
 Source101:  packaging/dlog-main.service
 Source102:  packaging/dlog-radio.service
 Source103:  packaging/tizen-debug-level.service
-BuildRequires: pkgconfig(systemd)
+BuildRequires: pkgconfig(libsystemd-journal)
 Requires(post): /sbin/ldconfig
 Requires(post): /usr/bin/systemctl
 Requires(post): /usr/bin/vconftool
+Requires(post): coreutils
 Requires(postun): /sbin/ldconfig
 Requires(postun): /usr/bin/systemctl
 Requires(preun): /usr/bin/systemctl

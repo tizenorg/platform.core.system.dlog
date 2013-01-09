@@ -45,6 +45,58 @@ static int __write_to_log_null(log_id_t log_id, log_priority prio, const char *t
 {
 	return -1;
 }
+static int __write_to_log_kernel(log_id_t log_id, log_priority prio, const char *tag, const char *msg)
+{
+	ssize_t ret;
+	int log_fd;
+	struct iovec vec[3];
+
+	if (log_id < LOG_ID_APPS) {
+		if(prio < g_dlog_level) {
+			return 0;
+		}
+	} else if (LOG_ID_MAX <= log_id) {
+		return 0;
+	}
+	if (log_id < LOG_ID_MAX)
+		log_fd = log_fds[log_id];
+	else
+		return -1; // for TC
+
+	if (!tag)
+		tag = "";
+
+	if (!msg)
+		return -1;
+
+	vec[0].iov_base	= (unsigned char *) &prio;
+	vec[0].iov_len	= 1;
+	vec[1].iov_base	= (void *) tag;
+	vec[1].iov_len	= strlen(tag) + 1;
+	vec[2].iov_base	= (void *) msg;
+	vec[2].iov_len	= strlen(msg) + 1;
+
+	ret = writev(log_fd, vec, 3);
+
+	return ret;
+}
+static char dlog_pri_to_char (log_priority pri)
+{
+	switch (pri) {
+		case DLOG_VERBOSE:       return 'V';
+		case DLOG_DEBUG:         return 'D';
+		case DLOG_INFO:          return 'I';
+		case DLOG_WARN:          return 'W';
+		case DLOG_ERROR:         return 'E';
+		case DLOG_FATAL:         return 'F';
+		case DLOG_SILENT:        return 'S';
+
+		case DLOG_DEFAULT:
+		case DLOG_UNKNOWN:
+		default:
+								 return '?';
+	}
+}
 #ifdef SD_JOURNAL_SUPPORT
 static int dlog_pri_to_journal_pri(log_priority prio)
 {
@@ -80,15 +132,8 @@ static int dlog_pri_to_journal_pri(log_priority prio)
 }
 static int __write_to_log_sd_journal_print(log_id_t log_id, log_priority prio, const char *tag, const char *msg)
 {
-	sd_journal_print(dlog_pri_to_journal_pri(prio), "%s %s", tag, msg);
-	return 1;
-}
-#else
-static int __write_to_log_kernel(log_id_t log_id, log_priority prio, const char *tag, const char *msg)
-{
 	ssize_t ret;
 	int log_fd;
-	struct iovec vec[3];
 
 	if (log_id < LOG_ID_APPS) {
 		if(prio < g_dlog_level) {
@@ -100,21 +145,8 @@ static int __write_to_log_kernel(log_id_t log_id, log_priority prio, const char 
 	if (log_id < LOG_ID_MAX)
 		log_fd = log_fds[log_id];
 	else
-		return -1; // for TC
-
-	if (!tag)
-		tag = "";
-
-	vec[0].iov_base	= (unsigned char *) &prio;
-	vec[0].iov_len	= 1;
-	vec[1].iov_base	= (void *) tag;
-	vec[1].iov_len	= strlen(tag) + 1;
-	vec[2].iov_base	= (void *) msg;
-	vec[2].iov_len	= strlen(msg) + 1;
-
-	ret = writev(log_fd, vec, 3);
-
-	return ret;
+		return -1;
+	return sd_journal_print(dlog_pri_to_journal_pri(prio), "%c %s: %s",dlog_pri_to_char(prio), tag, msg);
 }
 #endif
 void init_dlog_level(void)
@@ -141,9 +173,6 @@ void init_dlog_level(void)
 static int __dlog_init(log_id_t log_id, log_priority prio, const char *tag, const char *msg)
 {
 	pthread_mutex_lock(&log_init_lock);
-#ifdef SD_JOURNAL_SUPPORT
-	write_to_log = __write_to_log_sd_journal_print;
-#else
 	// get filtering info
 	// open device
 	if (write_to_log == __dlog_init) {
@@ -157,8 +186,13 @@ static int __dlog_init(log_id_t log_id, log_priority prio, const char *tag, cons
 		if (log_fds[LOG_ID_MAIN] < 0 || log_fds[LOG_ID_RADIO] < 0) {
 			fprintf(stderr, "open log dev is failed\n");
 			write_to_log = __write_to_log_null;
-		} else
+		} else {
+#ifdef SD_JOURNAL_SUPPORT
+			write_to_log = __write_to_log_sd_journal_print;
+#else
 			write_to_log = __write_to_log_kernel;
+#endif
+		}
 
 		if (log_fds[LOG_ID_SYSTEM] < 0)
 			log_fds[LOG_ID_SYSTEM] = log_fds[LOG_ID_MAIN];
@@ -166,7 +200,6 @@ static int __dlog_init(log_id_t log_id, log_priority prio, const char *tag, cons
 		if (log_fds[LOG_ID_APPS] < 0)
 			log_fds[LOG_ID_APPS] = log_fds[LOG_ID_MAIN];
 	}
-#endif
 	pthread_mutex_unlock(&log_init_lock);
 	return write_to_log(log_id, prio, tag, msg);
 }

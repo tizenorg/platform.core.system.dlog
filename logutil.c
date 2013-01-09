@@ -356,23 +356,23 @@ static int get_log_readable_size(int logfd)
 static void setup_output()
 {
 
-    if (g_output_filename == NULL) {
-        g_outfd = STDOUT_FILENO;
+	if (g_output_filename == NULL) {
+		g_outfd = STDOUT_FILENO;
 
-    } else {
-        struct stat statbuf;
+	} else {
+		struct stat statbuf;
 
-        g_outfd = open_logfile (g_output_filename);
+		g_outfd = open_logfile (g_output_filename);
 
-        if (g_outfd < 0) {
-            perror ("couldn't open output file");
-            exit(-1);
-        }
-
-        fstat(g_outfd, &statbuf);
-
-        g_out_byte_count = statbuf.st_size;
-    }
+		if (g_outfd < 0) {
+			perror ("couldn't open output file");
+			exit(-1);
+		}
+		if (fstat(g_outfd, &statbuf) == -1)
+			g_out_byte_count = 0;
+		else
+			g_out_byte_count = statbuf.st_size;
+	}
 }
 
 static int set_log_format(const char * formatString)

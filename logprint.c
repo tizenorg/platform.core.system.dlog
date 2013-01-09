@@ -677,6 +677,8 @@ void logprint_run_tests()
     err = log_add_filter_string(p_format, "*:s random:z");
     assert(err < 0);
 
+    log_format_free(p_format);
+
 
 #if 0
     char *ret;
