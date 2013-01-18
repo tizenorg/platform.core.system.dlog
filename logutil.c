@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2007 The Android Open Source Project
+ * Copyright (c) 2005-2008, The Android Open Source Project
+ * Copyright (c) 2009-2013, Samsung Electronics Co., Ltd. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -281,10 +282,16 @@ static void read_log_lines(struct log_device_t* devices)
                         exit(EXIT_FAILURE);
                     }
                     else if (!ret) {
+                        free(entry);
                         fprintf(stderr, "read: Unexpected EOF!\n");
                         exit(EXIT_FAILURE);
                     }
-
+                    else if (entry->entry.len != ret - sizeof(struct logger_entry)) {
+                        free(entry);
+                        fprintf(stderr, "read: unexpected length. Expected %d, got %d\n",
+                                entry->entry.len, ret - sizeof(struct logger_entry));
+                        exit(EXIT_FAILURE);
+                    }
                     entry->entry.msg[entry->entry.len] = '\0';
 
                     enqueue(dev, entry);
@@ -583,16 +590,20 @@ int main(int argc, char **argv)
 						  }
 
 						  dev = log_devices_new(buf);
-                if (devices) {
-					if (log_devices_add_to_tail(devices, dev)) {
-						fprintf(stderr, "Open log device %s failed\n", buf);
-						exit(-1);
-					}
-                } else {
-					devices = dev;
-					g_dev_count = 1;
-                }
-            }
+						  if (dev == NULL) {
+							  fprintf(stderr,"Can't add log device: %s\n", buf);
+							  exit(-1);
+						  }
+						  if (devices) {
+							  if (log_devices_add_to_tail(devices, dev)) {
+								  fprintf(stderr, "Open log device %s failed\n", buf);
+								  exit(-1);
+							  }
+						  } else {
+							  devices = dev;
+							  g_dev_count = 1;
+						  }
+					  }
             break;
 
             case 'f':

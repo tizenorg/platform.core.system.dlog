@@ -1,7 +1,9 @@
 /*
- * Copyright 2006, The Android Open Source Project
+ * DLOG
+ * Copyright (c) 2005-2008, The Android Open Source Project
+ * Copyright (c) 2012-2013 Samsung Electronics Co., Ltd.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
+ * Licensed under the Apache License, Version 2.0 (the License);
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
@@ -324,7 +326,7 @@ static inline char * strip_end(char *str)
 
 
 /**
- * Splits a wire-format buffer into an AndroidLogEntry
+ * Splits a wire-format buffer into an LogEntry
  * entry allocated by caller. Pointers will point directly into buf
  *
  * Returns 0 on success and -1 on invalid wire format (entry will be

@@ -3,19 +3,14 @@ Summary:    Logging service
 Version:    0.4.1
 Release:    2
 Group:      System/Libraries
-License:    Apache License
+License:    Apache License, Version 2.0
 Source0:    %{name}-%{version}.tar.gz
-Source101:  packaging/dlog-main.service
-Source102:  packaging/dlog-radio.service
-Source103:  packaging/tizen-debug-level.service
+Source101:  dlog-main.service
+Source102:  dlog-radio.service
+Source103:  tizen-debug-level.service
 BuildRequires: pkgconfig(libsystemd-journal)
-Requires(post): /sbin/ldconfig
-Requires(post): /usr/bin/systemctl
 Requires(post): /usr/bin/vconftool
 Requires(post): coreutils
-Requires(postun): /sbin/ldconfig
-Requires(postun): /usr/bin/systemctl
-Requires(preun): /usr/bin/systemctl
 
 %description
 dlog API library
@@ -40,10 +35,12 @@ dlog API library
 Summary:    print log data to the screen
 Group:      Development/Libraries
 Requires:   lib%{name} = %{version}-%{release}
-Requires(post): /bin/rm, /bin/ln
+Requires(post): /usr/bin/systemctl
+Requires(postun): /usr/bin/systemctl
+Requires(preun): /usr/bin/systemctl
 
 %description -n dlogutil
-utilities for print log data
+Utilities for print log data
 
 
 
@@ -85,8 +82,9 @@ ln -s ../dlog-radio.service %{buildroot}%{_libdir}/systemd/system/multi-user.tar
 ln -s ../tizen-debug-level.service %{buildroot}%{_libdir}/systemd/system/basic.target.wants/tizen-debug-level.service
 
 mkdir -p %{buildroot}/usr/share/license
-cp LICENSE %{buildroot}/usr/share/license/%{name}
+cp LICENSE.APLv2 %{buildroot}/usr/share/license/%{name}
 
+mkdir -p %{buildroot}/opt/etc/dlog
 
 %preun -n dlogutil
 if [ $1 == 0 ]; then
@@ -95,10 +93,6 @@ if [ $1 == 0 ]; then
 fi
 
 %post -n dlogutil
-mkdir -p /opt/etc/dlog
-chown 0:5000 /opt/etc/dlog
-chmod 775 /opt/etc/dlog
-chmod 755 /usr/bin/dlogctrl
 systemctl daemon-reload
 if [ $1 == 1 ]; then
     systemctl restart dlog-main.service
@@ -108,15 +102,13 @@ fi
 %postun -n dlogutil
 systemctl daemon-reload
 
-%post -n libdlog
-/sbin/ldconfig
-%postun -n libdlog
-/sbin/ldconfig
+%post -n libdlog -p /sbin/ldconfig
+%postun -n libdlog -p /sbin/ldconfig
 
 %files  -n dlogutil
 %manifest dlogutil.manifest
 %{_bindir}/dlogutil
-%{_bindir}/dlogctrl
+%attr(775,root,root) %{_bindir}/dlogctrl
 %{_sysconfdir}/rc.d/init.d/dlog.sh
 %{_sysconfdir}/rc.d/rc3.d/S05dlog
 %{_sysconfdir}/rc.d/rc5.d/S05dlog
@@ -126,10 +118,11 @@ systemctl daemon-reload
 %{_libdir}/systemd/system/basic.target.wants/tizen-debug-level.service
 %{_libdir}/systemd/system/multi-user.target.wants/dlog-main.service
 %{_libdir}/systemd/system/multi-user.target.wants/dlog-radio.service
+%attr(775,root,app) %dir /opt/etc/dlog
 
 %files  -n libdlog
 /usr/share/license/%{name}
-%doc LICENSE
+%doc LICENSE.APLv2
 /opt/etc/.dloglevel
 /etc/profile.d/tizen_platform_env.sh
 %{_libdir}/libdlog.so.0

@@ -1,4 +1,0 @@
-@PREFIX@/include/dlog/dlog.h
-@PREFIX@/lib/libdlog.la
-@PREFIX@/lib/pkgconfig/*.pc
-

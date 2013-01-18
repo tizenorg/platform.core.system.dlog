@@ -1,5 +1,0 @@
-#!/bin/sh
-#Add boot sequence script
-rm -f /etc/rc.d/rc3.d/S05dlog /etc/rc.d/rc5.d/S05dlog
-ln -s /etc/rc.d/init.d/dlog.sh /etc/rc.d/rc3.d/S05dlog
-ln -s /etc/rc.d/init.d/dlog.sh /etc/rc.d/rc5.d/S05dlog
