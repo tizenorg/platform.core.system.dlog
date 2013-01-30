@@ -1,17 +1,20 @@
 <manifest>
 	<define>
-		<domain name="dlogutil" policy="restricted"/>
+		<domain name="dlogutil"/>
 	<provide>
+		<label name="dlogutil::dlogutil"/>
+		<label name="dlogutil::dlogctrl"/>
 		<label name="dlogutil::dlog"/>
-		<label name="dlogutil::dlogscript"/>
 	</provide>
 	</define>
 	<request>
 		<domain name="dlogutil"/>
 	</request>
 	<assign>
-		<filesystem path="/usr/bin/dlogutil" label="dlogutil"/>
+		<filesystem path="/usr/bin/dlogutil" label="dlogutil::dlogutil"/>
+		<filesystem path="/usr/bin/dlogctrl" label="dlogutil::dlogctrl"/>
 		<filesystem path="/opt/etc/dlog" label="dlogutil::dlog"/>
-		<filesystem path="/etc/rc.d/init.d/dlog.sh" label="dlogutil::dlogscript"/>
+		<filesystem path="/etc/rc.d/init.d/dlog.sh" label="_" exec_label="none"/>
+		<filesystem path="/etc/rc.d/rc3.d/S05dlog" label="_" exec_label="none"/>
 	</assign>
 </manifest>

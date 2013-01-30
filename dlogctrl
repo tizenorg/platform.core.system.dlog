@@ -53,7 +53,7 @@ else
 			echo 0
 		fi
 	fi
-
+    echo "You must reboot this target to apply the change!"
 fi
 
 exit 0
