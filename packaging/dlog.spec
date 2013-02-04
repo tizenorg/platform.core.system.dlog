@@ -1,7 +1,7 @@
 Name:       dlog
 Summary:    Logging service
 Version:    0.4.1
-Release:    3
+Release:    4
 Group:      System/Libraries
 License:    Apache License, Version 2.0
 Source0:    %{name}-%{version}.tar.gz
@@ -64,11 +64,8 @@ mkdir -p %{buildroot}/usr/bin/
 cp %{_builddir}/%{name}-%{version}/dlogctrl %{buildroot}/usr/bin/dlogctrl
 
 mkdir -p %{buildroot}/%{_sysconfdir}/rc.d/rc3.d
-mkdir -p %{buildroot}/%{_sysconfdir}/rc.d/rc5.d
 rm -f %{buildroot}/%{_sysconfdir}/etc/rc.d/rc3.d/S05dlog
-rm -f %{buildroot}/%{_sysconfdir}/etc/rc.d/rc5.d/S05dlog
 ln -s ../init.d/dlog.sh %{buildroot}/%{_sysconfdir}/rc.d/rc3.d/S05dlog
-ln -s ../init.d/dlog.sh %{buildroot}/%{_sysconfdir}/rc.d/rc5.d/S05dlog
 
 mkdir -p %{buildroot}%{_libdir}/systemd/system/basic.target.wants
 mkdir -p %{buildroot}%{_libdir}/systemd/system/multi-user.target.wants
@@ -111,7 +108,6 @@ systemctl daemon-reload
 %attr(775,root,root) %{_bindir}/dlogctrl
 %{_sysconfdir}/rc.d/init.d/dlog.sh
 %{_sysconfdir}/rc.d/rc3.d/S05dlog
-%{_sysconfdir}/rc.d/rc5.d/S05dlog
 %{_libdir}/systemd/system/tizen-debug-level.service
 %{_libdir}/systemd/system/dlog-main.service
 %{_libdir}/systemd/system/dlog-radio.service
