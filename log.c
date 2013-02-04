@@ -186,7 +186,6 @@ static int __dlog_init(log_id_t log_id, log_priority prio, const char *tag, cons
 		log_fds[LOG_ID_APPS] = open("/dev/"LOG_APPS, O_WRONLY);
 
 		if (log_fds[LOG_ID_MAIN] < 0 || log_fds[LOG_ID_RADIO] < 0) {
-			fprintf(stderr, "open log dev is failed\n");
 			write_to_log = __write_to_log_null;
 		} else {
 #ifdef SD_JOURNAL_SUPPORT
