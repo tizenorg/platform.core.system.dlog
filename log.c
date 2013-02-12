@@ -38,6 +38,7 @@
 static int log_fds[(int)LOG_ID_MAX] = { -1, -1, -1, -1 };
 
 static int g_logging_on = 1;
+static int g_dlog_level_init = 0;
 static int g_dlog_level = DLOG_SILENT;
 
 static int __dlog_init(log_id_t, log_priority, const char *tag, const char *msg);
@@ -53,13 +54,6 @@ static int __write_to_log_kernel(log_id_t log_id, log_priority prio, const char 
 	int log_fd;
 	struct iovec vec[3];
 
-	if (log_id < LOG_ID_APPS) {
-		if(prio < g_dlog_level) {
-			return 0;
-		}
-	} else if (LOG_ID_MAX <= log_id) {
-		return 0;
-	}
 	if (log_id < LOG_ID_MAX)
 		log_fd = log_fds[log_id];
 	else
@@ -134,20 +128,6 @@ static int dlog_pri_to_journal_pri(log_priority prio)
 }
 static int __write_to_log_sd_journal_print(log_id_t log_id, log_priority prio, const char *tag, const char *msg)
 {
-	ssize_t ret;
-	int log_fd;
-
-	if (log_id < LOG_ID_APPS) {
-		if(prio < g_dlog_level) {
-			return 0;
-		}
-	} else if (LOG_ID_MAX <= log_id) {
-		return 0;
-	}
-	if (log_id < LOG_ID_MAX)
-		log_fd = log_fds[log_id];
-	else
-		return -1;
 	return sd_journal_print(dlog_pri_to_journal_pri(prio), "%c %s: %s",dlog_pri_to_char(prio), tag, msg);
 }
 #endif
@@ -171,6 +151,7 @@ void init_dlog_level(void)
 		}
 	} else
 		g_dlog_level = 8;
+	g_dlog_level_init = 1;
 }
 static int __dlog_init(log_id_t log_id, log_priority prio, const char *tag, const char *msg)
 {
@@ -178,7 +159,6 @@ static int __dlog_init(log_id_t log_id, log_priority prio, const char *tag, cons
 	// get filtering info
 	// open device
 	if (write_to_log == __dlog_init) {
-		init_dlog_level();
 
 		log_fds[LOG_ID_MAIN] = open("/dev/"LOG_MAIN, O_WRONLY);
 		log_fds[LOG_ID_RADIO] = open("/dev/"LOG_RADIO, O_WRONLY);
@@ -197,7 +177,6 @@ static int __dlog_init(log_id_t log_id, log_priority prio, const char *tag, cons
 
 		if (log_fds[LOG_ID_SYSTEM] < 0)
 			log_fds[LOG_ID_SYSTEM] = log_fds[LOG_ID_MAIN];
-
 		if (log_fds[LOG_ID_APPS] < 0)
 			log_fds[LOG_ID_APPS] = log_fds[LOG_ID_MAIN];
 	}
@@ -208,6 +187,16 @@ static int __dlog_init(log_id_t log_id, log_priority prio, const char *tag, cons
 int __dlog_vprint(log_id_t log_id, int prio, const char *tag, const char *fmt, va_list ap)
 {
 	char buf[LOG_BUF_SIZE];
+	if (!g_dlog_level_init) {
+		init_dlog_level();
+	}
+	if (log_id < LOG_ID_APPS) {
+		if(prio < g_dlog_level) {
+			return 0;
+		}
+	} else if (LOG_ID_MAX <= log_id) {
+		return 0;
+	}
 
 	vsnprintf(buf, LOG_BUF_SIZE, fmt, ap);
 
@@ -218,6 +207,17 @@ int __dlog_print(log_id_t log_id, int prio, const char *tag, const char *fmt, ..
 {
 	va_list ap;
 	char buf[LOG_BUF_SIZE];
+
+	if (!g_dlog_level_init) {
+		init_dlog_level();
+	}
+	if (log_id < LOG_ID_APPS) {
+		if(prio < g_dlog_level) {
+			return 0;
+		}
+	} else if (LOG_ID_MAX <= log_id) {
+		return 0;
+	}
 
 	va_start(ap, fmt);
 	vsnprintf(buf, LOG_BUF_SIZE, fmt, ap);

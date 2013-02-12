@@ -684,13 +684,13 @@ int main(int argc, char **argv)
 			exit(-1);
 		}
 	}
-
 	if (0 == access("/dev/"LOGGER_LOG_APPS, accessmode)) {
 		if (log_devices_add_to_tail(devices, log_devices_new("/dev/"LOGGER_LOG_APPS))) {
 			fprintf(stderr,"Can't add log device: %s\n", LOGGER_LOG_APPS);
 			exit(-1);
 		}
 	}
+
 /*
         // only add this if it's available
 	int fd;
