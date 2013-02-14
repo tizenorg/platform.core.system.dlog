@@ -1,0 +1,59 @@
+#!/bin/sh
+MODE=none
+OBJ=none
+VAL=none
+#echo "tizen_platform_dlog_logging_ctrl"
+case "$1" in
+get)
+	MODE=get
+;;
+set)
+	MODE=set
+;;
+
+*)
+echo "Usage: dlogctrl {get|set} {platformlog} {1|0}"
+exit 1
+esac
+
+case "$2" in
+platformlog)
+	OBJ=platformlog
+;;
+*)
+	echo "Usage: dlogctrl {get|set} {platformlog} {1|0}"
+exit 1
+esac
+
+if [ "$MODE" = "set" ]; then
+	case "$3" in
+	1)
+		VAL=1
+	;;
+	0)
+		VAL=0
+	;;
+	*)
+		echo "Usage: dlogctrl {get|set} {platformlog} {1|0}"
+	exit 1
+	esac
+fi
+
+if [ "$MODE" = "set" ]; then
+	if [ "$OBJ" = "platformlog" ] && [ "$VAL" = "1" ] ; then
+		touch /opt/etc/dlog/.platformloggingmode 2>/dev/null
+	elif [ "$OBJ" = "platformlog" ] && [ "$VAL" = "0" ] ; then
+		rm -f /opt/etc/dlog/.platformloggingmode 2>/dev/null
+	fi
+else
+	if [ "$OBJ" = "platformlog" ]; then
+		if [ -e "/opt/etc/dlog/.platformloggingmode" ]; then
+			echo 1
+		else
+			echo 0
+		fi
+	fi
+    echo "You must reboot this target to apply the change!"
+fi
+
+exit 0
