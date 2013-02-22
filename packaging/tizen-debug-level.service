@@ -3,7 +3,7 @@ Description=Set tizen debug level globally
 DefaultDependencies=no
 After=opt.mount
 Before=basic.target
-ConditionFileExists=/opt/etc/dlog/.platformloggingon
+ConditionFileExists=/opt/etc/dlog/.platformloggingmode
 
 [Service]
 Type=oneshot
