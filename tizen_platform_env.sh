@@ -7,7 +7,7 @@ fi
 # I'm not clear why "-a" doesn't work here
 if [ "x$TIZEN_PLATFORMLOGGING_MODE" != "x" ] &&
 	[ "$TIZEN_PLATFORMLOGGING_MODE" -eq "1" ]; then
-	dlevel=$(cat /opt/etc/.dloglevel)
+	dlevel=$(cat /opt/etc/dlog/.dloglevel)
 	if [ "$dlevel" -eq "0" ]; then
 		export TIZEN_DLOG_LEVEL=0
 	elif [ "$dlevel" -eq "1" ]; then

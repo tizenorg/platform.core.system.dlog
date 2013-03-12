@@ -1,19 +1,10 @@
 <manifest>
 	<define>
 		<domain name="dlogutil"/>
-	<provide>
-		<label name="dlogutil::dlogutil"/>
-		<label name="dlogutil::dlogctrl"/>
-		<label name="dlogutil::dlog"/>
-	</provide>
 	</define>
-	<request>
-		<domain name="dlogutil"/>
-	</request>
 	<assign>
-		<filesystem path="/usr/bin/dlogutil" label="dlogutil::dlogutil"/>
-		<filesystem path="/usr/bin/dlogctrl" label="dlogutil::dlogctrl"/>
-		<filesystem path="/opt/etc/dlog" label="dlogutil::dlog"/>
+		<filesystem path="/usr/bin/dlogutil" label="_" exec_label="none"/>
+		<filesystem path="/usr/bin/dlogctrl" label="_" exec_label="none"/>
 		<filesystem path="/etc/rc.d/init.d/dlog.sh" label="_" exec_label="none"/>
 		<filesystem path="/etc/rc.d/rc3.d/S05dlog" label="_" exec_label="none"/>
 		<filesystem path="/usr/lib/systemd/system/basic.target.wants/tizen-debug-level.service" label="_" exec_label="none" />
@@ -23,4 +14,7 @@
 		<filesystem path="/usr/lib/systemd/system/multi-user.target.wants/dlog-radio.service" label="_" exec_label="none" />
 		<filesystem path="/usr/lib/systemd/system/tizen-debug-level.service" label="_" exec_label="none" />
 	</assign>
+	<request>
+		<domain name="dlogutil"/>
+	</request>
 </manifest>

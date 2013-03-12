@@ -128,7 +128,7 @@ static int dlog_pri_to_journal_pri(log_priority prio)
 }
 static int __write_to_log_sd_journal_print(log_id_t log_id, log_priority prio, const char *tag, const char *msg)
 {
-	return sd_journal_print(dlog_pri_to_journal_pri(prio), "%c %s: %s",dlog_pri_to_char(prio), tag, msg);
+	return sd_journal_print(dlog_pri_to_journal_pri(prio), "%c %s: %s", dlog_pri_to_char(prio), tag, msg);
 }
 #endif
 void init_dlog_level(void)

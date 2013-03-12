@@ -181,9 +181,12 @@ static void processBuffer(struct log_device_t* dev, struct logger_entry *buf)
 
 	g_out_byte_count += bytes_written;
 
-    if (g_log_rotate_size_kbytes > 0 && (g_out_byte_count / 1024) >= g_log_rotate_size_kbytes)
-	{
-		rotate_logs();
+	if (g_log_rotate_size_kbytes > 0 && (g_out_byte_count / 1024) >= g_log_rotate_size_kbytes) {
+		if (g_nonblock) {
+			exit(0);
+		} else {
+			rotate_logs();
+		}
 	}
 
 error:

@@ -91,6 +91,22 @@ typedef enum {
 
 // ---------------------------------------------------------------------
 /**
+ * Secure Log Macro.
+ */
+
+#define _SECURE_LOG 1
+
+#ifndef SECLOG
+#if _SECURE_LOG
+#define SECLOG(...)   (0)
+#else
+#define SECLOG(format, arg...) \
+	(LOG_ON() ? (SLOG(LOG_WARN, LOG_TAG, "%s: %s(%d) > " format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
+#endif
+#endif
+
+// ---------------------------------------------------------------------
+/**
  * Simplified macro to send a verbose log message using the current LOG_TAG.
  */
 #ifndef LOGV
@@ -437,6 +453,7 @@ typedef enum {
 #ifndef ALOGE
 #define ALOGE(...) (ALOG(LOG_ERROR, LOG_TAG, __VA_ARGS__))
 #endif
+
 
 // ---------------------------------------------------------------------
 /**
