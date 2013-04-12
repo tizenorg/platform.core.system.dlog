@@ -7,7 +7,7 @@ ConditionFileExists=/opt/etc/dlog/.platformloggingmode
 
 [Service]
 Type=oneshot
-ExecStart=/bin/sh -c '/usr/bin/systemctl set-environment TIZEN_PLATFORMLOGGING_MODE=1 TIZEN_DLOG_LEVEL=$(cat /opt/etc/.dloglevel)'
+ExecStart=/bin/sh -c '/usr/bin/systemctl set-environment TIZEN_PLATFORMLOGGING_MODE=1 TIZEN_DLOG_LEVEL=$(cat /opt/etc/dlog/.dloglevel)'
 
 [Install]
 WantedBy=basic.target
