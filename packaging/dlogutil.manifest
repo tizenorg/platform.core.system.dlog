@@ -1,6 +1,9 @@
 <manifest>
 	<define>
 		<domain name="dlogutil"/>
+	<permit>
+		<smack permit="_" type="rx"/>
+	</permit>
 	</define>
 	<assign>
 		<filesystem path="/usr/bin/dlogutil" label="_" exec_label="none"/>
