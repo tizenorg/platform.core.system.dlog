@@ -7,5 +7,5 @@ Name: dlog
 Description: logging service
 Version: 1.0
 Requires: 
-Libs: -L${libdir} -ldlog -lpthread
+Libs: -L${libdir} -ldlog -lpthread @systemd_journal_LIBS@
 Cflags: -I${includedir}/dlog

@@ -1,7 +1,7 @@
 Name:       dlog
 Summary:    Logging service
 Version:    0.4.1
-Release:    5
+Release:    15
 Group:      System/Libraries
 License:    Apache License, Version 2.0
 Source0:    %{name}-%{version}.tar.gz
@@ -44,30 +44,26 @@ Requires(preun): /usr/bin/systemctl
 %description -n dlogutil
 Utilities for print log data
 
-
 %prep
 %setup -q
 cp %{SOURCE103} .
 
-
 %build
 %autogen --disable-static
-%configure --disable-static
+%configure --disable-static --without-systemd-journal
 make %{?jobs:-j%jobs}
 
 %install
 rm -rf %{buildroot}
 %make_install
-mkdir -p %{buildroot}/opt/etc/dlog
-cp %{_builddir}/%{name}-%{version}/.dloglevel %{buildroot}/opt/etc/dlog/.dloglevel
-mkdir -p %{buildroot}/etc/profile.d/
-cp %{_builddir}/%{name}-%{version}/tizen_platform_env.sh %{buildroot}/etc/profile.d/tizen_platform_env.sh
+mkdir -p %{buildroot}/opt/etc/dump.d/default.d
+cp %{_builddir}/%{name}-%{version}/dlog_dump.sh %{buildroot}/opt/etc/dump.d/default.d/dlog_dump.sh
 mkdir -p %{buildroot}/usr/bin/
 cp %{_builddir}/%{name}-%{version}/dlogctrl %{buildroot}/usr/bin/dlogctrl
 
 mkdir -p %{buildroot}/%{_sysconfdir}/rc.d/rc3.d
-rm -f %{buildroot}/%{_sysconfdir}/etc/rc.d/rc3.d/S05dlog
-ln -s ../init.d/dlog.sh %{buildroot}/%{_sysconfdir}/rc.d/rc3.d/S05dlog
+rm -f %{buildroot}/%{_sysconfdir}/etc/rc.d/rc3.d/S01dlog
+ln -s ../init.d/dlog.sh %{buildroot}/%{_sysconfdir}/rc.d/rc3.d/S01dlog
 
 mkdir -p %{buildroot}%{_unitdir}/basic.target.wants
 mkdir -p %{buildroot}%{_unitdir}/multi-user.target.wants
@@ -82,8 +78,6 @@ ln -s ../tizen-debug-level.service %{buildroot}%{_unitdir}/basic.target.wants/ti
 
 mkdir -p %{buildroot}/usr/share/license
 cp LICENSE.APLv2 %{buildroot}/usr/share/license/%{name}
-
-mkdir -p %{buildroot}/opt/etc/dlog
 
 %preun -n dlogutil
 if [ $1 == 0 ]; then
@@ -101,15 +95,23 @@ fi
 %postun -n dlogutil
 systemctl daemon-reload
 
-%post -n libdlog -p /sbin/ldconfig
-%postun -n libdlog -p /sbin/ldconfig
+%post -n libdlog
+/sbin/ldconfig
+echo 0 > /opt/etc/platformlog.conf
+chmod 660 /opt/etc/platformlog.conf
+chown root:app_logging /opt/etc/platformlog.conf
+if [ -f %{_libdir}/rpm-plugins/msm.so ]; then
+	chsmack -a '*' -e 'none' /opt/etc/platformlog.conf
+fi
+%postun -n libdlog
+/sbin/ldconfig
+rm /opt/etc/platformlog.conf
 
 %files  -n dlogutil
 %manifest %{name}.manifest
 /usr/share/license/%{name}
 %doc LICENSE.APLv2
-%attr(755,root,root) /opt/etc/dlog/.dloglevel
-%attr(755,root,root) /etc/profile.d/tizen_platform_env.sh
+%attr(755,root,root) /opt/etc/dump.d/default.d/dlog_dump.sh
 %attr(755,root,app_logging) %{_bindir}/dlogutil
 %attr(755,root,app_logging) %{_bindir}/dlogctrl
 %{_sysconfdir}/rc.d/init.d/dlog.sh
