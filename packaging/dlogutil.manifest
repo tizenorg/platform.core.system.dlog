@@ -1,21 +1,18 @@
 <manifest>
 	<define>
 		<domain name="dlogutil"/>
-	<permit>
-		<smack permit="_" type="rx"/>
-	</permit>
 	</define>
 	<assign>
 		<filesystem path="/usr/bin/dlogutil" label="_" exec_label="none"/>
 		<filesystem path="/usr/bin/dlogctrl" label="_" exec_label="none"/>
 		<filesystem path="/etc/rc.d/init.d/dlog.sh" label="_" exec_label="none"/>
-		<filesystem path="/etc/rc.d/rc3.d/S05dlog" label="_" exec_label="none"/>
-		<filesystem path="/usr/lib/systemd/system/basic.target.wants/tizen-debug-level.service" label="_" exec_label="none" />
+		<filesystem path="/etc/rc.d/rc3.d/S01dlog" label="_" exec_label="none"/>
+		<filesystem path="/opt/etc/dump.d/default.d" label="_" exec_label="none"/>
+		<filesystem path="/opt/etc/dump.d/default.d/dlog_dump.sh" label="_" exec_label="none"/>
 		<filesystem path="/usr/lib/systemd/system/dlog-main.service" label="_" exec_label="none" />
 		<filesystem path="/usr/lib/systemd/system/dlog-radio.service" label="_" exec_label="none" />
 		<filesystem path="/usr/lib/systemd/system/multi-user.target.wants/dlog-main.service" label="_" exec_label="none" />
 		<filesystem path="/usr/lib/systemd/system/multi-user.target.wants/dlog-radio.service" label="_" exec_label="none" />
-		<filesystem path="/usr/lib/systemd/system/tizen-debug-level.service" label="_" exec_label="none" />
 	</assign>
 	<request>
 		<domain name="dlogutil"/>
