@@ -11,8 +11,8 @@ Source103:  dlog.manifest
 Source104:  tizen-debug-level.service
 
 BuildRequires: pkgconfig(libsystemd-journal)
-Requires(post): /usr/bin/vconftool
 Requires(post): coreutils
+Requires(post): smack-utils
 
 %description
 dlog API library
