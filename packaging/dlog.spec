@@ -10,8 +10,8 @@ Source102:  packaging/dlog-radio.service
 Source103:  packaging/dlogutil.manifest
 Source104:  packaging/libdlog.manifest
 BuildRequires: pkgconfig(libsystemd-journal)
-Requires(post): /usr/bin/vconftool
 Requires(post): coreutils
+Requires(post): smack-utils
 
 %description
 dlog API library
