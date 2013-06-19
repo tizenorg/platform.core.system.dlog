@@ -1,0 +1,8 @@
+Change-Id: I161e012346c3ada657250b288ae303726de5a9b8
+Code-Review+2: Anas Nashif <anas.nashif@intel.com>
+Verified+1: Anas Nashif <anas.nashif@intel.com>
+Submitted-by: Anas Nashif <anas.nashif@intel.com>
+Submitted-at: Wed, 19 Jun 2013 07:02:01 -0700
+Reviewed-on: https://review.tizen.org/gerrit/4104
+Project: platform/core/system/dlog
+Branch: refs/heads/tizen
