@@ -1,0 +1,9 @@
+Change-Id: I15352b06d51527e0f5a60800a00de8127a7391b4
+Code-Review+2: Anas Nashif <anas.nashif@intel.com>
+Code-Review+1: Baptiste DURAND <baptiste.durand@eurogiciel.fr>
+Verified+1: Baptiste DURAND <baptiste.durand@eurogiciel.fr>
+Submitted-by: Anas Nashif <anas.nashif@intel.com>
+Submitted-at: Wed, 19 Jun 2013 07:40:36 -0700
+Reviewed-on: https://review.tizen.org/gerrit/4102
+Project: platform/core/system/dlog
+Branch: refs/heads/tizen
