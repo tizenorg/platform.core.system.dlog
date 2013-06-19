@@ -1,3 +1,7 @@
+* Wed Jun 19 2013 Baptiste DURAND <baptiste.durand@eurogiciel.fr> submit/tizen/20130527.020305@767017c
+- Fix Spec file and permission according to RPMLINT rules
+- Fix path for systemd services
+
 * Thu Jan 03 2013 Anas Nashif <anas.nashif@intel.com> accepted/trunk/20121212.102709@5168da3
 - fixed build with new compilers
 - spec cleanup
