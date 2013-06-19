@@ -72,16 +72,16 @@ mkdir -p %{buildroot}/%{_sysconfdir}/rc.d/rc3.d
 rm -f %{buildroot}/%{_sysconfdir}/etc/rc.d/rc3.d/S05dlog
 ln -s ../init.d/dlog.sh %{buildroot}/%{_sysconfdir}/rc.d/rc3.d/S05dlog
 
-mkdir -p %{buildroot}%{_libdir}/systemd/system/basic.target.wants
-mkdir -p %{buildroot}%{_libdir}/systemd/system/multi-user.target.wants
+mkdir -p %{buildroot}%{_unitdir}/basic.target.wants
+mkdir -p %{buildroot}%{_unitdir}/multi-user.target.wants
 
-install -m 0644 %SOURCE101 %{buildroot}%{_libdir}/systemd/system/
-install -m 0644 %SOURCE102 %{buildroot}%{_libdir}/systemd/system/
-install -m 0644 %SOURCE105 %{buildroot}%{_libdir}/systemd/system/
+install -m 0644 %SOURCE101 %{buildroot}%{_unitdir}
+install -m 0644 %SOURCE102 %{buildroot}%{_unitdir}
+install -m 0644 %SOURCE105 %{buildroot}%{_unitdir}
 
-ln -s ../dlog-main.service %{buildroot}%{_libdir}/systemd/system/multi-user.target.wants/dlog-main.service
-ln -s ../dlog-radio.service %{buildroot}%{_libdir}/systemd/system/multi-user.target.wants/dlog-radio.service
-ln -s ../tizen-debug-level.service %{buildroot}%{_libdir}/systemd/system/basic.target.wants/tizen-debug-level.service
+ln -s ../dlog-main.service %{buildroot}%{_unitdir}/multi-user.target.wants/dlog-main.service
+ln -s ../dlog-radio.service %{buildroot}%{_unitdir}/multi-user.target.wants/dlog-radio.service
+ln -s ../tizen-debug-level.service %{buildroot}%{_unitdir}/basic.target.wants/tizen-debug-level.service
 
 mkdir -p %{buildroot}/usr/share/license
 cp LICENSE.APLv2 %{buildroot}/usr/share/license/%{name}
@@ -117,12 +117,12 @@ systemctl daemon-reload
 %attr(755,root,app_logging) %{_bindir}/dlogctrl
 %{_sysconfdir}/rc.d/init.d/dlog.sh
 %{_sysconfdir}/rc.d/rc3.d/S05dlog
-%{_libdir}/systemd/system/tizen-debug-level.service
-%{_libdir}/systemd/system/dlog-main.service
-%{_libdir}/systemd/system/dlog-radio.service
-%{_libdir}/systemd/system/basic.target.wants/tizen-debug-level.service
-%{_libdir}/systemd/system/multi-user.target.wants/dlog-main.service
-%{_libdir}/systemd/system/multi-user.target.wants/dlog-radio.service
+%{_unitdir}/tizen-debug-level.service
+%{_unitdir}/dlog-main.service
+%{_unitdir}/dlog-radio.service
+%{_unitdir}/basic.target.wants/tizen-debug-level.service
+%{_unitdir}/multi-user.target.wants/dlog-main.service
+%{_unitdir}/multi-user.target.wants/dlog-radio.service
 %attr(775,root,app_logging) %dir /opt/etc/dlog
 
 %files  -n libdlog
