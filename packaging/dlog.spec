@@ -35,7 +35,7 @@ dlog API library
 
 
 %package -n dlogutil
-Summary:    print log data to the screen
+Summary:    Print log data to the screen
 Group:      Development/Libraries
 Requires:   lib%{name} = %{version}-%{release}
 Requires(post): /usr/bin/systemctl
