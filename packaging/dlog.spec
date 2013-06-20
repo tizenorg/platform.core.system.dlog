@@ -11,7 +11,6 @@ Source103:  packaging/dlogutil.manifest
 Source104:  packaging/libdlog.manifest
 BuildRequires: pkgconfig(libsystemd-journal)
 Requires(post): coreutils
-Requires(post): smack-utils
 
 %description
 dlog API library
@@ -19,6 +18,7 @@ dlog API library
 %package -n libdlog
 Summary:    Logging service dlog API
 Group:      Development/Libraries
+Requires(post): smack-utils
 
 %description -n libdlog
 dlog API library
