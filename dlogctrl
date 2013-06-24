@@ -42,8 +42,10 @@ fi
 if [ "$MODE" = "set" ]; then
 	if [ "$OBJ" = "platformlog" ] && [ "$VAL" = "1" ] ; then
 		echo 1 > /opt/etc/platformlog.conf 2>/dev/null
+		touch /home/developer/.platforminfologgingmode 2>/dev/null
 	elif [ "$OBJ" = "platformlog" ] && [ "$VAL" = "0" ] ; then
 		echo 0 > /opt/etc/platformlog.conf 2>/dev/null
+		rm /home/developer/.platforminfologgingmode 2>/dev/null
 	fi
     echo "You must reboot this target to apply the change!"
 else
