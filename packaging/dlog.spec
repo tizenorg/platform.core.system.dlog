@@ -7,7 +7,7 @@ License:    Apache License, Version 2.0
 Source0:    %{name}-%{version}.tar.gz
 Source101:  dlog-main.service
 Source102:  dlog-radio.service
-Source103:  packaging/dlogutil.manifest
+Source103:  dlogutil.manifest
 Source104:  packaging/libdlog.manifest
 Source105:  tizen-debug-level.service
 
@@ -108,7 +108,7 @@ systemctl daemon-reload
 %postun -n libdlog -p /sbin/ldconfig
 
 %files  -n dlogutil
-%manifest dlogutil.manifest
+%manifest %{name}.manifest
 /usr/share/license/%{name}
 %doc LICENSE.APLv2
 %attr(755,root,root) /opt/etc/dlog/.dloglevel
@@ -126,11 +126,12 @@ systemctl daemon-reload
 %attr(775,root,app_logging) %dir /opt/etc/dlog
 
 %files  -n libdlog
-%manifest libdlog.manifest
+%manifest %{name}.manifest
 %{_libdir}/libdlog.so.0
 %{_libdir}/libdlog.so.0.0.0
 
 %files -n libdlog-devel
+%manifest %{name}.manifest
 %{_includedir}/dlog/dlog.h
 %{_libdir}/pkgconfig/dlog.pc
 %{_libdir}/libdlog.so
