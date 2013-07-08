@@ -1,0 +1,8 @@
+Change-Id: Ibe22303249f7c10e527bed30b132cd74ff63bea3
+Code-Review+2: Ryan Ware <ware@linux.intel.com>
+Verified+1: Ryan Ware <ware@linux.intel.com>
+Submitted-by: Ryan Ware <ware@linux.intel.com>
+Submitted-at: Mon, 08 Jul 2013 09:37:57 -0700
+Reviewed-on: https://review.tizen.org/gerrit/5147
+Project: platform/core/system/dlog
+Branch: refs/heads/tizen
