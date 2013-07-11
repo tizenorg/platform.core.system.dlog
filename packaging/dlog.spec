@@ -7,9 +7,8 @@ License:    Apache License, Version 2.0
 Source0:    %{name}-%{version}.tar.gz
 Source101:  dlog-main.service
 Source102:  dlog-radio.service
-Source103:  dlogutil.manifest
-Source104:  packaging/libdlog.manifest
-Source105:  tizen-debug-level.service
+Source103:  dlog.manifest
+Source104:  tizen-debug-level.service
 
 BuildRequires: pkgconfig(libsystemd-journal)
 Requires(post): /usr/bin/vconftool
@@ -46,7 +45,6 @@ Requires(preun): /usr/bin/systemctl
 Utilities for print log data
 
 
-
 %prep
 %setup -q
 
@@ -59,7 +57,6 @@ make %{?jobs:-j%jobs}
 %install
 rm -rf %{buildroot}
 cp %{SOURCE103} .
-cp %{SOURCE104} .
 %make_install
 mkdir -p %{buildroot}/opt/etc/dlog
 cp %{_builddir}/%{name}-%{version}/.dloglevel %{buildroot}/opt/etc/dlog/.dloglevel
@@ -77,7 +74,7 @@ mkdir -p %{buildroot}%{_unitdir}/multi-user.target.wants
 
 install -m 0644 %SOURCE101 %{buildroot}%{_unitdir}
 install -m 0644 %SOURCE102 %{buildroot}%{_unitdir}
-install -m 0644 %SOURCE105 %{buildroot}%{_unitdir}
+install -m 0644 %SOURCE104 %{buildroot}%{_unitdir}
 
 ln -s ../dlog-main.service %{buildroot}%{_unitdir}/multi-user.target.wants/dlog-main.service
 ln -s ../dlog-radio.service %{buildroot}%{_unitdir}/multi-user.target.wants/dlog-radio.service
