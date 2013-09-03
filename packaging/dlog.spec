@@ -8,7 +8,6 @@ Source0:    %{name}-%{version}.tar.gz
 Source101:  dlog-main.service
 Source102:  dlog-radio.service
 Source103:  dlog.manifest
-Source104:  tizen-debug-level.service
 
 BuildRequires: pkgconfig(libsystemd-journal)
 Requires(post): /usr/bin/vconftool
@@ -52,38 +51,31 @@ cp %{SOURCE103} .
 
 %build
 %autogen --disable-static
-%configure --disable-static
+%configure --disable-static --without-systemd-journal
 make %{?jobs:-j%jobs}
 
 %install
 rm -rf %{buildroot}
 %make_install
-mkdir -p %{buildroot}/opt/etc/dlog
-cp %{_builddir}/%{name}-%{version}/.dloglevel %{buildroot}/opt/etc/dlog/.dloglevel
-mkdir -p %{buildroot}/etc/profile.d/
-cp %{_builddir}/%{name}-%{version}/tizen_platform_env.sh %{buildroot}/etc/profile.d/tizen_platform_env.sh
+mkdir -p %{buildroot}/opt/etc/dump.d/default.d
+cp %{_builddir}/%{name}-%{version}/dlog_dump.sh %{buildroot}/opt/etc/dump.d/default.d/dlog_dump.sh
 mkdir -p %{buildroot}/usr/bin/
 cp %{_builddir}/%{name}-%{version}/dlogctrl %{buildroot}/usr/bin/dlogctrl
 
 mkdir -p %{buildroot}/%{_sysconfdir}/rc.d/rc3.d
-rm -f %{buildroot}/%{_sysconfdir}/etc/rc.d/rc3.d/S05dlog
-ln -s ../init.d/dlog.sh %{buildroot}/%{_sysconfdir}/rc.d/rc3.d/S05dlog
+rm -f %{buildroot}/%{_sysconfdir}/etc/rc.d/rc3.d/S01dlog
+ln -s ../init.d/dlog.sh %{buildroot}/%{_sysconfdir}/rc.d/rc3.d/S01dlog
 
-mkdir -p %{buildroot}%{_unitdir}/basic.target.wants
 mkdir -p %{buildroot}%{_unitdir}/multi-user.target.wants
 
 install -m 0644 %SOURCE101 %{buildroot}%{_unitdir}
 install -m 0644 %SOURCE102 %{buildroot}%{_unitdir}
-install -m 0644 %SOURCE104 %{buildroot}%{_unitdir}
 
 ln -s ../dlog-main.service %{buildroot}%{_unitdir}/multi-user.target.wants/dlog-main.service
 ln -s ../dlog-radio.service %{buildroot}%{_unitdir}/multi-user.target.wants/dlog-radio.service
-ln -s ../tizen-debug-level.service %{buildroot}%{_unitdir}/basic.target.wants/tizen-debug-level.service
 
 mkdir -p %{buildroot}/usr/share/license
 cp LICENSE.APLv2 %{buildroot}/usr/share/license/%{name}
-
-mkdir -p %{buildroot}/opt/etc/dlog
 
 %preun -n dlogutil
 if [ $1 == 0 ]; then
@@ -108,19 +100,16 @@ systemctl daemon-reload
 %manifest %{name}.manifest
 /usr/share/license/%{name}
 %doc LICENSE.APLv2
-%attr(755,root,root) /opt/etc/dlog/.dloglevel
-%attr(755,root,root) /etc/profile.d/tizen_platform_env.sh
+%attr(755,root,root) /opt/etc/dump.d/default.d/dlog_dump.sh
 %attr(755,root,app_logging) %{_bindir}/dlogutil
 %attr(755,root,app_logging) %{_bindir}/dlogctrl
 %{_sysconfdir}/rc.d/init.d/dlog.sh
-%{_sysconfdir}/rc.d/rc3.d/S05dlog
-%{_unitdir}/tizen-debug-level.service
+%{_sysconfdir}/rc.d/rc3.d/S01dlog
 %{_unitdir}/dlog-main.service
 %{_unitdir}/dlog-radio.service
-%{_unitdir}/basic.target.wants/tizen-debug-level.service
 %{_unitdir}/multi-user.target.wants/dlog-main.service
 %{_unitdir}/multi-user.target.wants/dlog-radio.service
-%attr(775,root,app_logging) %dir /opt/etc/dlog
+%attr(755,root,root) %dir /opt/etc/dump.d/default.d
 
 %files  -n libdlog
 %manifest %{name}.manifest

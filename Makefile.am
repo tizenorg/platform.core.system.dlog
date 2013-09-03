@@ -1,12 +1,4 @@
-
-
-if SD_JOURNAL_SUPPORT
-AM_CFLAGS = @CFLAGS@ -I$(srcdir)/include \
-	      -I$(srcdir)/include/internal -DSD_JOURNAL_SUPPORT
-else
-AM_CFLAGS = @CFLAGS@ -I$(srcdir)/include \
-	      -I$(srcdir)/include/internal
-endif
+AM_CFLAGS = -I$(srcdir)/include
 
 dlog_includedir = $(includedir)/dlog
 dlog_include_HEADERS = \
@@ -18,11 +10,8 @@ libdlog_la_SOURCES =  \
 	log.c \
 	include/dlog.h
 
-if SD_JOURNAL_SUPPORT
-libdlog_la_LIBADD = -lpthread -lsystemd-journal
-else
-libdlog_la_LIBADD = -lpthread
-endif
+libdlog_la_LIBADD = -lpthread $(systemd_journal_LIBS)
+
 bin_PROGRAMS= dlogutil
 
 dlogutil_SOURCES = \
