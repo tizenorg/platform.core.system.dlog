@@ -288,13 +288,15 @@ static void read_log_lines(struct log_device_t* devices)
                         free(entry);
                         fprintf(stderr, "read: Unexpected EOF!\n");
                         exit(EXIT_FAILURE);
-                    }
-                    else if (entry->entry.len != ret - sizeof(struct logger_entry)) {
+					}
+					else if (entry->entry.len != ret - sizeof(struct logger_entry)) {
                         free(entry);
-                        fprintf(stderr, "read: unexpected length. Expected %d, got %d\n",
-                                entry->entry.len, ret - sizeof(struct logger_entry));
-                        exit(EXIT_FAILURE);
-                    }
+						fprintf(stderr, "read: unexpected length. Expected %d, got %d\n",
+								entry->entry.len, ret - sizeof(struct logger_entry));
+						exit(EXIT_FAILURE);
+					}
+
+
                     entry->entry.msg[entry->entry.len] = '\0';
 
                     enqueue(dev, entry);

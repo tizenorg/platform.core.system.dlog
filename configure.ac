@@ -20,11 +20,21 @@ AC_PROG_LIBTOOL
 # checks arch
 AM_CONDITIONAL(DEVELOP_VER, test $DEVELOP_VER = yes)
 
-SD_JOURNAL_SUPPORT=no
-
-#AC_DEFINE([SD_JOURNAL_SUPPORT], [], [Description])
-
-AM_CONDITIONAL(SD_JOURNAL_SUPPORT, test $SD_JOURNAL_SUPPORT = yes)
+# check for libsystemd-journal
+AC_ARG_WITH([systemd-journal],
+	AS_HELP_STRING([--with-systemd-journal], [check for systemd-journal]),
+	[], [with_systemd_journal=check])
+have_systemd_journal=no
+if test "x$with_systemd_journal" != "xno"; then
+	PKG_CHECK_MODULES(systemd_journal, [libsystemd-journal],
+		[AC_DEFINE(HAVE_SYSTEMD_JOURNAL, 1, [Define if systemd journal is available])
+		have_systemd_journal=yes],
+	    have_systemd_journal=no)
+	if test "x$have_systemd_journal" = "xno" -a "x$with_systemd_journal" = "xyes"; then
+		AC_MSG_ERROR([systemd journal requested but libraries not found])
+	fi
+fi
+AM_CONDITIONAL(HAVE_SYSTEMD_JOURNAL, [test "x$have_systemd_journal" = "xyes"])
 
 #AM_CONDITIONAL([ARCH_IS_ARM], [test "x$ARCH" = "xarm"])
 if test "x$ARCH" = "xarm" ; then
