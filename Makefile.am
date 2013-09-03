@@ -23,8 +23,3 @@ dlogutil_SOURCES = \
 # conf file
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = dlog.pc
-
-bootscriptdir = /etc/rc.d/init.d
-bootscript_SCRIPTS = dlog.sh
-
-
