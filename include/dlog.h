@@ -59,11 +59,10 @@ extern "C" {
 #define LOG_TAG NULL
 #endif
 
-#define LOG_ON() _get_logging_on()
-
 #ifndef __MODULE__
 #define __MODULE__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
 #endif
+
 /*
  * log priority values, in ascending priority order.
  */
@@ -77,6 +76,7 @@ typedef enum {
 	DLOG_ERROR,
 	DLOG_FATAL,
 	DLOG_SILENT,
+	DLOG_PRIO_MAX	/* Keep this always at the end. */
 } log_priority;
 
 typedef enum {
@@ -89,470 +89,240 @@ typedef enum {
 
 #define CONDITION(cond)     (__builtin_expect((cond) != 0, 0))
 
+#define _SECURE_LOG /* Temporary default added, This define code will be removed */
+
+// Macro inner work---------------------------------------------------------------
+#undef _SECURE_
+#ifndef _SECURE_LOG
+#define _SECURE_ (0)
+#else
+#define _SECURE_ (1)
+#endif
+#undef LOG_
+#define LOG_(id, prio, tag, fmt, arg...) \
+	( __dlog_print(id, prio, tag, "%s: %s(%d) > " fmt, __MODULE__, __func__, __LINE__, ##arg))
+#undef SECURE_LOG_
+#define SECURE_LOG_(id, prio, tag, fmt, arg...) \
+	(_SECURE_ ? ( __dlog_print(id, prio, tag, "%s: %s(%d) > [SECURE_LOG] " fmt, __MODULE__, __func__, __LINE__, ##arg)) : (0))
 // ---------------------------------------------------------------------
 /**
- * Secure Log Macro.
+ * For Secure Log.
+ * Normally we strip Secure log from release builds.
+ * Please use this macros.
  */
+/**
+ * For Application and etc.
+ * Simplified macro to send a main log message using the current LOG_TAG.
+ * Example:
+ *  SECURE_LOGD("app debug %d", num);
+ *  SECURE_LOGE("app error %d", num);
+ */
+#define SECURE_LOGD(format, arg...) SECURE_LOG_(LOG_ID_MAIN, DLOG_DEBUG, LOG_TAG, format, ##arg)
+#define SECURE_LOGI(format, arg...) SECURE_LOG_(LOG_ID_MAIN, DLOG_INFO, LOG_TAG, format, ##arg)
+#define SECURE_LOGW(format, arg...) SECURE_LOG_(LOG_ID_MAIN, DLOG_WARN, LOG_TAG, format, ##arg)
+#define SECURE_LOGE(format, arg...) SECURE_LOG_(LOG_ID_MAIN, DLOG_ERROR, LOG_TAG, format, ##arg)
+/**
+ * For Framework and system etc.
+ * Simplified macro to send a system log message using the current LOG_TAG.
+ * Example:
+ *  SECURE_SLOGD("system debug %d", num);
+ *  SECURE_SLOGE("system error %d", num);
+ */
+#define SECURE_SLOGD(format, arg...) SECURE_LOG_(LOG_ID_SYSTEM, DLOG_DEBUG, LOG_TAG, format, ##arg)
+#define SECURE_SLOGI(format, arg...) SECURE_LOG_(LOG_ID_SYSTEM, DLOG_INFO, LOG_TAG, format, ##arg)
+#define SECURE_SLOGW(format, arg...) SECURE_LOG_(LOG_ID_SYSTEM, DLOG_WARN, LOG_TAG, format, ##arg)
+#define SECURE_SLOGE(format, arg...) SECURE_LOG_(LOG_ID_SYSTEM, DLOG_ERROR, LOG_TAG, format, ##arg)
+/**
+ * For Modem and radio etc.
+ * Simplified macro to send a radio log message using the current LOG_TAG.
+ * Example:
+ *  SECURE_RLOGD("radio debug %d", num);
+ *  SECURE_RLOGE("radio error %d", num);
+ */
+#define SECURE_RLOGD(format, arg...) SECURE_LOG_(LOG_ID_RADIO, DLOG_DEBUG, LOG_TAG, format, ##arg)
+#define SECURE_RLOGI(format, arg...) SECURE_LOG_(LOG_ID_RADIO, DLOG_INFO, LOG_TAG, format, ##arg)
+#define SECURE_RLOGW(format, arg...) SECURE_LOG_(LOG_ID_RADIO, DLOG_WARN, LOG_TAG, format, ##arg)
+#define SECURE_RLOGE(format, arg...) SECURE_LOG_(LOG_ID_RADIO, DLOG_ERROR, LOG_TAG, format, ##arg)
+/**
+ * For Tizen OSP Application macro.
+ */
+#define SECURE_ALOGD(format, arg...) SECURE_LOG_(LOG_ID_APPS, DLOG_DEBUG, LOG_TAG, format, ##arg)
+#define SECURE_ALOGI(format, arg...) SECURE_LOG_(LOG_ID_APPS, DLOG_INFO, LOG_TAG, format, ##arg)
+#define SECURE_ALOGW(format, arg...) SECURE_LOG_(LOG_ID_APPS, DLOG_WARN, LOG_TAG, format, ##arg)
+#define SECURE_ALOGE(format, arg...) SECURE_LOG_(LOG_ID_APPS, DLOG_ERROR, LOG_TAG, format, ##arg)
+/**
+ * If you want use redefined macro.
+ * You can use this macro.
+ * This macro need priority and tag arguments.
+ */
+#define SECURE_LOG(priority, tag, format, arg...) SECURE_LOG_(LOG_ID_MAIN, D##priority, tag, format, ##arg)
+#define SECURE_SLOG(priority, tag, format, arg...) SECURE_LOG_(LOG_ID_SYSTEM, D##priority, tag, format, ##arg)
+#define SECURE_RLOG(priority, tag, format, arg...) SECURE_LOG_(LOG_ID_RADIO, D##priority, tag, format, ##arg)
+#define SECURE_ALOG(priority, tag, format, arg...) SECURE_LOG_(LOG_ID_APPS, D##priority, tag, format, ##arg)
 
-#define _SECURE_LOG 1
+#define SECLOG(format, arg...) do { } while (0)
+/**
+ * For Application and etc.
+ * Simplified macro to send a main log message using the current LOG_TAG.
+ * Example:
+ *  LOGD("app debug %d", num);
+ *  LOGE("app error %d", num);
+ */
+#define LOGD(format, arg...) LOG_(LOG_ID_MAIN, DLOG_DEBUG, LOG_TAG, format, ##arg)
+#define LOGI(format, arg...) LOG_(LOG_ID_MAIN, DLOG_INFO, LOG_TAG, format, ##arg)
+#define LOGW(format, arg...) LOG_(LOG_ID_MAIN, DLOG_WARN, LOG_TAG, format, ##arg)
+#define LOGE(format, arg...) LOG_(LOG_ID_MAIN, DLOG_ERROR, LOG_TAG, format, ##arg)
+/**
+ * For Framework and system etc.
+ * Simplified macro to send a system log message using the current LOG_TAG.
+ * Example:
+ *  SLOGD("system debug %d", num);
+ *  SLOGE("system error %d", num);
+ */
+#define SLOGD(format, arg...) LOG_(LOG_ID_SYSTEM, DLOG_DEBUG, LOG_TAG, format, ##arg)
+#define SLOGI(format, arg...) LOG_(LOG_ID_SYSTEM, DLOG_INFO, LOG_TAG, format, ##arg)
+#define SLOGW(format, arg...) LOG_(LOG_ID_SYSTEM, DLOG_WARN, LOG_TAG, format, ##arg)
+#define SLOGE(format, arg...) LOG_(LOG_ID_SYSTEM, DLOG_ERROR, LOG_TAG, format, ##arg)
+/**
+ * For Modem and radio etc.
+ * Simplified macro to send a radio log message using the current LOG_TAG.
+ * Example:
+ *  RLOGD("radio debug %d", num);
+ *  RLOGE("radio error %d", num);
+ */
+#define RLOGD(format, arg...) LOG_(LOG_ID_RADIO, DLOG_DEBUG, LOG_TAG, format, ##arg)
+#define RLOGI(format, arg...) LOG_(LOG_ID_RADIO, DLOG_INFO, LOG_TAG, format, ##arg)
+#define RLOGW(format, arg...) LOG_(LOG_ID_RADIO, DLOG_WARN, LOG_TAG, format, ##arg)
+#define RLOGE(format, arg...) LOG_(LOG_ID_RADIO, DLOG_ERROR, LOG_TAG, format, ##arg)
+/**
+ * For Tizen OSP Application macro.
+ */
+#define ALOGD(format, arg...) LOG_(LOG_ID_APPS, DLOG_DEBUG, LOG_TAG, format, ##arg)
+#define ALOGI(format, arg...) LOG_(LOG_ID_APPS, DLOG_INFO, LOG_TAG, format, ##arg)
+#define ALOGW(format, arg...) LOG_(LOG_ID_APPS, DLOG_WARN, LOG_TAG, format, ##arg)
+#define ALOGE(format, arg...) LOG_(LOG_ID_APPS, DLOG_ERROR, LOG_TAG, format, ##arg)
 
-#ifndef SECLOG
-#if _SECURE_LOG
-#define SECLOG(...)   (0)
-#else
-#define SECLOG(format, arg...) \
-	(LOG_ON() ? (SLOG(LOG_WARN, LOG_TAG, "%s: %s(%d) > " format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
-#endif
-#endif
-
-// ---------------------------------------------------------------------
 /**
- * Simplified macro to send a verbose log message using the current LOG_TAG.
+ * Conditional Macro.
+ * Don't use this macro. It's just compatibility.
  */
-#ifndef LOGV
-#if LOG_NDEBUG
-#define LOGV(...)   (0)
-#else
-#define LOGV(format, arg...) \
-	(LOG_ON() ? (LOG(LOG_VERBOSE, LOG_TAG, "%s: %s(%d) > " format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
-#endif
-#endif
-/**
- * Simplified macro to send a conditional verbose log message using the current LOG_TAG.
- */
-#ifndef LOGV_IF
-#if LOG_NDEBUG
-#define LOGV_IF(cond, format, arg...)   (0)
-#else
-#define LOGV_IF(cond, format, arg...) \
-	(((CONDITION(cond)) && (LOG_ON())) ? \
-	  (LOG(LOG_VERBOSE, LOG_TAG, "%s: %s(%d) > " format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
-#endif
-#endif
-/**
- * Simplified macro to send a debug log message using the current LOG_TAG.
- */
-#ifndef LOGD
-#define LOGD(format, arg...) \
-	(LOG_ON() ? (LOG(LOG_DEBUG, LOG_TAG, "%s: %s(%d) > " format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
-#endif
-/**
- * Simplified macro to send a conditional verbose log message using the current LOG_TAG.
- */
-#ifndef LOGD_IF
 #define LOGD_IF(cond, format, arg...) \
-	(((CONDITION(cond)) && (LOG_ON())) ? \
-	  (LOG(LOG_DEBUG, LOG_TAG, "%s: %s(%d) > " format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
-#endif
-
-/**
- * Simplified macro to send an info log message using the current LOG_TAG.
- */
-#ifndef LOGI
-#define LOGI(format, arg...) \
-	(LOG_ON() ? (LOG(LOG_INFO, LOG_TAG, "%s: %s(%d) > " format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
-#endif
-/**
- * Simplified macro to send a conditional verbose log message using the current LOG_TAG.
- */
-#ifndef LOGI_IF
+    ((CONDITION(cond)) ? (LOGD(format, ##arg)) : (0))
 #define LOGI_IF(cond, format, arg...) \
-	(((CONDITION(cond)) && (LOG_ON())) ? \
-	  (LOG(LOG_INFO, LOG_TAG, "%s: %s(%d) > " format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
-#endif
-
-/**
- * Simplified macro to send a warning log message using the current LOG_TAG.
- */
-#ifndef LOGW
-#define LOGW(format, arg...) \
-	(LOG_ON() ? (LOG(LOG_WARN, LOG_TAG, "%s: %s(%d) > " format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
-#endif
-/**
- * Simplified macro to send a conditional verbose log message using the current LOG_TAG.
- */
-#ifndef LOGW_IF
+    ((CONDITION(cond)) ? (LOGI(format, ##arg)) : (0))
 #define LOGW_IF(cond, format, arg...) \
-	(((CONDITION(cond)) && (LOG_ON())) ? \
-	  (LOG(LOG_WARN, LOG_TAG, "%s: %s(%d) > " format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
-#endif
-
-/**
- * Simplified macro to send an error log message using the current LOG_TAG.
- */
-#ifndef LOGE
-#define LOGE(format, arg...) \
-	(LOG_ON() ? (LOG(LOG_ERROR, LOG_TAG, "%s: %s(%d) > " format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
-#endif
-/**
- * Simplified macro to send a conditional verbose log message using the current LOG_TAG.
- */
-#ifndef LOGE_IF
+    ((CONDITION(cond)) ? (LOGW(format, ##arg)) : (0))
 #define LOGE_IF(cond, format, arg...) \
-	(((CONDITION(cond)) && (LOG_ON())) ? \
-	  (LOG(LOG_ERROR, LOG_TAG, "%s: %s(%d) > " format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
-#endif
-/**
- * Simplified macro to send an error log message using the current LOG_TAG.
- */
-#ifndef LOGF
-#define LOGF(format, arg...) \
-	(LOG_ON() ? (LOG(LOG_FATAL, LOG_TAG, "%s: %s(%d) > " format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
-#endif
-/**
- * Simplified macro to send a conditional verbose log message using the current LOG_TAG.
- */
-#ifndef LOGF_IF
-#define LOGF_IF(cond, format, arg...) \
-	(((CONDITION(cond)) && (LOG_ON())) ? \
-	  (LOG(LOG_FATAL, LOG_TAG, "%s: %s(%d) > " format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
-#endif
-
-// ---------------------------------------------------------------------
-/**
- * Simplified radio macro to send a verbose log message using the current LOG_TAG.
- */
-#ifndef RLOGV
-#if LOG_NDEBUG
-#define RLOGV(...)   (0)
-#else
-#define RLOGV(format, arg...) \
-	(LOG_ON() ? (RLOG(LOG_VERBOSE, LOG_TAG, "%s: %s(%d) > " format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
-#endif
-#endif
-/**
- * Simplified radio macro to send a conditional verbose log message using the current LOG_TAG.
- */
-#ifndef RLOGV_IF
-#if LOG_NDEBUG
-#define RLOGV_IF(cond, format, arg...)   (0)
-#else
-#define RLOGV_IF(cond, format, arg...) \
-	(((CONDITION(cond)) && (LOG_ON())) ? \
-	  (RLOG(LOG_VERBOSE, LOG_TAG, "%s: %s(%d) > " format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
-#endif
-#endif
-
-/**
- * Simplified radio macro to send a debug log message using the current LOG_TAG.
- */
-#ifndef RLOGD
-#define RLOGD(format, arg...) \
-	(LOG_ON() ? (RLOG(LOG_DEBUG, LOG_TAG, "%s: %s(%d) > " format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
-#endif
-/**
- * Simplified radio macro to send a conditional verbose log message using the current LOG_TAG.
- */
-#ifndef RLOGD_IF
-#define RLOGD_IF(cond, format, arg...) \
-	(((CONDITION(cond)) && (LOG_ON())) ? \
-	  (RLOG(LOG_DEBUG, LOG_TAG, "%s: %s(%d) > " format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
-#endif
-
-/**
- * Simplified radio macro to send an info log message using the current LOG_TAG.
- */
-#ifndef RLOGI
-#define RLOGI(format, arg...) \
-	(LOG_ON() ? (RLOG(LOG_INFO, LOG_TAG, "%s: %s(%d) > " format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
-#endif
-/**
- * Simplified radio macro to send a conditional verbose log message using the current LOG_TAG.
- */
-#ifndef RLOGI_IF
-#define RLOGI_IF(cond, format, arg...) \
-	(((CONDITION(cond)) && (LOG_ON())) ? \
-	  (RLOG(LOG_INFO, LOG_TAG, "%s: %s(%d) > " format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
-#endif
-
-/**
- * Simplified radio macro to send a warning log message using the current LOG_TAG.
- */
-#ifndef RLOGW
-#define RLOGW(format, arg...) \
-	(LOG_ON() ? (RLOG(LOG_WARN, LOG_TAG, "%s: %s(%d) > " format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
-#endif
-/**
- * Simplified radio macro to send a conditional verbose log message using the current LOG_TAG.
- */
-#ifndef RLOGW_IF
-#define RLOGW_IF(cond, format, arg...) \
-	(((CONDITION(cond)) && (LOG_ON())) ? \
-	  (RLOG(LOG_WARN, LOG_TAG, "%s: %s(%d) > " format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
-#endif
-
-/**
- * Simplified radio macro to send an error log message using the current LOG_TAG.
- */
-#ifndef RLOGE
-#define RLOGE(format, arg...) \
-	(LOG_ON() ? (RLOG(LOG_ERROR, LOG_TAG, "%s: %s(%d) > " format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
-#endif
-/**
- * Simplified radio macro to send a conditional verbose log message using the current LOG_TAG.
- */
-#ifndef RLOGE_IF
-#define RLOGE_IF(cond, format, arg...) \
-	(((CONDITION(cond)) && (LOG_ON())) ? \
-	  (RLOG(LOG_ERROR, LOG_TAG, "%s: %s(%d) > " format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
-#endif
-/**
- * Simplified radio macro to send an error log message using the current LOG_TAG.
- */
-#ifndef RLOGF
-#define RLOGF(format, arg...) \
-	(LOG_ON() ? (RLOG(LOG_FATAL, LOG_TAG, "%s: %s(%d) > " format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
-#endif
-/**
- * Simplified radio macro to send a conditional verbose log message using the current LOG_TAG.
- */
-#ifndef RLOGF_IF
-#define RLOGF_IF(cond, format, arg...) \
-	(((CONDITION(cond)) && (LOG_ON())) ? \
-	  (RLOG(LOG_FATAL, LOG_TAG, "%s: %s(%d) > " format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
-#endif
-
-
-// ---------------------------------------------------------------------
-/**
- * Simplified system macro to send a verbose log message using the current LOG_TAG.
- */
-#ifndef SLOGV
-#if LOG_NDEBUG
-#define SLOGV(...)   (0)
-#else
-#define SLOGV(format, arg...) \
-	(LOG_ON() ? (SLOG(LOG_VERBOSE, LOG_TAG, "%s: %s(%d) > " format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
-#endif
-#endif
-/**
- * Simplified macro to send a conditional verbose log message using the current LOG_TAG.
- */
-#ifndef SLOGV_IF
-#if LOG_NDEBUG
-#define SLOGV_IF(cond, format, arg...)   (0)
-#else
-#define SLOGV_IF(cond, format, arg...) \
-	(((CONDITION(cond)) && (LOG_ON())) ? \
-	  (SLOG(LOG_VERBOSE, LOG_TAG, "%s: %s(%d) > " format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
-#endif
-#endif
-
-/**
- * Simplified system macro to send a debug log message using the current LOG_TAG.
- */
-#ifndef SLOGD
-#define SLOGD(format, arg...) \
-	(LOG_ON() ? (SLOG(LOG_DEBUG, LOG_TAG, "%s: %s(%d) > " format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
-#endif
-/**
- * Simplified system macro to send a conditional verbose log message using the current LOG_TAG.
- */
-#ifndef SLOGD_IF
+    ((CONDITION(cond)) ? (LOGE(format, ##arg)) : (0))
 #define SLOGD_IF(cond, format, arg...) \
-	(((CONDITION(cond)) && (LOG_ON())) ? \
-	  (SLOG(LOG_DEBUG, LOG_TAG, "%s: %s(%d) > " format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
-#endif
-
-/**
- * Simplified system macro to send an info log message using the current LOG_TAG.
- */
-#ifndef SLOGI
-#define SLOGI(format, arg...) \
-	(LOG_ON() ? (SLOG(LOG_INFO, LOG_TAG, "%s: %s(%d) > " format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
-#endif
-/**
- * Simplified system macro to send a conditional verbose log message using the current LOG_TAG.
- */
-#ifndef SLOGI_IF
+    ((CONDITION(cond)) ? (SLOGD(format, ##arg)) : (0))
 #define SLOGI_IF(cond, format, arg...) \
-	(((CONDITION(cond)) && (LOG_ON())) ? \
-	  (SLOG(LOG_INFO, LOG_TAG, "%s: %s(%d) > " format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
-#endif
-
-/**
- * Simplified system macro to send a warning log message using the current LOG_TAG.
- */
-#ifndef SLOGW
-#define SLOGW(format, arg...) \
-	(LOG_ON() ? (SLOG(LOG_WARN, LOG_TAG, "%s: %s(%d) > " format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
-#endif
-/**
- * Simplified system macro to send a conditional verbose log message using the current LOG_TAG.
- */
-#ifndef SLOGW_IF
+    ((CONDITION(cond)) ? (SLOGI(format, ##arg)) : (0))
 #define SLOGW_IF(cond, format, arg...) \
-	(((CONDITION(cond)) && (LOG_ON())) ? \
-	  (SLOG(LOG_WARN, LOG_TAG, "%s: %s(%d) > " format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
-#endif
-
-/**
- * Simplified system macro to send an error log message using the current LOG_TAG.
- */
-#ifndef SLOGE
-#define SLOGE(format, arg...) \
-	(LOG_ON() ? (SLOG(LOG_ERROR, LOG_TAG, "%s: %s(%d) > " format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
-#endif
-/**
- * Simplified system macro to send a conditional verbose log message using the current LOG_TAG.
- */
-#ifndef SLOGE_IF
+    ((CONDITION(cond)) ? (SLOGW(format, ##arg)) : (0))
 #define SLOGE_IF(cond, format, arg...) \
-	(((CONDITION(cond)) && (LOG_ON())) ? \
-	  (SLOG(LOG_ERROR, LOG_TAG, "%s: %s(%d) > " format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
-#endif
-/**
- * Simplified system macro to send an error log message using the current LOG_TAG.
- */
-#ifndef SLOGF
-#define SLOGF(format, arg...) \
-	(LOG_ON() ? (SLOG(LOG_FATAL, LOG_TAG, "%s: %s(%d) > " format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
-#endif
-/**
- * Simplified system macro to send a conditional verbose log message using the current LOG_TAG.
- */
-#ifndef SLOGF_IF
-#define SLOGF_IF(cond, format, arg...) \
-	(((CONDITION(cond)) && (LOG_ON())) ? \
-	  (SLOG(LOG_FATAL, LOG_TAG, "%s: %s(%d) > " format, __MODULE__, __func__, __LINE__, ##arg)) : (0))
-#endif
+    ((CONDITION(cond)) ? (SLOGE(format, ##arg)) : (0))
+#define RLOGD_IF(cond, format, arg...) \
+    ((CONDITION(cond)) ? (RLOGD(format, ##arg)) : (0))
+#define RLOGI_IF(cond, format, arg...) \
+    ((CONDITION(cond)) ? (RLOGI(format, ##arg)) : (0))
+#define RLOGW_IF(cond, format, arg...) \
+    ((CONDITION(cond)) ? (RLOGW(format, ##arg)) : (0))
+#define RLOGE_IF(cond, format, arg...) \
+    ((CONDITION(cond)) ? (RLOGE(format, ##arg)) : (0))
 
-// ---------------------------------------------------------------------
-
-/**
- * Simplified macro to send a verbose log message using the current LOG_TAG.
- */
-#ifndef ALOGV
-#if LOG_NDEBUG
-#define ALOGV(...)   (0)
-#else
-#define ALOGV(...) (ALOG(LOG_VERBOSE, LOG_TAG, __VA_ARGS__))
-#endif
-#endif
-/**
- * Simplified macro to send a debug log message using the current LOG_TAG.
- */
-#ifndef ALOGD
-#define ALOGD(...) (ALOG(LOG_DEBUG, LOG_TAG, __VA_ARGS__))
-#endif
-/**
- * Simplified macro to send an info log message using the current LOG_TAG.
- */
-#ifndef ALOGI
-#define ALOGI(...) (ALOG(LOG_INFO, LOG_TAG, __VA_ARGS__))
-#endif
-/**
- * Simplified macro to send a warning log message using the current LOG_TAG.
- */
-#ifndef ALOGW
-#define ALOGW(...) (ALOG(LOG_WARN, LOG_TAG, __VA_ARGS__))
-#endif
-/**
- * Simplified macro to send an error log message using the current LOG_TAG.
- */
-#ifndef ALOGE
-#define ALOGE(...) (ALOG(LOG_ERROR, LOG_TAG, __VA_ARGS__))
-#endif
-
-
-// ---------------------------------------------------------------------
 /**
  * Basic log message macro that allows you to specify a priority and a tag
+ * if you want to use this macro directly, you must add this messages for unity of messages.
+ * (LOG(prio, tag, "%s: %s(%d) > " format, __MODULE__, __func__, __LINE__, ##arg))
  *
  * Example:
- *  LOG(DLOG_WARN, NULL, "Failed with error %d", errno);
+ *  #define MYMACRO(prio, tag, format, arg...) \
+ *          LOG(prio, tag, format, ##arg)
  *
- * The second argument may be NULL or "" to indicate the "global" tag.
- * 
- * Future work : we want to put filename and line number automatically only when debug build mode 
+ *  MYMACRO(LOG_DEBUG, MYTAG, "test mymacro %d", num);
+ *
  */
 #ifndef LOG
-#define LOG(priority, tag, ...) \
-	print_log(D##priority, tag, __VA_ARGS__)
+#define LOG(priority, tag, format, arg...) LOG_(LOG_ID_MAIN, D##priority, tag, format, ##arg)
 #endif
+#define SLOG(priority, tag, format, arg...) LOG_(LOG_ID_SYSTEM, D##priority, tag, format, ##arg)
+#define RLOG(priority, tag, format, arg...) LOG_(LOG_ID_RADIO, D##priority, tag, format, ##arg)
+#define ALOG(priority, tag, format, arg...) LOG_(LOG_ID_APPS, D##priority, tag, format, ##arg)
 
-/**
- * Log macro that allows you to pass in a varargs ("args" is a va_list).
- */
-#ifndef LOG_VA
+
+// ---------------------------------------------------------------------
+// Don't use below macro no more!! It will be removed -- Verbose and Fatal priority macro will be removed --
+#define COMPATIBILITY_ON
+
+#ifdef COMPATIBILITY_ON
+#define LOG_ON() _get_logging_on()
+#if LOG_NDEBUG
+#define LOGV(format, arg...) (0)
+#else
+#define LOGV(format, arg...) LOG_(LOG_ID_MAIN, DLOG_DEBUG, LOG_TAG, format, ##arg)
+#endif
+#define LOGF(format, arg...) LOG_(LOG_ID_MAIN, DLOG_ERROR, LOG_TAG, format, ##arg)
+#if LOG_NDEBUG
+#define SLOGV(format, arg...) (0)
+#else
+#define SLOGV(format, arg...) LOG_(LOG_ID_SYSTEM, DLOG_DEBUG, LOG_TAG, format, ##arg)
+#endif
+#define SLOGF(format, arg...) LOG_(LOG_ID_SYSTEM, DLOG_ERROR, LOG_TAG, format, ##arg)
+#if LOG_NDEBUG
+#define RLOGV(format, arg...) (0)
+#else
+#define RLOGV(format, arg...) LOG_(LOG_ID_RADIO, DLOG_DEBUG, LOG_TAG, format, ##arg)
+#endif
+#define RLOGF(format, arg...) LOG_(LOG_ID_RADIO, DLOG_ERROR, LOG_TAG, format, ##arg)
+#if LOG_NDEBUG
+#define ALOGV(format, arg...) (0)
+#else
+#define ALOGV(format, arg...) LOG_(LOG_ID_APPS, DLOG_DEBUG, LOG_TAG, format, ##arg)
+#endif
+#define ALOGF(format, arg...) LOG_(LOG_ID_APPS, DLOG_ERROR, LOG_TAG, format, ##arg)
+#define LOGV_IF(cond, format, arg...) \
+    ((CONDITION(cond)) ? (LOGD(format, ##arg)) : (0))
+#define LOGF_IF(cond, format, arg...) \
+    ((CONDITION(cond)) ? (LOGE(format, ##arg)) : (0))
+#define SLOGV_IF(cond, format, arg...) \
+    ((CONDITION(cond)) ? (SLOGD(format, ##arg)) : (0))
+#define SLOGF_IF(cond, format, arg...) \
+    ((CONDITION(cond)) ? (SLOGE(format, ##arg)) : (0))
+#define RLOGV_IF(cond, format, arg...) \
+    ((CONDITION(cond)) ? (RLOGD(format, ##arg)) : (0))
+#define RLOGF_IF(cond, format, arg...) \
+    ((CONDITION(cond)) ? (RLOGE(format, ##arg)) : (0))
 #define LOG_VA(priority, tag, fmt, args) \
     vprint_log(D##priority, tag, fmt, args)
-#endif
-
-#ifndef ALOG
-#define ALOG(priority, tag, ...) \
-	print_apps_log(D##priority, tag, __VA_ARGS__)
-#endif
-/**
- * Log macro that allows you to pass in a varargs ("args" is a va_list).
- */
-#ifndef ALOG_VA
 #define ALOG_VA(priority, tag, fmt, args) \
     vprint_apps_log(D##priority, tag, fmt, args)
-#endif
-
-/**
- * Basic radio log macro that allows you to specify a priority and a tag.
- */
-#ifndef RLOG
-#define RLOG(priority, tag, ...) \
-	print_radio_log(D##priority, tag, __VA_ARGS__)
-#endif
-/**
- * Radio log macro that allows you to pass in a varargs ("args" is a va_list).
- */
-#ifndef RLOG_VA
 #define RLOG_VA(priority, tag, fmt, args) \
     vprint_radio_log(D##priority, tag, fmt, args)
-#endif
-
-/**
- * Basic system log macro that allows you to specify a priority and a tag.
- */
-#ifndef SLOG
-#define SLOG(priority, tag, ...) \
-    print_system_log(D##priority, tag, __VA_ARGS__)
-#endif
-
-/**
- * System log macro that allows you to pass in a varargs ("args" is a va_list).
- */
-#ifndef SLOG_VA
 #define SLOG_VA(priority, tag, fmt, args) \
     vprint_system_log(D##priority, tag, fmt, args)
-#endif
-
-
-/*
- * ===========================================================================
- *
- * The stuff in the rest of this file should not be used directly.
- */
-
 #define print_apps_log(prio, tag, fmt...) \
 	__dlog_print(LOG_ID_APPS, prio, tag, fmt)
-
 #define vprint_apps_log(prio, tag, fmt...) \
 	__dlog_vprint(LOG_ID_APPS, prio, tag, fmt)
-
 #define print_log(prio, tag, fmt...) \
 	__dlog_print(LOG_ID_MAIN, prio, tag, fmt)
-
 #define vprint_log(prio, tag, fmt...) \
 	__dlog_vprint(LOG_ID_MAIN, prio, tag, fmt)
-
 #define print_radio_log(prio, tag, fmt...)\
 	__dlog_print(LOG_ID_RADIO, prio, tag, fmt)
-
 #define vprint_radio_log(prio, tag, fmt...) \
 	__dlog_vprint(LOG_ID_RADIO, prio, tag, fmt)
-
 #define print_system_log(prio, tag, fmt...)\
 	__dlog_print(LOG_ID_SYSTEM, prio, tag, fmt)
-
 #define vprint_system_log(prio, tag, fmt...) \
 	__dlog_vprint(LOG_ID_SYSTEM, prio, tag, fmt)
-
+#endif
+// Don't use above macro no more!! It will be removed -Verbose, Warning and Fatal priority macro.
+// ---------------------------------------------------------------------
+/*
+ * The stuff in the rest of this file should not be used directly.
+ */
 /**
  * @brief		send log. must specify log_id ,priority, tag and format string.
  * @pre		none
@@ -600,14 +370,9 @@ int __dlog_print(log_id_t log_id, int prio, const char *tag, const char *fmt, ..
   */
 int __dlog_vprint(log_id_t log_id, int prio, const char *tag, const char *fmt, va_list ap);
 int _get_logging_on(void);
-
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */
-
-
 /** @} */
 /** @} */
-
 #endif /* _DLOG_H_*/
-
