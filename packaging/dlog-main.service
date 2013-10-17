@@ -2,7 +2,7 @@
 Description=Start the dlog service
 
 [Service]
-ExecStart=/usr/bin/dlogutil -r 1024 -n 3 -f /var/log/dlog -v time *:W
+ExecStart=/usr/bin/dlogutil -v time *:W
 
 [Install]
 WantedBy=multi-user.target
