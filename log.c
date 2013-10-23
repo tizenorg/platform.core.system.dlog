@@ -179,6 +179,9 @@ static void __dlog_init(void)
 	pthread_mutex_lock(&log_init_lock);
 	/* configuration */
 	__configure();
+#ifdef HAVE_SYSTEMD_JOURNAL
+	write_to_log = __write_to_log_sd_journal;
+#else
 	/* open device */
 	log_fds[LOG_ID_MAIN] = open("/dev/"LOG_MAIN, O_WRONLY);
 	log_fds[LOG_ID_RADIO] = open("/dev/"LOG_RADIO, O_WRONLY);
@@ -187,17 +190,14 @@ static void __dlog_init(void)
 	if (log_fds[LOG_ID_MAIN] < 0 || log_fds[LOG_ID_RADIO] < 0) {
 		write_to_log = __write_to_log_null;
 	} else {
-#ifdef HAVE_SYSTEMD_JOURNAL
-		write_to_log = __write_to_log_sd_journal;
-#else
 		write_to_log = __write_to_log_kernel;
-#endif
 	}
 
 	if (log_fds[LOG_ID_SYSTEM] < 0)
 		log_fds[LOG_ID_SYSTEM] = log_fds[LOG_ID_MAIN];
 	if (log_fds[LOG_ID_APPS] < 0)
 		log_fds[LOG_ID_APPS] = log_fds[LOG_ID_MAIN];
+#endif
 	pthread_mutex_unlock(&log_init_lock);
 }
 
