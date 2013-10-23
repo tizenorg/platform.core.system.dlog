@@ -1,3 +1,5 @@
+%bcond_with dlog_to_systemd_journal
+
 Name:       dlog
 Summary:    Logging service
 Version:    0.4.1
@@ -9,7 +11,9 @@ Source101:  dlog-main.service
 Source102:  dlog-radio.service
 Source103:  dlog.manifest
 
+%if %{with dlog_to_systemd_journal}
 BuildRequires: pkgconfig(libsystemd-journal)
+%endif
 
 %description
 dlog API library
@@ -43,8 +47,14 @@ Utilities for print log data
 cp %{SOURCE103} .
 
 %build
-%autogen --disable-static
-%configure --disable-static --without-systemd-journal
+%autogen
+%configure --disable-static \
+%if %{with dlog_to_systemd_journal}
+--with-systemd-journal
+%else
+--without-systemd-journal
+%endif
+
 make %{?jobs:-j%jobs}
 
 %install
