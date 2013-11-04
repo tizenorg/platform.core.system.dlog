@@ -1,0 +1,11 @@
+Code-Review+2: Auke Kok <auke-jan.h.kok@intel.com>
+Verified+1: Mikko Ylinen <mikko.ylinen@intel.com>
+Code-Review+2: Rusty Lynch <rusty.lynch@intel.com>
+Verified+1: Rusty Lynch <rusty.lynch@intel.com>
+Code-Review+1: Jacek Pielaszkiewicz <j.pielaszkie@samsung.com>
+Verified+1: Jacek Pielaszkiewicz <j.pielaszkie@samsung.com>
+Submitted-by: Rusty Lynch <rusty.lynch@intel.com>
+Submitted-at: Mon, 04 Nov 2013 13:00:47 -0800
+Reviewed-on: https://review.tizen.org/gerrit/11748
+Project: platform/core/system/dlog
+Branch: refs/heads/tizen
