@@ -10,7 +10,7 @@ libdlog_la_SOURCES =  \
 	log.c \
 	include/dlog.h
 
-libdlog_la_LIBADD = -lpthread $(systemd_journal_LIBS)
+libdlog_la_LIBADD = -lpthread -ltzplatform-config-1.0 $(systemd_journal_LIBS)
 
 bin_PROGRAMS= dlogutil
 

@@ -39,18 +39,19 @@ if [ "$MODE" = "set" ]; then
 	esac
 fi
 
+source /etc/tizen-platform.conf
 if [ "$MODE" = "set" ]; then
 	if [ "$OBJ" = "platformlog" ] && [ "$VAL" = "1" ] ; then
-		echo 1 > /opt/etc/platformlog.conf 2>/dev/null
-		touch /home/developer/.platforminfologgingmode 2>/dev/null
+		echo 1 > ${TZ_SYS_ETC}/platformlog.conf 2>/dev/null
+		touch ${TZ_SDK_HOME}/.platforminfologgingmode 2>/dev/null
 	elif [ "$OBJ" = "platformlog" ] && [ "$VAL" = "0" ] ; then
-		echo 0 > /opt/etc/platformlog.conf 2>/dev/null
-		rm /home/developer/.platforminfologgingmode 2>/dev/null
+		echo 0 > ${TZ_SYS_ETC}/platformlog.conf 2>/dev/null
+		rm ${TZ_SDK_HOME}/.platforminfologgingmode 2>/dev/null
 	fi
     echo "You must reboot this target to apply the change!"
 else
 	if [ "$OBJ" = "platformlog" ]; then
-		cat /opt/etc/platformlog.conf 2>/dev/null
+		cat ${TZ_SYS_ETC}/platformlog.conf 2>/dev/null
 	fi
 fi
 

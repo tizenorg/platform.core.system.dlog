@@ -14,6 +14,8 @@ Source103:  dlog.manifest
 %if %{with dlog_to_systemd_journal}
 BuildRequires: pkgconfig(libsystemd-journal)
 %endif
+BuildRequires:	pkgconfig(libtzplatform-config)
+Requires: libtzplatform-config
 
 %description
 dlog API library
@@ -59,8 +61,8 @@ make %{?jobs:-j%jobs}
 
 %install
 %make_install
-mkdir -p %{buildroot}/opt/etc/dump.d/default.d
-cp %{_builddir}/%{name}-%{version}/dlog_dump.sh %{buildroot}/opt/etc/dump.d/default.d/dlog_dump.sh
+mkdir -p %{buildroot}%{TZ_SYS_ETC}/dump.d/default.d
+cp %{_builddir}/%{name}-%{version}/dlog_dump.sh %{buildroot}%{TZ_SYS_ETC}/dump.d/default.d/dlog_dump.sh
 mkdir -p %{buildroot}/usr/bin/
 cp %{_builddir}/%{name}-%{version}/dlogctrl %{buildroot}/usr/bin/dlogctrl
 
@@ -97,7 +99,7 @@ systemctl daemon-reload
 %files  -n dlogutil
 %manifest %{name}.manifest
 %license LICENSE.APLv2
-%attr(755,root,root) /opt/etc/dump.d/default.d/dlog_dump.sh
+%attr(755,root,root) %{TZ_SYS_ETC}/dump.d/default.d/dlog_dump.sh
 %attr(755,root,app_logging) %{_bindir}/dlogutil
 %attr(755,root,app_logging) %{_bindir}/dlogctrl
 %{_unitdir}/dlog-main.service

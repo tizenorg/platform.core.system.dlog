@@ -39,7 +39,8 @@
 
 #define VALUE_MAX 2
 #define PLATFORMLOG_CONF "/tmp/.platformlog.conf"
-#define PLATFORMLOG_ORG_CONF "/opt/etc/platformlog.conf"
+#include <tzplatform_config.h>
+#define PLATFORMLOG_ORG_CONF tzplatform_mkpath(TZ_SYS_ETC,"platformlog.conf")
 
 static int platformlog = 0;
 static int log_fds[(int)LOG_ID_MAX] = { -1, -1, -1, -1 };
