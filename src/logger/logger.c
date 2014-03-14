@@ -45,7 +45,7 @@
 
 #define COMMAND_MAX 5
 #define DELIMITER " "
-#define FILE_PERMS (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH)
+#define FILE_PERMS (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP)
 #define MAX_ARGS 16
 #define MAX_ROTATED 4
 #define MAX_QUEUED 4096
