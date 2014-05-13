@@ -3,7 +3,7 @@
 Name:       dlog
 Summary:    Logging service
 Version:    0.4.1
-Release:    15
+Release:    0
 Group:      System/Libraries
 License:    Apache-2.0
 Source0:    %{name}-%{version}.tar.gz
@@ -62,11 +62,10 @@ make %{?jobs:-j%jobs}
 %install
 %make_install
 mkdir -p %{buildroot}%{TZ_SYS_ETC}/dump.d/default.d
-cp %{_builddir}/%{name}-%{version}/dlog_dump.sh %{buildroot}%{TZ_SYS_ETC}/dump.d/default.d/dlog_dump.sh
+cp dlog_dump.sh %{buildroot}%{TZ_SYS_ETC}/dump.d/default.d/dlog_dump.sh
 mkdir -p %{buildroot}/usr/bin/
-cp %{_builddir}/%{name}-%{version}/dlogctrl %{buildroot}/usr/bin/dlogctrl
+cp dlogctrl %{buildroot}/usr/bin/dlogctrl
 
-mkdir -p %{buildroot}%{_unitdir}/basic.target.wants
 mkdir -p %{buildroot}%{_unitdir}/multi-user.target.wants
 
 install -m 0644 %SOURCE101 %{buildroot}%{_unitdir}
