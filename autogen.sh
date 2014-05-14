@@ -1,3 +1,4 @@
+libtoolize --force
 aclocal
 libtoolize --copy
 autoheader
