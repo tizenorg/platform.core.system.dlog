@@ -8,17 +8,19 @@ lib_LTLIBRARIES = libdlog.la
 
 libdlog_la_SOURCES =  \
 	log.c \
-	include/dlog.h
+	log-common.c
 
-libdlog_la_LIBADD = -lpthread -ltzplatform-config-1.0 $(systemd_journal_LIBS)
+libdlog_la_LIBADD = -ltzplatform-config-1.0 -lsystemd-journal
 
-bin_PROGRAMS= dlogutil
+bin_PROGRAMS= dlogctrl
 
-dlogutil_SOURCES = \
-	logutil.c \
-	logprint.c \
-	include/logger.h \
-	include/logprint.h
+dlogctrl_SOURCES = \
+	logctrl.c \
+	log-common.c
+
+dlogctrl_LDADD = -ltzplatform-config-1.0
+
+dlogctrl_CFLAGS = $(AM_CFLAGS)
 
 # conf file
 pkgconfigdir = $(libdir)/pkgconfig
