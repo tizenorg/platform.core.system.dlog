@@ -1,0 +1,9 @@
+Code-Review+2: Casey Schaufler <casey.schaufler@intel.com>
+Code-Review+1: Kévin THIERRY <kevin.thierry@open.eurogiciel.org>
+Code-Review+1: Roman Kubiak <r.kubiak@samsung.com>
+Verified+1: Roman Kubiak <r.kubiak@samsung.com>
+Submitted-by: Casey Schaufler <casey.schaufler@intel.com>
+Submitted-at: Tue, 01 Jul 2014 06:28:19 -0700
+Reviewed-on: https://review.tizen.org/gerrit/22724
+Project: platform/core/system/dlog
+Branch: refs/heads/tizen
