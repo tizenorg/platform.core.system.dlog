@@ -1,7 +1,7 @@
 Name:       dlog
 Summary:    Logging service
 Version:    0.4.1
-Release:    15
+Release:    0
 Group:      System/Libraries
 License:    Apache-2.0
 Source0:    %{name}-%{version}.tar.gz
@@ -11,20 +11,20 @@ BuildRequires: pkgconfig(libsystemd-journal)
 BuildRequires: pkgconfig(libtzplatform-config)
 
 %description
-dlog API library
+Logging service dlog API library
 
 %package -n libdlog
 Summary:    Logging service dlog API
 
 %description -n libdlog
-dlog API library
+Logging service dlog API library
 
 %package -n libdlog-devel
 Summary:    Logging service dlog API
 Requires:   lib%{name} = %{version}-%{release}
 
 %description -n libdlog-devel
-dlog API library
+Logging service dlog API library
 
 %package -n dlogutil
 Summary:    Manages dlog configuration
@@ -38,10 +38,8 @@ Utilities for managing dlog configuration
 cp %{SOURCE1} .
 
 %build
-%autogen
-%configure --disable-static
-
-make %{?jobs:-j%jobs}
+%reconfigure --disable-static
+%__make %{?jobs:-j%jobs}
 
 %install
 %make_install
