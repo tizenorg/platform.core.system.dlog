@@ -10,7 +10,7 @@ Source102:  packaging/libdlog.manifest
 Source201:  packaging/dlog.conf.in
 Source202:  packaging/dlog_logger.conf.in
 Source203:  packaging/dlog_logger.conf-micro.in
-Source204:  packaging/dlog_logger.conf-micro-debug.in
+Source204:  packaging/dlog_logger.conf-debug.in
 Source301:  packaging/dlog_logger.service
 Source302:  packaging/dlog_logger.path
 BuildRequires: autoconf
