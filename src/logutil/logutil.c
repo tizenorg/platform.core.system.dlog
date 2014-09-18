@@ -286,7 +286,6 @@ static void read_log_lines(struct log_device_t* devices)
 						exit(EXIT_FAILURE);
 					}
 
-
 					entry->entry.msg[entry->entry.len] = '\0';
 
 					enqueue(dev, entry);
@@ -737,7 +736,7 @@ int main(int argc, char **argv)
 			}
 		}
 
-		if (getLogSize) {
+		if (getLogSize || g_nonblock) {
 			int size, readable;
 
 			size = get_log_size(dev->fd);
@@ -751,7 +750,7 @@ int main(int argc, char **argv)
 				perror("ioctl");
 				exit(EXIT_FAILURE);
 			}
-
+			g_log_rotate_size_kbytes += size / 1024;
 			printf("%s: ring buffer is %dKb (%dKb consumed), "
 					"max entry is %db, max payload is %db\n", dev->device,
 					size / 1024, readable / 1024,
