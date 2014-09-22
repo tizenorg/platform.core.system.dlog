@@ -10,7 +10,7 @@ libdlog_la_SOURCES =  \
 	log.c \
 	log-common.c
 
-libdlog_la_LIBADD = -ltzplatform-config-1.0 -lsystemd-journal
+libdlog_la_LIBADD = $(TZPLATFORM_CONFIG_LIBS) -lsystemd-journal
 
 bin_PROGRAMS= dlogctrl
 
@@ -18,7 +18,7 @@ dlogctrl_SOURCES = \
 	logctrl.c \
 	log-common.c
 
-dlogctrl_LDADD = -ltzplatform-config-1.0
+dlogctrl_LDADD = $(TZPLATFORM_CONFIG_LIBS)
 
 dlogctrl_CFLAGS = $(AM_CFLAGS)
 

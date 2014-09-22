@@ -11,6 +11,8 @@ PLATFORM_INIT
 AC_CONFIG_SRCDIR([log.c])
 AC_CONFIG_HEADERS([config.h])
 
+PKG_CHECK_MODULES([TZPLATFORM_CONFIG], [libtzplatform-config])
+
 # Checks for programs.
 m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 AC_PROG_CC
