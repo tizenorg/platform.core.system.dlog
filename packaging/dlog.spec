@@ -9,6 +9,7 @@ Source1:    dlog.manifest
 
 BuildRequires: pkgconfig(libsystemd-journal)
 BuildRequires: pkgconfig(libtzplatform-config)
+BuildRequires: pkgconfig
 
 %description
 Logging service dlog API library
@@ -39,7 +40,7 @@ cp %{SOURCE1} .
 
 %build
 %reconfigure --disable-static
-%__make %{?jobs:-j%jobs}
+%__make %{?_smp_mflags}
 
 %install
 %make_install
