@@ -63,7 +63,7 @@ extern "C" {
 typedef enum {
 	DLOG_ERROR_NONE = TIZEN_ERROR_NONE, /**< Successful */
 	DLOG_ERROR_INVALID_PARAMETER = TIZEN_ERROR_INVALID_PARAMETER, /**< Invalid parameter */
-	DLOG_ERROR_NOT_PERMITTED = TIZEN_ERROR_NOT_PERMITTED, /**< Operation not permitted */
+	DLOG_ERROR_NOT_PERMITTED = TIZEN_ERROR_NOT_PERMITTED /**< Operation not permitted */
 } dlog_error_e;
 /**
  * @}
