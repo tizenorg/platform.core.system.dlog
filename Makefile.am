@@ -25,11 +25,27 @@ libdlog_la_LIBADD = -lpthread \
 
 bin_PROGRAMS = dlogutil dlog_logger
 
+dlogutil_CFLAGS =  \
+	$(AM_CFLAGS) \
+	-fPIE
+
+dlogutil_LDFLAGS = \
+	$(AM_LDFLAGS) \
+	-pie
+
 dlogutil_SOURCES = \
 	src/shared/logprint.c \
 	src/logutil/logutil.c \
 	include/logger.h \
 	include/logprint.h
+
+dlog_logger_CFLAGS =  \
+	$(AM_CFLAGS) \
+	-fPIE
+
+dlog_logger_LDFLAGS = \
+	$(AM_LDFLAGS) \
+	-pie
 
 dlog_logger_SOURCES = \
 	src/shared/logprint.c \
