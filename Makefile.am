@@ -8,19 +8,17 @@ lib_LTLIBRARIES = libdlog.la
 
 libdlog_la_SOURCES =  \
 	log.c \
-	log-common.c
+	include/dlog.h
 
-libdlog_la_LIBADD = $(TZPLATFORM_CONFIG_LIBS) -lsystemd-journal
+libdlog_la_LIBADD = -lpthread $(TZPLATFORM_CONFIG_LIBS) $(systemd_journal_LIBS)
 
-bin_PROGRAMS= dlogctrl
+bin_PROGRAMS= dlogutil
 
-dlogctrl_SOURCES = \
-	logctrl.c \
-	log-common.c
-
-dlogctrl_LDADD = $(TZPLATFORM_CONFIG_LIBS)
-
-dlogctrl_CFLAGS = $(AM_CFLAGS)
+dlogutil_SOURCES = \
+	logutil.c \
+	logprint.c \
+	include/logger.h \
+	include/logprint.h
 
 # conf file
 pkgconfigdir = $(libdir)/pkgconfig

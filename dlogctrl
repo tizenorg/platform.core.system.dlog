@@ -1,0 +1,58 @@
+#!/bin/sh
+MODE=none
+OBJ=none
+VAL=none
+#echo "tizen_platform_dlog_logging_ctrl"
+case "$1" in
+get)
+	MODE=get
+;;
+set)
+	MODE=set
+;;
+
+*)
+echo "Usage: dlogctrl {get|set} {platformlog} {1|0}"
+exit 1
+esac
+
+case "$2" in
+platformlog)
+	OBJ=platformlog
+;;
+*)
+	echo "Usage: dlogctrl {get|set} {platformlog} {1|0}"
+exit 1
+esac
+
+if [ "$MODE" = "set" ]; then
+	case "$3" in
+	1)
+		VAL=1
+	;;
+	0)
+		VAL=0
+	;;
+	*)
+		echo "Usage: dlogctrl {get|set} {platformlog} {1|0}"
+	exit 1
+	esac
+fi
+
+source /etc/tizen-platform.conf
+if [ "$MODE" = "set" ]; then
+	if [ "$OBJ" = "platformlog" ] && [ "$VAL" = "1" ] ; then
+		echo 1 > ${TZ_SYS_ETC}/platformlog.conf 2>/dev/null
+		touch ${TZ_SDK_HOME}/.platforminfologgingmode 2>/dev/null
+	elif [ "$OBJ" = "platformlog" ] && [ "$VAL" = "0" ] ; then
+		echo 0 > ${TZ_SYS_ETC}/platformlog.conf 2>/dev/null
+		rm ${TZ_SDK_HOME}/.platforminfologgingmode 2>/dev/null
+	fi
+    echo "You must reboot this target to apply the change!"
+else
+	if [ "$OBJ" = "platformlog" ]; then
+		cat ${TZ_SYS_ETC}/platformlog.conf 2>/dev/null
+	fi
+fi
+
+exit 0

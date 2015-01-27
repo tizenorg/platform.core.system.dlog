@@ -1,0 +1,9 @@
+[Unit]
+Description=Start the dlog service
+
+[Service]
+ExecStart=/usr/bin/dlogutil -b radio -v time -f /var/log/seq.radio.log -r 1000 -n 10
+
+[Install]
+WantedBy=multi-user.target
+

@@ -256,7 +256,7 @@ typedef enum {
 #define COMPATIBILITY_ON
 
 #ifdef COMPATIBILITY_ON
-#define LOG_ON() 1
+#define LOG_ON() _get_logging_on()
 #if LOG_NDEBUG
 #define LOGV(format, arg...) (0)
 #else
@@ -369,6 +369,7 @@ int __dlog_print(log_id_t log_id, int prio, const char *tag, const char *fmt, ..
  * @endcode
   */
 int __dlog_vprint(log_id_t log_id, int prio, const char *tag, const char *fmt, va_list ap);
+int _get_logging_on(void);
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */

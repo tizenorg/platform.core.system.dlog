@@ -6,6 +6,6 @@ includedir=${prefix}/include
 Name: dlog
 Description: logging service
 Version: 1.0
-Requires:
-Libs: -L${libdir} -ldlog
+Requires: 
+Libs: -L${libdir} -ldlog -lpthread
 Cflags: -I${includedir}/dlog
