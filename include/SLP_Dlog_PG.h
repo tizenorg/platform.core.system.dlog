@@ -1,11 +1,11 @@
 /**
- @ingroup	SLP_PG	
+ @ingroup	SLP_PG
  @defgroup	SLP_PG_Dlog dlog
  @{
 
 <h1 class="pg">Introduction</h1>
 Dlog logging service support sending log message to circular log device
-	
+
 <h1 class="pg">dlog Architecture</h1>
 @image html SLP_Dlog_PG_image001.png System Architecture of dlog
 
@@ -46,15 +46,15 @@ priority level incdicates the urgency of log message
 </table>
 
 	<h2 class="pg">Tag</h2>
-Used to identify the source of a log message. 
-There is no naming limitation, but do not forget that tag is identification of module. Tag must be distinguishable from other tag. 
+Used to identify the source of a log message.
+There is no naming limitation, but do not forget that tag is identification of module. Tag must be distinguishable from other tag.
 Simplified macro like LOGV, LOGD, LOGI, LOGW, LOGE uses declared LOG_TAG constant, so declare a LOG_TAG constant before you use dlog macro is a good convention.
 @code
 #define LOG_TAG "MyApp"
 @endcode
 
 <h1 class="pg">list of dlog macro</h1>
-Macro name start with LOG prefix is for application. start with SLOG prefix is for framework, start with RLOG prefix is for radio. each macro write log message to separated log device such as main, system, radio. 
+Macro name start with LOG prefix is for application. start with SLOG prefix is for framework, start with RLOG prefix is for radio. each macro write log message to separated log device such as main, system, radio.
 
 <h1 class="pg">sample code</h1>
 Using simplified macro with current LOG_TAG
@@ -112,21 +112,21 @@ dlogutil [<option>] ¡¦ [<filter-spec>] ¡¦
 
 	<h2 class="pg">Filtering log output</h2>
 Every log message has a <I>tag</I> and a <I>priority</I> associated with it.
-Filter expression follows this format <B><I>tag:priority</I></B> where <I>tag</I> indicates the tag of interest and <I>priority</I> indicates the minimum level of priority to report for that tag. You can add any number of tag:priority specifications in a single filter expression. 
-The tag of a log message is a short indicating the system component from which the message originates 
+Filter expression follows this format <B><I>tag:priority</I></B> where <I>tag</I> indicates the tag of interest and <I>priority</I> indicates the minimum level of priority to report for that tag. You can add any number of tag:priority specifications in a single filter expression.
+The tag of a log message is a short indicating the system component from which the message originates
 The <I>priority</I> is one of the following character values, orderd from lowest to highest priority:<br>
-V - verbose<br> 
+V - verbose<br>
 D - debug<br>
 I - info<br>
 W - warning<br>
 E - Error<br>
 F - Fatal<br>
 
-for example, if you want to see MyApp tag and above of debug priority, 
+for example, if you want to see MyApp tag and above of debug priority,
 @code
 # dlogutil MyApp:D
 @endcode
-if you want to see all log message above of info priority also, 
+if you want to see all log message above of info priority also,
 @code
 # dlogutil MyApp:D *:E
 @endcode

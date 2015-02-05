@@ -1,6 +1,6 @@
 #!/bin/sh
 source /etc/tizen-platform.conf
-cp ${TZ_SYS_ETC}/platformlog.conf /tmp/.platformlog.conf
+cp ${TZ_SYS_ETC}/dlog/platformlog.conf /tmp/.platformlog.conf
 chmod 660 /tmp/.platformlog.conf
 chown root:app_logging /tmp/.platformlog.conf
 chsmack -a '_' -e 'none' /tmp/.platformlog.conf

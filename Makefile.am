@@ -12,13 +12,21 @@ libdlog_la_SOURCES =  \
 
 libdlog_la_LIBADD = -lpthread $(TZPLATFORM_CONFIG_LIBS) $(systemd_journal_LIBS)
 
-bin_PROGRAMS= dlogutil
+bin_PROGRAMS= dlogutil dlogctrl
 
 dlogutil_SOURCES = \
 	logutil.c \
 	logprint.c \
 	include/logger.h \
 	include/logprint.h
+
+dlogctrl_SOURCES = \
+	logctrl.c \
+	log-common.c
+
+dlogctrl_LDADD = $(TZPLATFORM_CONFIG_LIBS)
+
+dlogctrl_CFLAGS = $(AM_CFLAGS)
 
 # conf file
 pkgconfigdir = $(libdir)/pkgconfig

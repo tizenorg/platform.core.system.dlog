@@ -56,14 +56,18 @@ cp %{SOURCE103} .
 --without-systemd-journal
 %endif
 
-make %{?jobs:-j%jobs}
+%__make %{?jobs:-j%jobs}
 
 %install
 %make_install
+mkdir -p %{buildroot}%{TZ_SYS_ETC}/dlog
+cp platformlog.conf %{buildroot}%{TZ_SYS_ETC}/dlog/platformlog.conf
 mkdir -p %{buildroot}%{TZ_SYS_ETC}/dump.d/default.d
-cp %{_builddir}/%{name}-%{version}/dlog_dump.sh %{buildroot}%{TZ_SYS_ETC}/dump.d/default.d/dlog_dump.sh
-mkdir -p %{buildroot}/usr/bin/
-cp %{_builddir}/%{name}-%{version}/dlogctrl %{buildroot}/usr/bin/dlogctrl
+cp dlog_dump.sh %{buildroot}%{TZ_SYS_ETC}/dump.d/default.d/dlog_dump.sh
+mkdir -p %{buildroot}%{TZ_SYS_BIN}
+cp dlogctrl %{buildroot}%{TZ_SYS_BIN}/dlogctrl
+mkdir -p %{buildroot}%{_libdir}/udev/rules.d
+cp 01-dlog.rules %{buildroot}%{_libdir}/udev/rules.d/01-dlog.rules
 
 mkdir -p %{buildroot}%{_unitdir}/basic.target.wants
 mkdir -p %{buildroot}%{_unitdir}/multi-user.target.wants
@@ -105,6 +109,8 @@ systemctl daemon-reload
 %{_unitdir}/dlog-radio.service
 %{_unitdir}/multi-user.target.wants/dlog-main.service
 %{_unitdir}/multi-user.target.wants/dlog-radio.service
+%{TZ_SYS_ETC}/dlog/platformlog.conf
+%{_libdir}/udev/rules.d/01-dlog.rules
 
 %files  -n libdlog
 %manifest %{name}.manifest

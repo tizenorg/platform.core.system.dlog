@@ -55,6 +55,10 @@ static void filterinfo_free(FilterInfo *p_info)
 		return;
 	}
 
+	if (p_info->mTag == NULL) {
+		return;
+	}
+
 	free(p_info->mTag);
 	p_info->mTag = NULL;
 }
@@ -181,6 +185,7 @@ void log_format_free(log_format *p_format)
         p_info_old = p_info;
         p_info = p_info->p_next;
 
+        filterinfo_free(p_info_old);
         free(p_info_old);
     }
 
@@ -428,7 +433,7 @@ char *log_format_log_line (
             break;
         case FORMAT_THREAD:
             prefixLen = snprintf(prefixBuf, sizeof(prefixBuf),
-                "%c(%5d:%5d) ", priChar, entry->pid, entry->tid);
+                "%c(%5ld:%5ld) ", priChar, (unsigned long int)entry->pid, (unsigned long int)entry->tid);
             strcpy(suffixBuf, "\n");
             suffixLen = 1;
             break;
@@ -454,9 +459,9 @@ char *log_format_log_line (
             break;
         case FORMAT_LONG:
             prefixLen = snprintf(prefixBuf, sizeof(prefixBuf),
-                "[ %s.%03ld %5d:%5d %c/%-8s ]\n",
-                timeBuf, entry->tv_nsec / 1000000, entry->pid,
-                entry->tid, priChar, entry->tag);
+                "[ %s.%03ld %5ld:%5ld %c/%-8s ]\n",
+                timeBuf, entry->tv_nsec / 1000000, (unsigned long int)entry->pid,
+                (unsigned long int)entry->tid, priChar, entry->tag);
             strcpy(suffixBuf, "\n\n");
             suffixLen = 2;
             prefixSuffixIsHeaderFooter = 1;

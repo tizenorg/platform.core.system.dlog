@@ -7,7 +7,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *	 http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,36 +15,47 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+/**
+ * @file	log.c
+ * @version	0.1
+ * @brief	This file is the source file of dlog interface
+ */
+
 #include "config.h"
 #include <pthread.h>
+#include <unistd.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <sys/uio.h>
-#include <stdio.h>
 #include <errno.h>
 #include <dlog.h>
+#include <dlog-common.h>
+
 #ifdef HAVE_SYSTEMD_JOURNAL
 #define SD_JOURNAL_SUPPRESS_LOCATION 1
 #include <syslog.h>
 #include <systemd/sd-journal.h>
+#else
+#include <linux/limits.h>
 #endif
-#define LOG_BUF_SIZE	1024
 
-#define LOG_MAIN	"log_main"
-#define LOG_RADIO	"log_radio"
-#define LOG_SYSTEM	"log_system"
-#define LOG_APPS	"log_apps"
+static const size_t DLOG_BUF_SIZE = 4*1024;
+
+static const char *const LOG_MAIN = "log_main";
+static const char *const LOG_RADIO = "log_radio";
+static const char *const LOG_SYSTEM = "log_system";
+static const char *const LOG_APPS = "log_apps";
 
 #define VALUE_MAX 2
-#define PLATFORMLOG_CONF "/tmp/.platformlog.conf"
 #include <tzplatform_config.h>
 #define PLATFORMLOG_ORG_CONF tzplatform_mkpath(TZ_SYS_ETC,"platformlog.conf")
 
 static int platformlog = 0;
 static int log_fds[(int)LOG_ID_MAX] = { -1, -1, -1, -1 };
-static int (*write_to_log)(log_id_t, log_priority, const char *tag, const char *msg) = NULL;
 static pthread_mutex_t log_init_lock = PTHREAD_MUTEX_INITIALIZER;
 
 static int __write_to_log_null(log_id_t log_id, log_priority prio, const char *tag, const char *msg)
@@ -80,72 +91,63 @@ static int __write_to_log_kernel(log_id_t log_id, log_priority prio, const char 
 	return ret;
 }
 
-static char dlog_pri_to_char (log_priority pri)
-{
-	static const char pri_table[DLOG_PRIO_MAX] = {
-		[DLOG_VERBOSE] = 'V',
-		[DLOG_DEBUG] = 'D',
-		[DLOG_INFO] = 'I',
-		[DLOG_WARN] = 'W',
-		[DLOG_ERROR] = 'E',
-		[DLOG_FATAL] = 'F',
-		[DLOG_SILENT] = 'S',
-	};
-
-	if (pri < 0 || DLOG_PRIO_MAX <= pri || !pri_table[pri])
-		return '?';
-	return pri_table[pri];
-}
 
 #ifdef HAVE_SYSTEMD_JOURNAL
-static inline int dlog_pri_to_journal_pri(log_priority prio)
+
+static int dlog_pri_to_journal_pri(log_priority prio)
 {
-	static int pri_table[DLOG_PRIO_MAX] = {
-		[DLOG_UNKNOWN] = LOG_DEBUG,
-		[DLOG_DEFAULT] = LOG_DEBUG,
-		[DLOG_VERBOSE] = LOG_DEBUG,
-		[DLOG_DEBUG] = LOG_DEBUG,
-		[DLOG_INFO] = LOG_INFO,
-		[DLOG_WARN] = LOG_WARNING,
-		[DLOG_ERROR] = LOG_ERR,
-		[DLOG_FATAL] = LOG_CRIT,
-		[DLOG_SILENT] = -1,
-	};
-
-	if (prio < 0 || prio >= DLOG_PRIO_MAX)
-		return -EINVAL;
-
-	return pri_table[prio];
+	switch (prio)
+	{
+		case DLOG_UNKNOWN:
+		case DLOG_DEFAULT:
+		case DLOG_VERBOSE:
+		case DLOG_DEBUG:
+			return LOG_DEBUG;
+		case DLOG_INFO:
+			return LOG_INFO;
+		case DLOG_WARN:
+			return LOG_WARNING;
+		case DLOG_ERROR:
+			return LOG_ERR;
+		case DLOG_FATAL:
+			return LOG_CRIT;
+		case DLOG_SILENT:
+			return -1;
+		default:
+			return -EINVAL;
+	}
 }
 
 static inline const char* dlog_id_to_string(log_id_t log_id)
 {
-	static const char* id_table[LOG_ID_MAX] = {
-		[LOG_ID_MAIN]   = LOG_MAIN,
-		[LOG_ID_RADIO]  = LOG_RADIO,
-		[LOG_ID_SYSTEM] = LOG_SYSTEM,
-		[LOG_ID_APPS]   = LOG_APPS,
-	};
-
-	if (log_id < 0 || log_id >= LOG_ID_MAX || !id_table[log_id])
-		return "UNKNOWN";
-
-	return id_table[log_id];
+	switch (log_id)
+	{
+		case LOG_ID_MAIN:
+			return LOG_MAIN;
+		case LOG_ID_RADIO:
+			return LOG_RADIO;
+		case LOG_ID_SYSTEM:
+			return LOG_SYSTEM;
+		case LOG_ID_APPS:
+			return LOG_APPS;
+		default:
+			return NULL;
+	}
 }
 
 static int __write_to_log_sd_journal(log_id_t log_id, log_priority prio, const char *tag, const char *msg)
 {
 	/* XXX: sd_journal_sendv() with manually filed iov-s might be faster */
 	return sd_journal_send("MESSAGE=%s", msg,
-			       "PRIORITY=%i", dlog_pri_to_journal_pri(prio),
-			       "DLOG_PRIORITY=%d", prio,
-			       "DLOG_TAG=%s", tag,
-			       "DLOG_ID=%s", dlog_id_to_string(log_id),
-			       NULL);
+				   "PRIORITY=%i", dlog_pri_to_journal_pri(prio),
+				   "DLOG_PRIORITY=%d", prio,
+				   "DLOG_TAG=%s", tag,
+				   "DLOG_ID=%s", dlog_id_to_string(log_id),
+				   NULL);
 }
 #endif
 
-static int __read_config(char *file, int *value)
+static int __read_config(const char *file, int *value)
 {
 	int fd, ret;
 	char val[VALUE_MAX];
@@ -168,26 +170,45 @@ static int __read_config(char *file, int *value)
 static void __configure(void)
 {
 	int ret;
-	ret = __read_config(PLATFORMLOG_CONF, &platformlog);
+	ret = __read_config(PLATFORMLOG_CONF_PATH, &platformlog);
 	if (!ret)
 		ret = __read_config(PLATFORMLOG_ORG_CONF, &platformlog);
 	if (!ret)
 		platformlog = 0;
 }
 
-static void __dlog_init(void)
+typedef int (*type_write_to_log)(log_id_t, log_priority, const char *tag, const char *msg);
+
+static type_write_to_log dlog_get_log_function(void)
 {
+	static type_write_to_log write_to_log = NULL;
+
+	if (write_to_log)
+		return write_to_log;
+
 	pthread_mutex_lock(&log_init_lock);
 	/* configuration */
 	__configure();
 #ifdef HAVE_SYSTEMD_JOURNAL
 	write_to_log = __write_to_log_sd_journal;
 #else
+	char path_to_log[PATH_MAX];
+	int ret;
+
 	/* open device */
-	log_fds[LOG_ID_MAIN] = open("/dev/"LOG_MAIN, O_WRONLY);
-	log_fds[LOG_ID_RADIO] = open("/dev/"LOG_RADIO, O_WRONLY);
-	log_fds[LOG_ID_SYSTEM] = open("/dev/"LOG_SYSTEM, O_WRONLY);
-	log_fds[LOG_ID_APPS] = open("/dev/"LOG_APPS, O_WRONLY);
+	ret = snprintf(path_to_log, sizeof(path_to_log), "/dev/%s", LOG_MAIN);
+	if (sizeof(path_to_log) > ret)
+		log_fds[LOG_ID_MAIN] = open(path_to_log, O_WRONLY);
+	ret = snprintf(path_to_log, sizeof(path_to_log), "/dev/%s", LOG_RADIO);
+	if (sizeof(path_to_log) > ret)
+		log_fds[LOG_ID_RADIO] = open(path_to_log, O_WRONLY);
+	ret = snprintf(path_to_log, sizeof(path_to_log), "/dev/%s", LOG_SYSTEM);
+	if (sizeof(path_to_log) > ret)
+		log_fds[LOG_ID_SYSTEM] = open(path_to_log, O_WRONLY);
+	ret = snprintf(path_to_log, sizeof(path_to_log), "/dev/%s", LOG_APPS);
+	if (sizeof(path_to_log) > ret)
+		log_fds[LOG_ID_APPS] = open(path_to_log, O_WRONLY);
+
 	if (log_fds[LOG_ID_MAIN] < 0 || log_fds[LOG_ID_RADIO] < 0) {
 		write_to_log = __write_to_log_null;
 	} else {
@@ -200,45 +221,53 @@ static void __dlog_init(void)
 		log_fds[LOG_ID_APPS] = log_fds[LOG_ID_MAIN];
 #endif
 	pthread_mutex_unlock(&log_init_lock);
+
+	return write_to_log;
 }
 
 int __dlog_vprint(log_id_t log_id, int prio, const char *tag, const char *fmt, va_list ap)
 {
-	char buf[LOG_BUF_SIZE];
+	char buf[DLOG_BUF_SIZE];
+	type_write_to_log write_function;
 
 	if (LOG_ID_MAX <= log_id)
 		return 0;
 
-	if (write_to_log == NULL)
-		__dlog_init();
+	write_function = dlog_get_log_function();
+
+	if (!write_function)
+		return -1;
 
 	if (log_id != LOG_ID_APPS && !platformlog)
 		return 0;
 
-	vsnprintf(buf, LOG_BUF_SIZE, fmt, ap);
+	vsnprintf(buf, DLOG_BUF_SIZE, fmt, ap);
 
-	return write_to_log(log_id, prio, tag, buf);
+	return write_function(log_id, prio, tag, buf);
 }
 
 int __dlog_print(log_id_t log_id, int prio, const char *tag, const char *fmt, ...)
 {
 	va_list ap;
-	char buf[LOG_BUF_SIZE];
+	char buf[DLOG_BUF_SIZE];
+	type_write_to_log write_function;
 
 	if (LOG_ID_MAX <= log_id)
 		return 0;
 
-	if (write_to_log == NULL)
-		__dlog_init();
+	write_function = dlog_get_log_function();
+
+	if (!write_function)
+		return -1;
 
 	if (log_id != LOG_ID_APPS && !platformlog)
 		return 0;
 
 	va_start(ap, fmt);
-	vsnprintf(buf, LOG_BUF_SIZE, fmt, ap);
+	vsnprintf(buf, DLOG_BUF_SIZE, fmt, ap);
 	va_end(ap);
 
-	return write_to_log(log_id, prio, tag, buf);
+	return write_function(log_id, prio, tag, buf);
 }
 
 int _get_logging_on(void)
