@@ -12,6 +12,7 @@ Source202:  packaging/dlog_logger.conf.in
 Source203:  packaging/dlog_logger.conf-micro.in
 Source204:  packaging/dlog_logger.conf-micro-debug.in
 Source301:  packaging/dlog_logger.service
+Source302:  packaging/dlog_logger.path
 BuildRequires: autoconf
 BuildRequires: automake
 BuildRequires: libtool
@@ -71,8 +72,9 @@ cp %{_builddir}/%{name}-%{version}/scripts/dlogctrl %{buildroot}/usr/bin/dlogctr
 
 mkdir -p %{buildroot}%{_libdir}/systemd/system/multi-user.target.wants/
 install -m 0644 %SOURCE301 %{buildroot}%{_libdir}/systemd/system/
+install -m 0644 %SOURCE302 %{buildroot}%{_libdir}/systemd/system/
 
-ln -s ../dlog_logger.service %{buildroot}%{_libdir}/systemd/system/multi-user.target.wants/dlog_logger.service
+ln -s ../dlog_logger.path %{buildroot}%{_libdir}/systemd/system/multi-user.target.wants/dlog_logger.path
 
 mkdir -p %{buildroot}/usr/share/license
 cp LICENSE.Apache-2.0 %{buildroot}/usr/share/license/%{name}
@@ -110,7 +112,8 @@ systemctl daemon-reload
 %attr(755,root,app_logging) %{_bindir}/dlogctrl
 %attr(755,root,app_logging) /opt/etc/dlog_logger.conf
 %{_libdir}/systemd/system/dlog_logger.service
-%{_libdir}/systemd/system/multi-user.target.wants/dlog_logger.service
+%{_libdir}/systemd/system/dlog_logger.path
+%{_libdir}/systemd/system/multi-user.target.wants/dlog_logger.path
 
 
 %files  -n libdlog
