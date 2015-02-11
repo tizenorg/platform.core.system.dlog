@@ -1,14 +1,15 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-AC_PREREQ(2.61)
-AC_INIT([dlog], [1.0], yk.yun@samsung.com)
+AC_PREREQ([2.68])
+AC_INIT([dlog], [1.0], p.kedzierski@samsung.com)
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 AC_CONFIG_HEADERS([config.h:config.hin])
 
 AC_CONFIG_MACRO_DIR([m4])
-# Init XO
+
 PLATFORM_INIT
+AC_CONFIG_SRCDIR([log.c])
 
 PKG_CHECK_MODULES([TZPLATFORM_CONFIG], [libtzplatform-config])
 
@@ -16,7 +17,6 @@ PKG_CHECK_MODULES([TZPLATFORM_CONFIG], [libtzplatform-config])
 dnl AC_PROG_CXX
 m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 AC_PROG_CC
-AC_PROG_GCC_TRADITIONAL
 AC_PROG_LIBTOOL
 
 # checks arch
@@ -38,21 +38,13 @@ if test "x$with_systemd_journal" != "xno"; then
 fi
 AM_CONDITIONAL(HAVE_SYSTEMD_JOURNAL, [test "x$have_systemd_journal" = "xyes"])
 
-#AM_CONDITIONAL([ARCH_IS_ARM], [test "x$ARCH" = "xarm"])
-if test "x$ARCH" = "xarm" ; then
-	DLOG_CFLAGS="-D__arm__"
-else
-	DLOG_CFLAGS=
-fi
-
 AC_SUBST(DLOG_CFLAGS)
-
 
 dnl AC_SUBST(ACLOCAL_AMFLAGS, "-I m4")
 # Checks for libraries.
 # Checks for header files.
 AC_HEADER_STDC
-AC_CHECK_HEADERS([stdlib.h unistd.h ])
+AC_CHECK_HEADERS([fcntl.h stdlib.h string.h unistd.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_HEADER_STDBOOL
@@ -67,6 +59,7 @@ AC_TYPE_SSIZE_T
 AC_FUNC_MALLOC
 AC_FUNC_STAT
 AC_CHECK_FUNCS([memset])
+AC_CHECK_FUNCS([strtol])
 
 # output files
 AC_CONFIG_FILES([Makefile dlog.pc])

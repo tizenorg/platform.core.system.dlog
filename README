@@ -1,0 +1,163 @@
+
+This is a README for dlog, Android logging system adapted
+for TIZEN.
+
+------------------------------------------------------------------
+
+Function and purpose
+--------------------
+
+This is a logging subsystem collecting events from system and/or
+applications.
+It is based on four circucular buffers implemented in kernel
+and accessible by device nodes in /dev :
+
+/dev/log_system
+/dev/log_radio
+/dev/log_main
+/dev/log_events
+
+It consists of three parts:
+- user space library (libdlog) providing functions 
+  amd macros for writing logs
+- user space daemon (dlogutil) and tool that:
+  reads logs, stores in files, rotates, applies filters etc.
+- user space tool (dlogctrl) that controls level and kind
+  of collected logs
+- kernel module implementing buffers and devices
+
+The size of buffers are hardcoded in kernel.
+(4*256 kB /drivers/staging/android/logger.c)
+
+More information can be found:
+https://wiki.tizen.org/wiki/IVI/Enable_Logging
+http://elinux.org/Android_Logging_System
+
+systemd journal
+---------------
+
+If dlog is configured and build with flag: 
+--with-systemd-journal
+it writes logs to journal instead /dev/log_* device nodes.
+It uses sd_journal_send function.
+
+How to use
+----------
+
+libdlog
+-------
+
+Every component that can generate logs should be linked to
+libdlog library and include dlog.h header.
+There are defined iset of macros that are used to write logs:
+LOG[DIWE], SLOG[DIWE], RLOG[DIWE], ALOG[DIWE]
+These are used for different buffers and priorities.
+
+LOG[DIWE] - logs to 'main'
+SLOG[DIWE] - logs to 'system'
+RLOG[DIWE] - logs to 'radio'
+ALOG[DIWE] - logs to 'apps'
+
+The last character determines priority of a message:
+
+D - Debug
+I - Info
+W - Warning
+E - Error
+
+If 'system' or 'apps' device does not exists
+logs are redirected to 'main'.
+It is possible to add a tag, for this purpose
+one should define a macro LOG_TAG in source code
+containing name of tag before header dlog.h is included.
+
+dlogutil
+--------
+
+Usage: dlogutil [options] [filterspecs]
+
+options include:
+
+  -s              Set default filter to silent.
+                  Like specifying filterspec '*:s'
+
+  -f <filename>   Log to file. Default to stdout
+
+  -r [<kbytes>]   Rotate log every kbytes. (16 if unspecified). Requires -f
+
+  -n <count>      Sets max number of rotated logs to <count>, default 4
+
+  -v <format>     Sets the log print format, where <format> is one of:
+                  brief(by default) process tag thread raw time threadtime long
+
+  -c              clear (flush) the entire log and exit, conflicts with '-g'
+
+  -d              dump the log and then exit (don't block)
+
+  -t <count>      print only the most recent <count> lines (implies -d)
+
+  -g              get the size of the log's ring buffer and exit, conflicts with '-c'
+
+  -b <buffer>     request alternate ring buffer
+                  ('main' (default), 'radio', 'system')");
+
+filterspecs are a series of 
+  <tag>[:priority]
+
+where <tag> is a log component tag (or * for all) and priority is:
+
+  V    Verbose
+
+  D    Debug
+
+  I    Info
+
+  W    Warn
+
+  E    Error
+
+  F    Fatal
+
+  S    Silent (supress all output)
+
+'*' means '*:D' and <tag> by itself means <tag>:V
+If no filterspec is found, filter defaults to '*:I'
+
+The one dlogutil process could write logs to one file,
+if more files are needed more dlogutil processes should be run.
+
+Examples:
+
+dlogutil -r 1024 -n 3 -f /var/log/dlog -v time *:W
+
+  Rotate log every 1024 kbytes.
+  The max number of rotated logs are 3.
+  Logs are written to /var/log/dlog
+  The format of logs is 'time'.
+  Logged are messages with all tags and priority Warn or above.
+
+dlogutil -b radio -v time -f /var/log/seq.radio.log -r 1000 -n 10
+
+  Read logs from /dev/log_radio.
+  The format of logs is 'time'.
+  Logs are written to /var/log/seq.radio.log
+  Rotate log every 1000 kbytes.
+  The max number of rotated logs are 10.
+  Logged are messages with all tags and priority Info or above.
+
+dlogctrl
+--------
+
+Usage: dlogctrl {get|set} platformlog [0|1]
+
+Gets or sets platformlog option which determines
+whether logs with lower id than LOG_ID_APPS are written.
+(0 - no, 1 - yes)
+
+dlogtests
+---------
+
+Usage: dlogtests
+
+Perform embedded selftests.
+

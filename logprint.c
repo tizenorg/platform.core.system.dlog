@@ -1,7 +1,7 @@
 /*
  * DLOG
  * Copyright (c) 2005-2008, The Android Open Source Project
- * Copyright (c) 2012-2013 Samsung Electronics Co., Ltd.
+ * Copyright (c) 2012-2015 Samsung Electronics Co., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the License);
  * you may not use this file except in compliance with the License.
@@ -52,6 +52,10 @@ static FilterInfo * filterinfo_new(const char *tag, log_priority pri)
 static void filterinfo_free(FilterInfo *p_info)
 {
 	if (p_info == NULL) {
+		return;
+	}
+
+	if (p_info->mTag == NULL) {
 		return;
 	}
 
@@ -118,7 +122,6 @@ static char filter_pri_to_char (log_priority pri)
 static log_priority filter_pri_for_tag(log_format *p_format, const char *tag)
 {
     FilterInfo *p_curFilter;
-//	log_priority pri = DLOG_SILENT;
     for (p_curFilter = p_format->filters; p_curFilter != NULL; p_curFilter = p_curFilter->p_next )
 	{
 		if (0 == strcmp(tag, p_curFilter->mTag))
@@ -181,6 +184,7 @@ void log_format_free(log_format *p_format)
         p_info_old = p_info;
         p_info = p_info->p_next;
 
+        filterinfo_free(p_info_old);
         free(p_info_old);
     }
 
@@ -343,11 +347,11 @@ int log_process_log_buffer(struct logger_entry *buf,log_entry *entry)
 
     if (buf->msg[0] < 0 || buf->msg[0] > DLOG_SILENT) { /* char can be signed too */
 
-	 /* There is no tag in this message - which is an error, but it might
-	  * happen when sombody redirects stdout/err to /dev/log_*.
-	  *
-	  * Pick ERROR priority as this shouldn't happen.
-	  */
+     /* There is no tag in this message - which is an error, but it might
+      * happen when sombody redirects stdout/err to /dev/log_*.
+      *
+      * Pick ERROR priority as this shouldn't happen.
+      */
 	 entry->priority = DLOG_ERROR;
 	 entry->tag = "[NO TAG]";
 	 entry->messageLen = buf->len;
@@ -428,7 +432,7 @@ char *log_format_log_line (
             break;
         case FORMAT_THREAD:
             prefixLen = snprintf(prefixBuf, sizeof(prefixBuf),
-                "%c(%5d:%5d) ", priChar, entry->pid, entry->tid);
+                "%c(%5ld:%5ld) ", priChar, (unsigned long int)entry->pid, (unsigned long int)entry->tid);
             strcpy(suffixBuf, "\n");
             suffixLen = 1;
             break;
@@ -454,9 +458,9 @@ char *log_format_log_line (
             break;
         case FORMAT_LONG:
             prefixLen = snprintf(prefixBuf, sizeof(prefixBuf),
-                "[ %s.%03ld %5d:%5d %c/%-8s ]\n",
-                timeBuf, entry->tv_nsec / 1000000, entry->pid,
-                entry->tid, priChar, entry->tag);
+                "[ %s.%03ld %5ld:%5ld %c/%-8s ]\n",
+                timeBuf, entry->tv_nsec / 1000000, (unsigned long int)entry->pid,
+                (unsigned long int)entry->tid, priChar, entry->tag);
             strcpy(suffixBuf, "\n\n");
             suffixLen = 2;
             prefixSuffixIsHeaderFooter = 1;
@@ -483,7 +487,6 @@ char *log_format_log_line (
     /* the following code is tragically unreadable */
 
     size_t numLines;
-//    size_t i;
     char *p;
     size_t bufferSize;
     const char *pm;
