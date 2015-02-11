@@ -7,9 +7,8 @@ Release:    0
 Group:      System/Libraries
 License:    Apache-2.0
 Source0:    %{name}-%{version}.tar.gz
-Source101:  dlog-main.service
-Source102:  dlog-radio.service
-Source103:  dlog.manifest
+Source101:  dlog@.service
+Source102:  dlog.manifest
 
 %if %{with dlog_to_systemd_journal}
 BuildRequires: pkgconfig(libsystemd-journal)
@@ -42,11 +41,18 @@ Requires(postun): /usr/bin/systemctl
 Requires(preun): /usr/bin/systemctl
 
 %description -n dlogutil
-Utilities for print log data
+Tests for dlog.
+
+%package -n dlogtests
+Summary:    Runs test of dlog
+Requires:   lib%{name} = %{version}-%{release}
+
+%description -n dlogtests
+Utilities for running tests of dlog
 
 %prep
 %setup -q
-cp %{SOURCE103} .
+cp %{SOURCE102} .
 
 %build
 %reconfigure --disable-static \
@@ -56,23 +62,30 @@ cp %{SOURCE103} .
 --without-systemd-journal
 %endif
 
-make %{?jobs:-j%jobs}
+%__make %{?jobs:-j%jobs}
 
 %install
 %make_install
+mkdir -p %{buildroot}%{TZ_SYS_ETC}/dlog
+cp platformlog.conf %{buildroot}%{TZ_SYS_ETC}/dlog/platformlog.conf
+cp dlog.all.conf %{buildroot}%{TZ_SYS_ETC}/dlog/dlog.all.conf
+cp dlog.radio.conf %{buildroot}%{TZ_SYS_ETC}/dlog/dlog.radio.conf
 mkdir -p %{buildroot}%{TZ_SYS_ETC}/dump.d/default.d
-cp %{_builddir}/%{name}-%{version}/dlog_dump.sh %{buildroot}%{TZ_SYS_ETC}/dump.d/default.d/dlog_dump.sh
-mkdir -p %{buildroot}/usr/bin/
-cp %{_builddir}/%{name}-%{version}/dlogctrl %{buildroot}/usr/bin/dlogctrl
+cp dlog_dump.sh %{buildroot}%{TZ_SYS_ETC}/dump.d/default.d/dlog_dump.sh
+mkdir -p %{buildroot}%{TZ_SYS_BIN}
+cp dlogctrl %{buildroot}%{TZ_SYS_BIN}/dlogctrl
+mkdir -p %{buildroot}%{_libdir}/udev/rules.d
+cp 01-dlog.rules %{buildroot}%{_libdir}/udev/rules.d/01-dlog.rules
 
 mkdir -p %{buildroot}%{_unitdir}/basic.target.wants
 mkdir -p %{buildroot}%{_unitdir}/multi-user.target.wants
 
 install -m 0644 %SOURCE101 %{buildroot}%{_unitdir}
-install -m 0644 %SOURCE102 %{buildroot}%{_unitdir}
 
-ln -s ../dlog-main.service %{buildroot}%{_unitdir}/multi-user.target.wants/dlog-main.service
-ln -s ../dlog-radio.service %{buildroot}%{_unitdir}/multi-user.target.wants/dlog-radio.service
+ln -s ./dlog@.service %{buildroot}%{_unitdir}/dlog@all.service
+ln -s ./dlog@.service %{buildroot}%{_unitdir}/dlog@radio.service
+ln -s ../dlog@.service %{buildroot}%{_unitdir}/multi-user.target.wants/dlog@all.service
+ln -s ../dlog@.service %{buildroot}%{_unitdir}/multi-user.target.wants/dlog@radio.service
 
 
 %preun -n dlogutil
@@ -96,15 +109,20 @@ systemctl daemon-reload
 %postun -n libdlog -p /sbin/ldconfig
 
 %files  -n dlogutil
-%manifest %{name}.manifest
-%license LICENSE.APLv2
-%attr(755,root,root) %{TZ_SYS_ETC}/dump.d/default.d/dlog_dump.sh
-%attr(755,root,app_logging) %{_bindir}/dlogutil
-%attr(755,root,app_logging) %{_bindir}/dlogctrl
-%{_unitdir}/dlog-main.service
-%{_unitdir}/dlog-radio.service
-%{_unitdir}/multi-user.target.wants/dlog-main.service
-%{_unitdir}/multi-user.target.wants/dlog-radio.service
+%attr(644,root,root) %manifest %{name}.manifest
+%attr(644,root,root) %license LICENSE.APLv2
+%attr(700,root,root) %{TZ_SYS_ETC}/dump.d/default.d/dlog_dump.sh
+%attr(700,root,root) %{_bindir}/dlogutil
+%attr(700,root,root) %{_bindir}/dlogctrl
+%attr(644,root,root) %{_unitdir}/dlog@.service
+%{_unitdir}/dlog@all.service
+%{_unitdir}/dlog@radio.service
+%{_unitdir}/multi-user.target.wants/dlog@all.service
+%{_unitdir}/multi-user.target.wants/dlog@radio.service
+%attr(644,root,root) %{_libdir}/udev/rules.d/01-dlog.rules
+%attr(644,root,root) %config(noreplace) %{TZ_SYS_ETC}/dlog/platformlog.conf
+%attr(644,root,root) %config(noreplace) %{TZ_SYS_ETC}/dlog/dlog.all.conf
+%attr(644,root,root) %config(noreplace) %{TZ_SYS_ETC}/dlog/dlog.radio.conf
 
 %files  -n libdlog
 %manifest %{name}.manifest
@@ -115,4 +133,8 @@ systemctl daemon-reload
 %{_includedir}/dlog/dlog.h
 %{_libdir}/pkgconfig/dlog.pc
 %{_libdir}/libdlog.so
+
+%files  -n dlogtests
+%license LICENSE.APLv2
+%attr(755,root,root) %{_bindir}/dlogtests
 
