@@ -62,8 +62,8 @@ make %{?jobs:-j%jobs}
 %make_install
 mkdir -p %{buildroot}%{TZ_SYS_ETC}/dump.d/default.d
 cp %{_builddir}/%{name}-%{version}/dlog_dump.sh %{buildroot}%{TZ_SYS_ETC}/dump.d/default.d/dlog_dump.sh
-mkdir -p %{buildroot}/usr/bin/
-cp %{_builddir}/%{name}-%{version}/dlogctrl %{buildroot}/usr/bin/dlogctrl
+mkdir -p %{buildroot}%{TZ_SYS_BIN}
+cp dlogctrl %{buildroot}%{TZ_SYS_BIN}/dlogctrl
 
 mkdir -p %{buildroot}%{_unitdir}/basic.target.wants
 mkdir -p %{buildroot}%{_unitdir}/multi-user.target.wants
@@ -100,7 +100,7 @@ systemctl daemon-reload
 %license LICENSE.APLv2
 %attr(755,root,root) %{TZ_SYS_ETC}/dump.d/default.d/dlog_dump.sh
 %attr(755,root,app_logging) %{_bindir}/dlogutil
-%attr(755,root,app_logging) %{_bindir}/dlogctrl
+%attr(700,root,root) %{_bindir}/dlogctrl
 %{_unitdir}/dlog-main.service
 %{_unitdir}/dlog-radio.service
 %{_unitdir}/multi-user.target.wants/dlog-main.service
