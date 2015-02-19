@@ -12,7 +12,9 @@ libdlog_la_SOURCES =  \
 
 libdlog_la_LIBADD = -lpthread $(TZPLATFORM_CONFIG_LIBS) $(systemd_journal_LIBS)
 
-bin_PROGRAMS= dlogutil
+bin_PROGRAMS= dlogutil dlogtests
+
+sbin_PROGRAMS = dlogctrl
 
 dlogutil_SOURCES = \
 	logutil.c \
@@ -20,6 +22,24 @@ dlogutil_SOURCES = \
 	include/logger.h \
 	include/logprint.h
 
-# conf file
+dlogtests_SOURCES = \
+	logtest.c \
+	logprint.c \
+	include/logger.h \
+	include/logprint.h
+
+dlogctrl_SOURCES = \
+	logctrl.c \
+	log-common.c
+
+dlogctrl_LDADD = $(TZPLATFORM_CONFIG_LIBS)
+
+dlogctrl_CFLAGS = $(AM_CFLAGS)
+
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = dlog.pc
+
+platformlogconfdir=$(sysconfdir)/dlog
+platformlogconf_DATA = platformlog.conf
+platformlog.conf:
+	/bin/echo '0' > platformlog.conf

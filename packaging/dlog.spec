@@ -44,6 +44,13 @@ Requires(preun): /usr/bin/systemctl
 %description -n dlogutil
 Utilities for print log data
 
+%package -n dlogtests
+Summary:    Runs test of dlog
+Requires:   lib%{name} = %{version}-%{release}
+
+%description -n dlogtests
+Tests for dlog.
+
 %prep
 %setup -q
 cp %{SOURCE103} .
@@ -62,8 +69,6 @@ make %{?jobs:-j%jobs}
 %make_install
 mkdir -p %{buildroot}%{TZ_SYS_ETC}/dump.d/default.d
 cp %{_builddir}/%{name}-%{version}/dlog_dump.sh %{buildroot}%{TZ_SYS_ETC}/dump.d/default.d/dlog_dump.sh
-mkdir -p %{buildroot}/usr/bin/
-cp %{_builddir}/%{name}-%{version}/dlogctrl %{buildroot}/usr/bin/dlogctrl
 
 mkdir -p %{buildroot}%{_unitdir}/basic.target.wants
 mkdir -p %{buildroot}%{_unitdir}/multi-user.target.wants
@@ -100,11 +105,12 @@ systemctl daemon-reload
 %license LICENSE.APLv2
 %attr(755,root,root) %{TZ_SYS_ETC}/dump.d/default.d/dlog_dump.sh
 %attr(755,root,app_logging) %{_bindir}/dlogutil
-%attr(755,root,app_logging) %{_bindir}/dlogctrl
+%attr(755,root,root) %{_sbindir}/dlogctrl
 %{_unitdir}/dlog-main.service
 %{_unitdir}/dlog-radio.service
 %{_unitdir}/multi-user.target.wants/dlog-main.service
 %{_unitdir}/multi-user.target.wants/dlog-radio.service
+%attr(644,root,root) %config(noreplace) %{_sysconfdir}/dlog/platformlog.conf
 
 %files  -n libdlog
 %manifest %{name}.manifest
@@ -115,4 +121,8 @@ systemctl daemon-reload
 %{_includedir}/dlog/dlog.h
 %{_libdir}/pkgconfig/dlog.pc
 %{_libdir}/libdlog.so
+
+%files  -n dlogtests
+%license LICENSE.APLv2
+%attr(755,root,root) %{_bindir}/dlogtests
 
