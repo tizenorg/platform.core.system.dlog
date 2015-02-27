@@ -39,7 +39,7 @@ struct logger_entry {
 #define LOGGER_ENTRY_MAX_LEN		(4*1024)
 #define LOGGER_ENTRY_MAX_PAYLOAD	(LOGGER_ENTRY_MAX_LEN - sizeof(struct logger_entry))
 
-//#ifdef HAVE_IOCTL
+/* #ifdef HAVE_IOCTL */
 
 #include <sys/ioctl.h>
 
@@ -50,6 +50,6 @@ struct logger_entry {
 #define LOGGER_GET_NEXT_ENTRY_LEN	_IO(__LOGGERIO, 3) /* next entry len */
 #define LOGGER_FLUSH_LOG		_IO(__LOGGERIO, 4) /* flush log */
 
-//#endif // HAVE_IOCTL
+/* #endif  HAVE_IOCTL */
 
 #endif /* _UTILS_LOGGER_H */

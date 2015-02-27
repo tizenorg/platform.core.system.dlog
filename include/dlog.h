@@ -91,7 +91,7 @@ typedef enum {
 
 #define _SECURE_LOG /* Temporary default added, This define code will be removed */
 
-// Macro inner work---------------------------------------------------------------
+/* Macro inner work--------------------------------------------------------------- */
 #undef _SECURE_
 #ifndef _SECURE_LOG
 #define _SECURE_ (0)
@@ -104,7 +104,7 @@ typedef enum {
 #undef SECURE_LOG_
 #define SECURE_LOG_(id, prio, tag, fmt, arg...) \
 	(_SECURE_ ? ( __dlog_print(id, prio, tag, "%s: %s(%d) > [SECURE_LOG] " fmt, __MODULE__, __func__, __LINE__, ##arg)) : (0))
-// ---------------------------------------------------------------------
+/* --------------------------------------------------------------------- */
 /**
  * For Secure Log.
  * Normally we strip Secure log from release builds.
@@ -251,12 +251,12 @@ typedef enum {
 #define ALOG(priority, tag, format, arg...) LOG_(LOG_ID_APPS, D##priority, tag, format, ##arg)
 
 
-// ---------------------------------------------------------------------
-// Don't use below macro no more!! It will be removed -- Verbose and Fatal priority macro will be removed --
+/* --------------------------------------------------------------------- */
+/* Don't use below macro no more!! It will be removed -- Verbose and Fatal priority macro will be removed -- */
 #define COMPATIBILITY_ON
 
 #ifdef COMPATIBILITY_ON
-#define LOG_ON() _get_logging_on()
+#define LOG_ON() 1
 #if LOG_NDEBUG
 #define LOGV(format, arg...) (0)
 #else
@@ -318,8 +318,8 @@ typedef enum {
 #define vprint_system_log(prio, tag, fmt...) \
 	__dlog_vprint(LOG_ID_SYSTEM, prio, tag, fmt)
 #endif
-// Don't use above macro no more!! It will be removed -Verbose, Warning and Fatal priority macro.
-// ---------------------------------------------------------------------
+/* Don't use above macro no more!! It will be removed -Verbose, Warning and Fatal priority macro. */
+/* --------------------------------------------------------------------- */
 /*
  * The stuff in the rest of this file should not be used directly.
  */
@@ -332,7 +332,7 @@ typedef enum {
  * @param[in]	log_id	log device id
  * @param[in]	prio	priority
  * @param[in]	tag	tag
- * @param[in]	fmt	format string 
+ * @param[in]	fmt	format string
  * @return			Operation result
  * @retval		0>=	Success
  * @retval              -1	Error
@@ -369,7 +369,6 @@ int __dlog_print(log_id_t log_id, int prio, const char *tag, const char *fmt, ..
  * @endcode
   */
 int __dlog_vprint(log_id_t log_id, int prio, const char *tag, const char *fmt, va_list ap);
-int _get_logging_on(void);
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */

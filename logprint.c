@@ -1,7 +1,7 @@
 /*
  * DLOG
  * Copyright (c) 2005-2008, The Android Open Source Project
- * Copyright (c) 2012-2013 Samsung Electronics Co., Ltd.
+ * Copyright (c) 2012-2015 Samsung Electronics Co., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the License);
  * you may not use this file except in compliance with the License.
@@ -52,6 +52,10 @@ static FilterInfo * filterinfo_new(const char *tag, log_priority pri)
 static void filterinfo_free(FilterInfo *p_info)
 {
 	if (p_info == NULL) {
+		return;
+	}
+
+	if (p_info->mTag == NULL) {
 		return;
 	}
 
@@ -118,7 +122,6 @@ static char filter_pri_to_char (log_priority pri)
 static log_priority filter_pri_for_tag(log_format *p_format, const char *tag)
 {
     FilterInfo *p_curFilter;
-//	log_priority pri = DLOG_SILENT;
     for (p_curFilter = p_format->filters; p_curFilter != NULL; p_curFilter = p_curFilter->p_next )
 	{
 		if (0 == strcmp(tag, p_curFilter->mTag))
@@ -181,6 +184,7 @@ void log_format_free(log_format *p_format)
         p_info_old = p_info;
         p_info = p_info->p_next;
 
+        filterinfo_free(p_info_old);
         free(p_info_old);
     }
 
@@ -226,7 +230,7 @@ log_print_format log_format_from_string(const char * formatString)
 int log_add_filter_rule(log_format *p_format,
         const char *filterExpression)
 {
-//    size_t i=0;
+/*    size_t i=0; */
     size_t tagNameLength;
     log_priority pri = DLOG_DEFAULT;
 
@@ -245,17 +249,17 @@ int log_add_filter_rule(log_format *p_format,
     }
 
     if(0 == strncmp("*", filterExpression, tagNameLength)) {
-        // This filter expression refers to the global filter
-        // The default level for this is DEBUG if the priority
-        // is unspecified
+        /* This filter expression refers to the global filter */
+        /* The default level for this is DEBUG if the priority */
+        /* is unspecified */
         if (pri == DLOG_DEFAULT) {
             pri = DLOG_DEBUG;
         }
 
         p_format->global_pri = pri;
     } else {
-        // for filter expressions that don't refer to the global
-        // filter, the default is verbose if the priority is unspecified
+        /* for filter expressions that don't refer to the global */
+        /* filter, the default is verbose if the priority is unspecified */
         if (pri == DLOG_DEFAULT) {
             pri = DLOG_VERBOSE;
         }
@@ -295,10 +299,10 @@ int log_add_filter_string(log_format *p_format,
     char *p_ret;
     int err;
 
-    // Yes, I'm using strsep
-    // FIXME : strtok is more portable than strsep
+    /* Yes, I'm using strsep */
+    /* FIXME : strtok is more portable than strsep */
     while (NULL != (p_ret = strsep(&p_cur, " \t,"))) {
-        // ignore whitespace-only entries
+        /* ignore whitespace-only entries */
         if(p_ret[0] != '\0') {
             err = log_add_filter_rule(p_format, p_ret);
 
@@ -343,11 +347,11 @@ int log_process_log_buffer(struct logger_entry *buf,log_entry *entry)
 
     if (buf->msg[0] < 0 || buf->msg[0] > DLOG_SILENT) { /* char can be signed too */
 
-	 /* There is no tag in this message - which is an error, but it might
-	  * happen when sombody redirects stdout/err to /dev/log_*.
-	  *
-	  * Pick ERROR priority as this shouldn't happen.
-	  */
+     /* There is no tag in this message - which is an error, but it might
+      * happen when sombody redirects stdout/err to /dev/log_*.
+      *
+      * Pick ERROR priority as this shouldn't happen.
+      */
 	 entry->priority = DLOG_ERROR;
 	 entry->tag = "[NO TAG]";
 	 entry->messageLen = buf->len;
@@ -384,7 +388,7 @@ char *log_format_log_line (
 #endif
     struct tm* ptm;
     char timeBuf[32];
- //   char headerBuf[128];
+ /*   char headerBuf[128]; */
     char prefixBuf[128], suffixBuf[128];
     char priChar;
     int prefixSuffixIsHeaderFooter = 0;
@@ -406,7 +410,7 @@ char *log_format_log_line (
 #else
     ptm = localtime(&(entry->tv_sec));
 #endif
-    //strftime(timeBuf, sizeof(timeBuf), "%Y-%m-%d %H:%M:%S", ptm);
+    /* strftime(timeBuf, sizeof(timeBuf), "%Y-%m-%d %H:%M:%S", ptm); */
     strftime(timeBuf, sizeof(timeBuf), "%m-%d %H:%M:%S", ptm);
 
     /*
@@ -428,7 +432,7 @@ char *log_format_log_line (
             break;
         case FORMAT_THREAD:
             prefixLen = snprintf(prefixBuf, sizeof(prefixBuf),
-                "%c(%5d:%5d) ", priChar, entry->pid, entry->tid);
+                "%c(%5ld:%5ld) ", priChar, (unsigned long int)entry->pid, (unsigned long int)entry->tid);
             strcpy(suffixBuf, "\n");
             suffixLen = 1;
             break;
@@ -454,9 +458,9 @@ char *log_format_log_line (
             break;
         case FORMAT_LONG:
             prefixLen = snprintf(prefixBuf, sizeof(prefixBuf),
-                "[ %s.%03ld %5d:%5d %c/%-8s ]\n",
-                timeBuf, entry->tv_nsec / 1000000, entry->pid,
-                entry->tid, priChar, entry->tag);
+                "[ %s.%03ld %5ld:%5ld %c/%-8s ]\n",
+                timeBuf, entry->tv_nsec / 1000000, (unsigned long int)entry->pid,
+                (unsigned long int)entry->tid, priChar, entry->tag);
             strcpy(suffixBuf, "\n\n");
             suffixLen = 2;
             prefixSuffixIsHeaderFooter = 1;
@@ -483,29 +487,28 @@ char *log_format_log_line (
     /* the following code is tragically unreadable */
 
     size_t numLines;
-//    size_t i;
     char *p;
     size_t bufferSize;
     const char *pm;
 
     if (prefixSuffixIsHeaderFooter) {
-        // we're just wrapping message with a header/footer
+        /* we're just wrapping message with a header/footer */
         numLines = 1;
     } else {
         pm = entry->message;
         numLines = 0;
 
-        // The line-end finding here must match the line-end finding
-        // in for ( ... numLines...) loop below
+        /* The line-end finding here must match the line-end finding */
+        /* in for ( ... numLines...) loop below */
         while (pm < (entry->message + entry->messageLen)) {
             if (*pm++ == '\n') numLines++;
         }
-        // plus one line for anything not newline-terminated at the end
+        /* plus one line for anything not newline-terminated at the end */
         if (pm > entry->message && *(pm-1) != '\n') numLines++;
     }
 
-    // this is an upper bound--newlines in message may be counted
-    // extraneously
+    /* this is an upper bound--newlines in message may be counted */
+    /* extraneously */
     bufferSize = (numLines * (prefixLen + suffixLen)) + entry->messageLen + 1;
 
     if (defaultBufferSize >= bufferSize) {
@@ -525,12 +528,12 @@ char *log_format_log_line (
 
     if (prefixSuffixIsHeaderFooter) {
 	strcat(p, prefixBuf);
-//        strncat(p, prefixBuf, sizeof(prefixBuf));
+/*        strncat(p, prefixBuf, sizeof(prefixBuf)); */
         p += prefixLen;
         strncat(p, entry->message, entry->messageLen);
         p += entry->messageLen;
 	strcat(p, suffixBuf);
-//        strncat(p, suffixBuf, sizeof(suffixBuf));
+/*        strncat(p, suffixBuf, sizeof(suffixBuf)); */
         p += suffixLen;
     } else {
         while(pm < (entry->message + entry->messageLen)) {
@@ -539,18 +542,18 @@ char *log_format_log_line (
 
             lineStart = pm;
 
-            // Find the next end-of-line in message
+            /* Find the next end-of-line in message */
             while (pm < (entry->message + entry->messageLen)
                     && *pm != '\n') pm++;
             lineLen = pm - lineStart;
 
 	    strcat(p, prefixBuf);
-            //strncat(p, prefixBuf, sizeof(prefixBuf));
+            /* strncat(p, prefixBuf, sizeof(prefixBuf)); */
             p += prefixLen;
             strncat(p, lineStart, lineLen);
             p += lineLen;
 	    strcat(p, suffixBuf);
-            //strncat(p, suffixBuf, sizeof(suffixBuf));
+            /* strncat(p, suffixBuf, sizeof(suffixBuf)); */
             p += suffixLen;
 
             if (*pm == '\n') pm++;
@@ -660,18 +663,18 @@ void logprint_run_tests()
     assert (DLOG_VERBOSE== filter_pri_for_tag(p_format, "crap"));
     assert(log_should_print_line(p_format, "crap", DLOG_VERBOSE) > 0);
 
-    // invalid expression
+    /* invalid expression */
     err = log_add_filter_rule(p_format, "random:z");
     assert (err < 0);
     assert (DLOG_WARN == filter_pri_for_tag(p_format, "random"));
     assert(log_should_print_line(p_format, tag, DLOG_DEBUG) == 0);
 
-    // Issue #550946
+    /* Issue #550946 */
     err = log_add_filter_string(p_format, " ");
     assert(err == 0);
     assert(DLOG_WARN == filter_pri_for_tag(p_format, "random"));
 
-    // note trailing space
+    /* note trailing space */
     err = log_add_filter_string(p_format, "*:s random:d ");
     assert(err == 0);
     assert(DLOG_DEBUG == filter_pri_for_tag(p_format, "random"));

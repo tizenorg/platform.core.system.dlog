@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2005-2008, The Android Open Source Project
- * Copyright (c) 2009-2013, Samsung Electronics Co., Ltd. All rights reserved.
+ * Copyright (c) 2009-2015, Samsung Electronics Co., Ltd. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
  */
 
 
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -30,26 +31,13 @@
 #include <assert.h>
 #include <sys/stat.h>
 #include <arpa/inet.h>
+#include <linux/limits.h>
 
 
 #include <logger.h>
 #include <logprint.h>
 
-#define DEFAULT_LOG_ROTATE_SIZE_KBYTES 16
 #define DEFAULT_MAX_ROTATED_LOGS 4
-
-#define LOG_FILE_DIR    "/dev/log_"
-
-static log_format* g_logformat;
-static bool g_nonblock = false;
-static int g_tail_lines = 0;
-
-static const char * g_output_filename = NULL;
-static int g_log_rotate_size_kbytes = 0;                   // 0 means "no log rotation"
-static int g_max_rotated_logs = DEFAULT_MAX_ROTATED_LOGS; // 0 means "unbounded"
-static int g_outfd = -1;
-static off_t g_out_byte_count = 0;
-static int g_dev_count = 0;
 
 struct queued_entry_t {
 	union {
@@ -58,6 +46,7 @@ struct queued_entry_t {
 	};
 	struct queued_entry_t* next;
 };
+
 
 static int cmp(struct queued_entry_t* a, struct queued_entry_t* b)
 {
@@ -77,6 +66,44 @@ struct log_device_t {
 	struct queued_entry_t* queue;
 	struct log_device_t* next;
 };
+
+struct cntx_str {
+    log_format * logformat;
+    bool nonblock;
+    int tail_lines;
+    const char * output_filename;
+    int log_rotate_size_kbytes;  /* 0 means "no log rotation" */
+    int max_rotated_logs;  /* 0 means "unbounded" */
+    int outfd;
+    off_t out_byte_count;
+    int dev_count;
+    char * log_file_dir;
+    int is_clear_log;
+    int getLogSize;
+    int has_set_log_format;
+    struct log_device_t * devices;
+    struct log_device_t * dev;
+    int mode;
+};
+
+static void init_cntx(struct cntx_str * cntx)
+{
+    cntx->logformat = NULL;
+    cntx->nonblock = false;
+    cntx->tail_lines = 0;
+    cntx->output_filename = NULL;
+    cntx->log_rotate_size_kbytes = 0;
+    cntx->max_rotated_logs = DEFAULT_MAX_ROTATED_LOGS;
+    cntx->outfd = -1;
+    cntx->out_byte_count = 0;
+    cntx->dev_count = 0;
+    cntx->log_file_dir = NULL;
+    cntx->is_clear_log = 0;
+    cntx->getLogSize = 0;
+    cntx->has_set_log_format = 0;
+    cntx->devices = NULL;
+    cntx->mode = O_RDONLY;
+}
 
 static void enqueue(struct log_device_t* device, struct queued_entry_t* entry)
 {
@@ -98,31 +125,31 @@ static void enqueue(struct log_device_t* device, struct queued_entry_t* entry)
 
 static int open_logfile (const char *pathname)
 {
-    return open(pathname, O_WRONLY | O_APPEND | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH);
+    return TEMP_FAILURE_RETRY( open(pathname, O_WRONLY | O_APPEND | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH));
 }
 
-static void rotate_logs()
+static void rotate_logs(struct cntx_str * cntx)
 {
     int err;
 	int i;
 	char file0[256]={0};
 	char file1[256]={0};
 
-    // Can't rotate logs if we're not outputting to a file
-    if (g_output_filename == NULL) {
+    /* Can't rotate logs if we're not outputting to a file */
+    if (cntx->output_filename == NULL) {
         return;
     }
 
-    close(g_outfd);
+    close(cntx->outfd);
 
-    for (i = g_max_rotated_logs ; i > 0 ; i--)
+    for (i = cntx->max_rotated_logs ; i > 0 ; i--)
 	{
-		snprintf(file1, 255, "%s.%d", g_output_filename, i);
+		snprintf(file1, 255, "%s.%d", cntx->output_filename, i);
 
 		if (i - 1 == 0) {
-			snprintf(file0, 255, "%s", g_output_filename);
+			snprintf(file0, 255, "%s", cntx->output_filename);
 		} else {
-			snprintf(file0, 255, "%s.%d", g_output_filename, i - 1);
+			snprintf(file0, 255, "%s.%d", cntx->output_filename, i - 1);
 		}
 
 		err = rename (file0, file1);
@@ -132,19 +159,23 @@ static void rotate_logs()
 		}
     }
 
-    g_outfd = open_logfile (g_output_filename);
+    cntx->outfd = open_logfile (cntx->output_filename);
 
-    if (g_outfd < 0) {
+    if (cntx->outfd < 0) {
         perror ("couldn't open output file");
         exit(-1);
     }
 
-    g_out_byte_count = 0;
+    cntx->out_byte_count = 0;
 
 }
 
 
-static void processBuffer(struct log_device_t* dev, struct logger_entry *buf)
+static void processBuffer(
+        struct cntx_str * cntx,
+        struct log_device_t* dev,
+        struct logger_entry *buf
+        )
 {
 	int bytes_written = 0;
 	int err;
@@ -157,12 +188,12 @@ static void processBuffer(struct log_device_t* dev, struct logger_entry *buf)
 		goto error;
 	}
 
-	if (log_should_print_line(g_logformat, entry.tag, entry.priority)) {
-		if (false && g_dev_count > 1) {
-			// FIXME
+	if (log_should_print_line(cntx->logformat, entry.tag, entry.priority)) {
+		if (false && cntx->dev_count > 1) {
+			 /* FIXME */
 			mgs_buf[0] = dev->device[0];
 			mgs_buf[1] = ' ';
-			bytes_written = write(g_outfd, mgs_buf, 2);
+			bytes_written = write(cntx->outfd, mgs_buf, 2);
 			if (bytes_written < 0)
 			{
 				perror("output error");
@@ -170,7 +201,7 @@ static void processBuffer(struct log_device_t* dev, struct logger_entry *buf)
 			}
 		}
 
-		bytes_written = log_print_log_line(g_logformat, g_outfd, &entry);
+		bytes_written = log_print_log_line(cntx->logformat, cntx->outfd, &entry);
 
 		if (bytes_written < 0)
 		{
@@ -179,18 +210,18 @@ static void processBuffer(struct log_device_t* dev, struct logger_entry *buf)
 		}
 	}
 
-	g_out_byte_count += bytes_written;
+	cntx->out_byte_count += bytes_written;
 
-	if (g_log_rotate_size_kbytes > 0 && (g_out_byte_count / 1024) >= g_log_rotate_size_kbytes) {
-		if (g_nonblock) {
+	if (cntx->log_rotate_size_kbytes > 0 && (cntx->out_byte_count / 1024) >= cntx->log_rotate_size_kbytes) {
+		if (cntx->nonblock) {
 			exit(0);
 		} else {
-			rotate_logs();
+			rotate_logs(cntx);
 		}
 	}
 
 error:
-	//fprintf (stderr, "Error processing record\n");
+	 /* fprintf (stderr, "Error processing record\n"); */
 	return;
 }
 
@@ -204,13 +235,15 @@ static void chooseFirst(struct log_device_t* dev, struct log_device_t** firstdev
 	}
 }
 
-static void maybePrintStart(struct log_device_t* dev) {
+static void maybePrintStart(
+        struct cntx_str * cntx,
+        struct log_device_t* dev) {
 	if (!dev->printed) {
 		dev->printed = true;
-		if (g_dev_count > 1 ) {
+		if (cntx->dev_count > 1 ) {
 			char buf[1024];
 			snprintf(buf, sizeof(buf), "--------- beginning of %s\n", dev->device);
-			if (write(g_outfd, buf, strlen(buf)) < 0) {
+			if (write(cntx->outfd, buf, strlen(buf)) < 0) {
 				perror("output error");
 				exit(-1);
 			}
@@ -218,33 +251,38 @@ static void maybePrintStart(struct log_device_t* dev) {
 	}
 }
 
-static void skipNextEntry(struct log_device_t* dev) {
-	maybePrintStart(dev);
+static void skipNextEntry(
+        struct cntx_str * cntx,
+        struct log_device_t* dev) {
+	maybePrintStart(cntx, dev);
 	struct queued_entry_t* entry = dev->queue;
 	dev->queue = entry->next;
 	free(entry);
 }
 
-static void printNextEntry(struct log_device_t* dev)
+static void printNextEntry(
+        struct cntx_str * cntx,
+        struct log_device_t* dev)
 {
-	maybePrintStart(dev);
-	processBuffer(dev, &dev->queue->entry);
-	skipNextEntry(dev);
+	maybePrintStart(cntx, dev);
+	processBuffer(cntx, dev, &dev->queue->entry);
+	skipNextEntry(cntx, dev);
 }
 
 
-static void read_log_lines(struct log_device_t* devices)
+static void read_log_lines(
+        struct cntx_str * cntx)
 {
 	struct log_device_t* dev;
 	int max = 0;
 	int ret;
 	int queued_lines = 0;
-	bool sleep = false; // for exit immediately when log buffer is empty and g_nonblock value is true.
+	bool sleep = false;  /* for exit immediately when log buffer is empty and nonblock value is true. */
 
 	int result;
 	fd_set readset;
 
-	for (dev=devices; dev; dev = dev->next) {
+	for (dev=cntx->devices; dev; dev = dev->next) {
 		if (dev->fd > max) {
 			max = dev->fd;
 		}
@@ -252,16 +290,16 @@ static void read_log_lines(struct log_device_t* devices)
 
 	while (1) {
 		do {
-			struct timeval timeout = { 0, 5000 /* 5ms */ }; // If we oversleep it's ok, i.e. ignore EINTR.
+			struct timeval timeout = { 0, 5000 /* 5ms */ }; /* If we oversleep it's ok, i.e. ignore EINTR. */
 			FD_ZERO(&readset);
-			for (dev=devices; dev; dev = dev->next) {
+			for (dev=cntx->devices; dev; dev = dev->next) {
 				FD_SET(dev->fd, &readset);
 			}
 			result = select(max + 1, &readset, NULL, NULL, sleep ? NULL : &timeout);
 		} while (result == -1 && errno == EINTR);
 
         if (result >= 0) {
-            for (dev=devices; dev; dev = dev->next) {
+            for (dev=cntx->devices; dev; dev = dev->next) {
                 if (FD_ISSET(dev->fd, &readset)) {
                     struct queued_entry_t* entry = (struct queued_entry_t *)malloc(sizeof( struct queued_entry_t));
 					if (entry == NULL) {
@@ -271,7 +309,7 @@ static void read_log_lines(struct log_device_t* devices)
 					entry->next = NULL;
 
                     /* NOTE: driver guarantees we read exactly one full entry */
-                    ret = read(dev->fd, entry->buf, LOGGER_ENTRY_MAX_LEN);
+                    ret = TEMP_FAILURE_RETRY( read(dev->fd, entry->buf, LOGGER_ENTRY_MAX_LEN));
                     if (ret < 0) {
                         if (errno == EINTR) {
                             free(entry);
@@ -305,38 +343,38 @@ static void read_log_lines(struct log_device_t* devices)
             }
 
             if (result == 0) {
-                // we did our short timeout trick and there's nothing new
-                // print everything we have and wait for more data
+                /* we did our short timeout trick and there's nothing new */
+                /* print everything we have and wait for more data */
                 sleep = true;
                 while (true) {
-                    chooseFirst(devices, &dev);
+                    chooseFirst(cntx->devices, &dev);
                     if (dev == NULL) {
                         break;
                     }
-                    if (g_tail_lines == 0 || queued_lines <= g_tail_lines) {
-                        printNextEntry(dev);
+                    if (cntx->tail_lines == 0 || queued_lines <= cntx->tail_lines) {
+                        printNextEntry(cntx, dev);
                     } else {
-                        skipNextEntry(dev);
+                        skipNextEntry(cntx, dev);
                     }
                     --queued_lines;
                 }
 
-                // the caller requested to just dump the log and exit
-                if (g_nonblock) {
+                /* the caller requested to just dump the log and exit */
+                if (cntx->nonblock) {
                     exit(0);
                 }
             } else {
-                // print all that aren't the last in their list
+                /* print all that aren't the last in their list */
                 sleep = false;
-                while (g_tail_lines == 0 || queued_lines > g_tail_lines) {
-                    chooseFirst(devices, &dev);
+                while (cntx->tail_lines == 0 || queued_lines > cntx->tail_lines) {
+                    chooseFirst(cntx->devices, &dev);
                     if (dev == NULL || dev->queue->next == NULL) {
                         break;
                     }
-                    if (g_tail_lines == 0) {
-                        printNextEntry(dev);
+                    if (cntx->tail_lines == 0) {
+                        printNextEntry(cntx, dev);
                     } else {
-                        skipNextEntry(dev);
+                        skipNextEntry(cntx, dev);
                     }
                     --queued_lines;
                 }
@@ -365,40 +403,42 @@ static int get_log_readable_size(int logfd)
     return ioctl(logfd, LOGGER_GET_LOG_LEN);
 }
 
-static void setup_output()
+static void setup_output(struct cntx_str * cntx)
 {
 
-	if (g_output_filename == NULL) {
-		g_outfd = STDOUT_FILENO;
+	if (cntx->output_filename == NULL) {
+		cntx->outfd = STDOUT_FILENO;
 
 	} else {
 		struct stat statbuf;
 
-		g_outfd = open_logfile (g_output_filename);
+		cntx->outfd = open_logfile (cntx->output_filename);
 
-		if (g_outfd < 0) {
+		if (cntx->outfd < 0) {
 			perror ("couldn't open output file");
 			exit(-1);
 		}
-		if (fstat(g_outfd, &statbuf) == -1)
-			g_out_byte_count = 0;
+		if (fstat(cntx->outfd, &statbuf) == -1)
+			cntx->out_byte_count = 0;
 		else
-			g_out_byte_count = statbuf.st_size;
+			cntx->out_byte_count = statbuf.st_size;
 	}
 }
 
-static int set_log_format(const char * formatString)
+static int set_log_format(
+        struct cntx_str * cntx,
+        const char * formatString)
 {
 	static log_print_format format;
 
 	format = log_format_from_string(formatString);
 
 	if (format == FORMAT_OFF) {
-		// FORMAT_OFF means invalid string
+		 /* FORMAT_OFF means invalid string */
 		return -1;
 	}
 
-	log_set_print_format(g_logformat, format);
+	log_set_print_format(cntx->logformat, format);
 
 	return 0;
 }
@@ -513,40 +553,30 @@ static struct log_device_t *log_devices_new(const char *path)
 /*
  * add a new device to the tail of chain
  */
-static int log_devices_add_to_tail(struct log_device_t *devices, struct log_device_t *new)
+static int log_devices_add_to_tail(
+        struct cntx_str * cntx,
+        struct log_device_t *new)
 {
-	struct log_device_t *tail = devices;
+	struct log_device_t *tail = cntx->devices;
 
-	if (!devices || !new)
+	if (!(cntx->devices) || !new)
 		return -1;
 
 	while (tail->next)
 		tail = tail->next;
 
 	tail->next = new;
-	g_dev_count++;
+	cntx->dev_count++;
 
 	return 0;
 }
 
-int main(int argc, char **argv)
+void parse_opts(
+        struct cntx_str * cntx,
+        int argc,
+        char **argv)
 {
     int err;
-    int has_set_log_format = 0;
-    int is_clear_log = 0;
-    int getLogSize = 0;
-    int mode = O_RDONLY;
-	int i;
-//    const char *forceFilters = NULL;
-	struct log_device_t* devices = NULL;
-	struct log_device_t* dev;
-
-    g_logformat = (log_format *)log_format_new();
-
-    if (argc == 2 && 0 == strcmp(argv[1], "--test")) {
-        logprint_run_tests();
-        exit(0);
-    }
 
     if (argc == 2 && 0 == strcmp(argv[1], "--help")) {
         show_help(argv[0]);
@@ -564,75 +594,73 @@ int main(int argc, char **argv)
 
         switch(ret) {
             case 's':
-                // default to all silent
-                log_add_filter_rule(g_logformat, "*:s");
+                /* default to all silent */
+                log_add_filter_rule(cntx->logformat, "*:s");
             break;
 
             case 'c':
-                is_clear_log = 1;
-                mode = O_WRONLY;
+                cntx->is_clear_log = 1;
+                cntx->mode = O_WRONLY;
             break;
 
             case 'd':
-                g_nonblock = true;
+                cntx->nonblock = true;
             break;
 
             case 't':
-                g_nonblock = true;
-                g_tail_lines = atoi(optarg);
+                cntx->nonblock = true;
+                cntx->tail_lines = atoi(optarg);
             break;
 
 
             case 'g':
-                getLogSize = 1;
+                cntx->getLogSize = 1;
             break;
 
 			case 'b': {
-						  char *buf;
-						  if (asprintf(&buf, LOG_FILE_DIR "%s", optarg) == -1) {
-							  asprintf(stderr,"Can't malloc LOG_FILE_DIR\n");
+						  char buf[PATH_MAX + 1];
+						  int ret;
+
+						  if ((!optarg) || (!*optarg) || strchr(optarg, '/')) {
+							  fprintf(stderr,"Invalid log device\n");
 							  exit(-1);
 						  }
-
-						  dev = log_devices_new(buf);
-						  if (dev == NULL) {
+						  ret = snprintf(buf, sizeof(buf), "%s%s", cntx->log_file_dir, optarg);
+						  if ((ret < 1) || (ret >= sizeof(buf))) {
+							  fprintf(stderr,"Invalid log device: %s\n", buf);
+							  exit(-1);
+						  }
+						  cntx->dev = log_devices_new(buf);
+						  if ((cntx->dev) == NULL) {
 							  fprintf(stderr,"Can't add log device: %s\n", buf);
 							  exit(-1);
 						  }
-						  if (devices) {
-							  if (log_devices_add_to_tail(devices, dev)) {
+						  if (cntx->devices) {
+							  if (log_devices_add_to_tail(cntx, cntx->dev)) {
 								  fprintf(stderr, "Open log device %s failed\n", buf);
 								  exit(-1);
 							  }
 						  } else {
-							  devices = dev;
-							  g_dev_count = 1;
+							  cntx->devices = cntx->dev;
+							  cntx->dev_count = 1;
 						  }
 					  }
             break;
 
             case 'f':
-                // redirect output to a file
+                /* redirect output to a file */
 
-                g_output_filename = optarg;
+                cntx->output_filename = optarg;
 
             break;
 
             case 'r':
-//                if (optarg == NULL) {
-//					fprintf(stderr,"optarg == null\n");
- //                  g_log_rotate_size_kbytes = DEFAULT_LOG_ROTATE_SIZE_KBYTES;
- //              } else {
-                    //long logRotateSize;
-                    //char *lastDigit;
-
                     if (!isdigit(optarg[0])) {
                         fprintf(stderr,"Invalid parameter to -r\n");
                         show_help(argv[0]);
                         exit(-1);
                     }
-                    g_log_rotate_size_kbytes = atoi(optarg);
-   //             }
+                    cntx->log_rotate_size_kbytes = atoi(optarg);
             break;
 
             case 'n':
@@ -642,18 +670,18 @@ int main(int argc, char **argv)
                     exit(-1);
                 }
 
-                g_max_rotated_logs = atoi(optarg);
+                cntx->max_rotated_logs = atoi(optarg);
             break;
 
             case 'v':
-                err = set_log_format (optarg);
+                err = set_log_format (cntx, optarg);
                 if (err < 0) {
                     fprintf(stderr,"Invalid parameter to -v\n");
                     show_help(argv[0]);
                     exit(-1);
                 }
 
-                has_set_log_format = 1;
+                cntx->has_set_log_format = 1;
             break;
 
 			default:
@@ -664,114 +692,56 @@ int main(int argc, char **argv)
 		}
 	}
 
-	/* get log size conflicts with write mode */
-	if (getLogSize && mode != O_RDONLY) {
-		show_help(argv[0]);
+    return;
+}
+
+void add_to_devices(struct cntx_str * cntx)
+{
+	cntx->devices = log_devices_new("/dev/"LOGGER_LOG_MAIN);
+	if (cntx->devices == NULL) {
+		fprintf(stderr,"Can't add log device: %s\n", LOGGER_LOG_MAIN);
 		exit(-1);
 	}
+    cntx->dev_count = 1;
 
-	if (!devices) {
-		devices = log_devices_new("/dev/"LOGGER_LOG_MAIN);
-		if (devices == NULL) {
-			fprintf(stderr,"Can't add log device: %s\n", LOGGER_LOG_MAIN);
-			exit(-1);
-		}
-        g_dev_count = 1;
+    int accessmode =
+              (cntx->mode == O_RDONLY) ? R_OK : 0
+            | (cntx->mode == O_WRONLY) ? W_OK : 0;
 
-        int accessmode =
-                  (mode == O_RDONLY) ? R_OK : 0
-                | (mode == O_WRONLY) ? W_OK : 0;
-
-	// only add this if it's available
-	if (0 == access("/dev/"LOGGER_LOG_SYSTEM, accessmode)) {
-		if (log_devices_add_to_tail(devices, log_devices_new("/dev/"LOGGER_LOG_SYSTEM))) {
-			fprintf(stderr,"Can't add log device: %s\n", LOGGER_LOG_SYSTEM);
-			exit(-1);
-		}
-	}
-	if (0 == access("/dev/"LOGGER_LOG_APPS, accessmode)) {
-		if (log_devices_add_to_tail(devices, log_devices_new("/dev/"LOGGER_LOG_APPS))) {
-			fprintf(stderr,"Can't add log device: %s\n", LOGGER_LOG_APPS);
-			exit(-1);
-		}
-	}
-
-/*
-        // only add this if it's available
-	int fd;
-	if ((fd = open("/dev/"LOGGER_LOG_SYSTEM, mode)) != -1) {
-		devices->next = (struct log_device_t *)malloc( sizeof(struct log_device_t));
-		devices->next->device = strdup("/dev/"LOGGER_LOG_SYSTEM);
-		devices->next->fd = -1;
-		devices->next->printed = false;
-		devices->next->queue = NULL;
-		devices->next->next = NULL;
-		g_dev_count ++;
-
-		close(fd);
+    /* only add this if it's available */
+    if (0 == access("/dev/"LOGGER_LOG_SYSTEM, accessmode)) {
+        if (log_devices_add_to_tail(cntx, log_devices_new("/dev/"LOGGER_LOG_SYSTEM))) {
+            fprintf(stderr,"Can't add log device: %s\n", LOGGER_LOG_SYSTEM);
+            exit(-1);
         }
-*/
+    }
+    if (0 == access("/dev/"LOGGER_LOG_APPS, accessmode)) {
+        if (log_devices_add_to_tail(cntx, log_devices_new("/dev/"LOGGER_LOG_APPS))) {
+            fprintf(stderr,"Can't add log device: %s\n", LOGGER_LOG_APPS);
+            exit(-1);
+        }
     }
 
-    if (g_log_rotate_size_kbytes != 0 && g_output_filename == NULL)
-	{
-		fprintf(stderr,"-r requires -f as well\n");
-		show_help(argv[0]);
-		exit(-1);
-	}
+    return;
+}
 
-    setup_output();
-
-
-	if (has_set_log_format == 0) {
-		err = set_log_format("brief");
-	}
-/*
-		const char* logFormat = getenv("DLOG_PRINTF_LOG");
-
-	        if (logFormat != NULL) {
-			err = set_log_format("brief");
-
-			if (err < 0) {
-				fprintf(stderr, "invalid format in DLOG_PRINTF_LOG '%s'\n", logFormat);
-			}
-		}
-	}
-	if (forceFilters) {
-		err = log_add_filter_string(g_logformat, forceFilters);
-		if (err < 0) {
-			fprintf (stderr, "Invalid filter expression in -logcat option\n");
-			exit(0);
-		}
-	} else if (argc == optind) {
-        // Add from environment variable
-		char *env_tags_orig = getenv("DLOG_LOG_TAGS");
-
-		if (env_tags_orig != NULL) {
-			err = log_add_filter_string(g_logformat, env_tags_orig);
-
-			if (err < 0) {
-				fprintf(stderr, "Invalid filter expression in DLOG_LOG_TAGS\n");
-				show_help(argv[0]);
-				exit(-1);
-			}
-		}
-	} else {
-        // Add from commandline
-*/
-	fprintf(stderr,"arc = %d, optind = %d ,Kb %d, rotate %d\n", argc, optind,g_log_rotate_size_kbytes,g_max_rotated_logs);
+void add_to_filters(
+        struct cntx_str * cntx,
+        int argc,
+        char **argv)
+{
+	int i;
+    int err;
 
 	if(argc == optind )
 	{
-		// Add from environment variable
-        //char *env_tags_orig = getenv("DLOG_TAGS");
-		log_add_filter_string(g_logformat, "*:d");
+		 /* Add from environment variable */
+		log_add_filter_string(cntx->logformat, "*:d");
 	}
 	else
 	{
-
 		for (i = optind ; i < argc ; i++) {
-			err = log_add_filter_string(g_logformat, argv[i]);
+			err = log_add_filter_string(cntx->logformat, argv[i]);
 
 			if (err < 0) {
 				fprintf (stderr, "Invalid filter expression '%s'\n", argv[i]);
@@ -780,62 +750,113 @@ int main(int argc, char **argv)
 			}
 		}
 	}
-/*
-    }
-*/
-    dev = devices;
-    while (dev) {
-        dev->fd = open(dev->device, mode);
-        if (dev->fd < 0) {
+    return;
+}
+
+void open_devices(struct cntx_str * cntx)
+{
+    cntx->dev = cntx->devices;
+    while (cntx->dev) {
+        cntx->dev->fd = TEMP_FAILURE_RETRY( open(cntx->dev->device, cntx->mode));
+        if (cntx->dev->fd < 0) {
             fprintf(stderr, "Unable to open log device '%s': %s\n",
-                dev->device, strerror(errno));
+                cntx->dev->device, strerror(errno));
             exit(EXIT_FAILURE);
         }
 
-        if (is_clear_log) {
+        if (cntx->is_clear_log) {
             int ret;
-            ret = clear_log(dev->fd);
+            ret = clear_log(cntx->dev->fd);
             if (ret) {
                 perror("ioctl");
                 exit(EXIT_FAILURE);
             }
         }
 
-        if (getLogSize) {
+        if (cntx->getLogSize) {
             int size, readable;
 
-            size = get_log_size(dev->fd);
+            size = get_log_size(cntx->dev->fd);
             if (size < 0) {
                 perror("ioctl");
                 exit(EXIT_FAILURE);
             }
 
-            readable = get_log_readable_size(dev->fd);
+            readable = get_log_readable_size(cntx->dev->fd);
             if (readable < 0) {
                 perror("ioctl");
                 exit(EXIT_FAILURE);
             }
 
             printf("%s: ring buffer is %dKb (%dKb consumed), "
-                   "max entry is %db, max payload is %db\n", dev->device,
+                   "max entry is %db, max payload is %db\n", cntx->dev->device,
                    size / 1024, readable / 1024,
                    (int) LOGGER_ENTRY_MAX_LEN, (int) LOGGER_ENTRY_MAX_PAYLOAD);
         }
 
-        dev = dev->next;
+        cntx->dev = cntx->dev->next;
+    }
+    return;
+}
+
+int main(int argc, char **argv)
+{
+    int err;
+    struct cntx_str cntx;
+
+    init_cntx(&cntx);
+    cntx.logformat = (log_format *)log_format_new();
+    cntx.log_file_dir = "/dev/log_";
+
+    parse_opts(&cntx, argc, argv);
+
+    /* get log size conflicts with write mode */
+	if (cntx.getLogSize && cntx.mode != O_RDONLY) {
+		show_help(argv[0]);
+		exit(-1);
+	}
+
+	if (!(cntx.devices)) {
+        add_to_devices(&cntx);
     }
 
-    if (getLogSize) {
+    if (cntx.log_rotate_size_kbytes != 0 && cntx.output_filename == NULL)
+	{
+		fprintf(stderr,"-r requires -f as well\n");
+		show_help(argv[0]);
+		exit(-1);
+	}
+
+    setup_output(&cntx);
+
+	if (cntx.has_set_log_format == 0) {
+		err = set_log_format(&cntx, "brief");
+        if (err < 0)
+    	    fprintf(stderr, "failed to set log format to brief\n");
+	}
+
+	fprintf(stderr,
+            "arc = %d, optind = %d ,Kb %d, rotate %d\n",
+            argc,
+            optind,
+            cntx.log_rotate_size_kbytes,
+            cntx.max_rotated_logs);
+
+    add_to_filters(&cntx, argc, argv);
+
+    open_devices(&cntx);
+
+    if (cntx.getLogSize) {
         return 0;
     }
 
-    if (is_clear_log) {
+    if (cntx.is_clear_log) {
         return 0;
     }
 
-    read_log_lines(devices);
+    read_log_lines(&cntx);
 
-	log_devices_chain_free(devices);
+	log_devices_chain_free(cntx.devices);
 
     return 0;
 }

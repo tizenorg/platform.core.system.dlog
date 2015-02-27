@@ -8,6 +8,7 @@ lib_LTLIBRARIES = libdlog.la
 
 libdlog_la_SOURCES =  \
 	log.c \
+	log-common.c \
 	include/dlog.h
 
 libdlog_la_LIBADD = -lpthread $(TZPLATFORM_CONFIG_LIBS) $(systemd_journal_LIBS)
@@ -43,3 +44,12 @@ platformlogconfdir=$(sysconfdir)/dlog
 platformlogconf_DATA = platformlog.conf
 platformlog.conf:
 	/bin/echo '0' > platformlog.conf
+
+dlogallconfdir=$(sysconfdir)/dlog
+dlogallconf_DATA = dlog.all.conf
+
+dlogradioconfdir=$(sysconfdir)/dlog
+dlogradioconf_DATA = dlog.radio.conf
+
+dlogrulesdir=$(libdir)/udev/rules.d
+dlogrules_DATA = 01-dlog.rules
