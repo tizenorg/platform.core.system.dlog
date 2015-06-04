@@ -9,9 +9,6 @@ AC_CONFIG_HEADERS([config.h:config.hin])
 AC_CONFIG_MACRO_DIR([m4])
 
 PLATFORM_INIT
-AC_CONFIG_SRCDIR([log.c])
-
-PKG_CHECK_MODULES([TZPLATFORM_CONFIG], [libtzplatform-config])
 
 # Checks for programs.
 dnl AC_PROG_CXX

@@ -52,7 +52,6 @@ static const char *const g_log_apps = "log_apps";
 
 #include <tzplatform_config.h>
 
-static int g_platformlog = 0;
 static pthread_mutex_t g_log_init_lock = PTHREAD_MUTEX_INITIALIZER;
 
 #ifndef HAVE_SYSTEMD_JOURNAL
@@ -154,12 +153,7 @@ static int __write_to_log_kernel(log_id_t log_id, log_priority prio, const char 
 
 static void __configure(void)
 {
-	int ret;
-	ret = read_platformlog();
-	if (ret == 1)
-		g_platformlog = 1;
-    else
-		g_platformlog = 0;
+	return 0;
 }
 
 typedef int (*type_write_to_log)(log_id_t, log_priority, const char *tag, const char *msg);
@@ -227,8 +221,6 @@ int __dlog_vprint(log_id_t log_id, int prio, const char *tag, const char *fmt, v
 	if (!write_function)
 		return -1;
 
-	if (log_id != LOG_ID_APPS && !g_platformlog)
-		return 0;
 
 	vsnprintf(buf, g_dlog_buf_size, fmt, ap);
 
@@ -249,8 +241,6 @@ int __dlog_print(log_id_t log_id, int prio, const char *tag, const char *fmt, ..
 	if (!write_function)
 		return -1;
 
-	if (log_id != LOG_ID_APPS && !g_platformlog)
-		return 0;
 
 	va_start(ap, fmt);
 	vsnprintf(buf, g_dlog_buf_size, fmt, ap);
