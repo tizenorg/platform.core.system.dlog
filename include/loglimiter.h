@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2015 Samsung Electronics Co., Ltd.
+ * DLOG
+ * Copyright (c) 2013 Samsung Electronics Co., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the License);
  * you may not use this file except in compliance with the License.
@@ -13,19 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-/**
- * @file    dlog-common.h
- * @version 0.1
- * @brief   This file is the header file of dlog commons
- */
 
-#ifndef _DLOG_COMMON_H
-#define _DLOG_COMMON_H
+#ifndef _LOGLIMITER_H_
+#define _LOGLIMITER_H_
 
-#include <tzplatform_config.h>
+/* Define maximum logging speed, everything greater means unlimited.
+ * Maximum possible value is INT_MAX-2 */
+#define __LOG_LIMITER_LIMIT_MAX        (10*1000)
 
-#define PLATFORMLOG_CONF_PATH tzplatform_mkpath(TZ_SYS_ETC,"dlog/platformlog.conf")
+int __log_limiter_initialize(void);
 
-int read_platformlog();
+void __log_limiter_destroy(void);
 
-#endif /* _DLOG_COMMON_H */
+int __log_limiter_pass_log(const char* tag, int prio);
+
+int __log_limiter_add_rule(const char* tag, int prio, int limit);
+
+void __log_limiter_rules_purge(void);
+
+#endif /* _LOGLIMITER_H_ */

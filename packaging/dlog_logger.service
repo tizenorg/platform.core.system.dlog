@@ -1,0 +1,10 @@
+[Unit]
+Description=Dumps dlog logs onto disk
+DefaultDependencies=no
+
+[Service]
+ExecStart=/usr/bin/dlog_logger -b 99 -t 600
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

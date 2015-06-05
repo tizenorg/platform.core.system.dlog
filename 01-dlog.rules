@@ -1,4 +1,0 @@
-KERNEL=="log_system", MODE="0622"
-KERNEL=="log_radio", MODE="0622"
-KERNEL=="log_main", MODE="0622"
-KERNEL=="log_events", MODE="0622"
