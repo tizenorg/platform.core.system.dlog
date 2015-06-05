@@ -6,6 +6,7 @@ includedir=${prefix}/include
 Name: dlog
 Description: logging service
 Version: 1.0
-Requires: 
-Libs: -L${libdir} -ldlog -lpthread
+Requires: capi-base-common
+Requires(post): @systemd_journal@
+Libs: -L${libdir} -ldlog -lpthread @systemd_journal_LIBS@ @CAPI_BASE_COMMON_LIBS@
 Cflags: -I${includedir}/dlog

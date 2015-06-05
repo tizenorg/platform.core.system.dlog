@@ -1,0 +1,10 @@
+<manifest>
+	<assign>
+		<filesystem path="/usr/lib/libdlog.so.0" label="_" exec_label="none"/>
+		<filesystem path="/usr/lib/libdlog.so.0.0" label="_" exec_label="none"/>
+		<filesystem path="/opt/etc/dlog.conf" label="*" exec_label="none"/>
+	</assign>
+	<request>
+		<domain name="_"/>
+	</request>
+</manifest>

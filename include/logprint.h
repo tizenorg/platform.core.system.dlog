@@ -38,6 +38,7 @@ typedef enum {
     FORMAT_RAW,
     FORMAT_TIME,
     FORMAT_THREADTIME,
+    FORMAT_DUMP,
     FORMAT_LONG,
 } log_print_format;
 
@@ -58,7 +59,7 @@ log_format *log_format_new();
 
 void log_format_free(log_format *p_format);
 
-void log_set_print_format(log_format *p_format,
+void log_set_print_format(log_format *p_format, 
         log_print_format format);
 
 /**
@@ -66,7 +67,7 @@ void log_set_print_format(log_format *p_format,
  */
 log_print_format log_format_from_string(const char *s);
 
-/**
+/** 
  * filterExpression: a single filter expression
  * eg "AT:d"
  *
@@ -76,12 +77,12 @@ log_print_format log_format_from_string(const char *s);
  *
  */
 
-int log_add_filter_rule(log_format *p_format,
+int log_add_filter_rule(log_format *p_format, 
         const char *filterExpression);
 
 
-/**
- * filterString: a whitespace-separated set of filter expressions
+/** 
+ * filterString: a whitespace-separated set of filter expressions 
  * eg "AT:d *:i"
  *
  * returns 0 on success and -1 on invalid expression
@@ -94,7 +95,7 @@ int log_add_filter_string(log_format *p_format,
         const char *filterString);
 
 
-/**
+/** 
  * returns 1 if this log line should be printed based on its priority
  * and tag, and 0 if it should not
  */
@@ -120,7 +121,7 @@ int log_process_log_buffer(struct logger_entry *buf,
  * Returns NULL on malloc error
  */
 
-char *log_format_log_line (
+char *log_format_log_line (    
     log_format *p_format,
     char *defaultBuffer,
     size_t defaultBufferSize,
@@ -140,10 +141,10 @@ int log_print_log_line(
     const log_entry *entry);
 
 /**
- * Runs tests.
+ * logprint test furction
  *
  */
-void logprint_run_tests();
+void logprint_run_tests(void);
 
 #ifdef __cplusplus
 }
