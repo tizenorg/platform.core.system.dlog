@@ -1,0 +1,14 @@
+<manifest>
+	<define>
+		<domain name="dlogutil"/>
+	</define>
+	<assign>
+		<filesystem path="/usr/bin/dlog_logger" label="_" exec_label="none"/>
+		<filesystem path="/usr/bin/dlogutil" label="_" exec_label="none"/>
+		<filesystem path="/usr/bin/dlogctrl" label="_" exec_label="none"/>
+		<filesystem path="/opt/etc/dlog_logger.conf" label="_" exec_label="none"/>
+	</assign>
+	<request>
+		<domain name="dlogutil"/>
+	</request>
+</manifest>

@@ -1,131 +1,134 @@
-%bcond_with dlog_to_systemd_journal
-
 Name:       dlog
 Summary:    Logging service
 Version:    0.4.1
-Release:    0
+Release:    15
 Group:      System/Libraries
-License:    Apache-2.0
+License:    Apache License, Version 2.0
 Source0:    %{name}-%{version}.tar.gz
-Source101:  dlog@.service
-Source102:  dlog.manifest
-
-%if %{with dlog_to_systemd_journal}
+Source101:  packaging/dlogutil.manifest
+Source102:  packaging/libdlog.manifest
+Source201:  packaging/dlog.conf.in
+Source202:  packaging/dlog_logger.conf.in
+Source203:  packaging/dlog_logger.conf-micro.in
+Source204:  packaging/dlog_logger.conf-micro-debug.in
+Source301:  packaging/dlog_logger.service
+BuildRequires: autoconf
+BuildRequires: automake
+BuildRequires: libtool
 BuildRequires: pkgconfig(libsystemd-journal)
-%endif
-BuildRequires: pkgconfig(libtzplatform-config)
-Requires: libtzplatform-config
+BuildRequires: pkgconfig(capi-base-common)
+Requires(post): coreutils
 
 %description
-Logging service dlog API library
+dlog API library
 
 %package -n libdlog
 Summary:    Logging service dlog API
+Group:      Development/Libraries
+Requires(post): smack-utils
 
 %description -n libdlog
-Logging service dlog API library
+dlog API library
 
 %package -n libdlog-devel
 Summary:    Logging service dlog API
-Requires:   lib%{name} = %{version}-%{release}
+Group:      Development/Libraries
+Requires:   lib%{name} = %{?epoch:%{epoch}:}%{version}-%{release}
 
 %description -n libdlog-devel
-Logging service dlog API library - files for development
+dlog API library
+
 
 %package -n dlogutil
-Summary:    Print log data to the screen
-Requires:   lib%{name} = %{version}-%{release}
+Summary:    print log data to the screen
+Group:      Development/Libraries
+Requires:   lib%{name} = %{?epoch:%{epoch}:}%{version}-%{release}
 Requires(post): /usr/bin/systemctl
 Requires(postun): /usr/bin/systemctl
 Requires(preun): /usr/bin/systemctl
 
 %description -n dlogutil
-A tool for reading logs.
-
-%package -n dlogtests
-Summary:    Runs test of dlog
-Requires:   lib%{name} = %{version}-%{release}
-
-%description -n dlogtests
-Tests for dlog.
+Utilities for print log data
 
 %prep
 %setup -q
-cp %{SOURCE102} .
 
 %build
-%reconfigure --disable-static \
-%if %{with dlog_to_systemd_journal}
---with-systemd-journal
-%else
---without-systemd-journal
+cp %{SOURCE101} .
+cp %{SOURCE102} .
+%autogen --disable-static
+%configure --disable-static \
+%if 0%{?tizen_build_binary_release_type_daily}
+			--enable-fatal_on \
 %endif
-
-%__make %{?jobs:-j%jobs}
+%if 0%{?tizen_build_binary_release_type_eng}
+			--enable-engineer_mode \
+%endif
+%if 0%{?sec_build_binary_debug_enable}
+			--enable-debug_enable \
+%endif
+			--without-systemd-journal
+make %{?jobs:-j%jobs}
 
 %install
+rm -rf %{buildroot}
 %make_install
-mkdir -p %{buildroot}%{TZ_SYS_ETC}/dump.d/default.d
-cp dlog_dump.sh %{buildroot}%{TZ_SYS_ETC}/dump.d/default.d/dlog_dump.sh
+mkdir -p %{buildroot}/usr/bin/
+cp %{_builddir}/%{name}-%{version}/scripts/dlogctrl %{buildroot}/usr/bin/dlogctrl
 
-mkdir -p %{buildroot}%{_unitdir}/basic.target.wants
-mkdir -p %{buildroot}%{_unitdir}/multi-user.target.wants
+mkdir -p %{buildroot}%{_libdir}/systemd/system/multi-user.target.wants/
+install -m 0644 %SOURCE301 %{buildroot}%{_libdir}/systemd/system/
 
-install -m 0644 %SOURCE101 %{buildroot}%{_unitdir}
+ln -s ../dlog_logger.service %{buildroot}%{_libdir}/systemd/system/multi-user.target.wants/dlog_logger.service
 
-ln -s ./dlog@.service %{buildroot}%{_unitdir}/dlog@all.service
-ln -s ./dlog@.service %{buildroot}%{_unitdir}/dlog@radio.service
-ln -s ../dlog@.service %{buildroot}%{_unitdir}/multi-user.target.wants/dlog@all.service
-ln -s ../dlog@.service %{buildroot}%{_unitdir}/multi-user.target.wants/dlog@radio.service
+mkdir -p %{buildroot}/usr/share/license
+cp LICENSE.Apache-2.0 %{buildroot}/usr/share/license/%{name}
+cp LICENSE.Apache-2.0 %{buildroot}/usr/share/license/libdlog
+cp LICENSE.Apache-2.0 %{buildroot}/usr/share/license/dlogutil
 
+mkdir -p %{buildroot}/opt/etc
+cp %SOURCE201 %{buildroot}/opt/etc/dlog.conf
+
+# default set log output to external files
+cp %SOURCE202 %{buildroot}/opt/etc/dlog_logger.conf
 
 %preun -n dlogutil
-if [ $1 == 0 ]; then
-    systemctl stop dlog-main.service
-    systemctl stop dlog-radio.service
-fi
 
 %post -n dlogutil
 systemctl daemon-reload
-if [ $1 == 1 ]; then
-    systemctl restart dlog-main.service
-    systemctl restart dlog-radio.service
-fi
 
 %postun -n dlogutil
 systemctl daemon-reload
 
-%post -n libdlog -p /sbin/ldconfig
+%post -n libdlog
+/sbin/ldconfig
 
-%postun -n libdlog -p /sbin/ldconfig
+%postun -n libdlog
+/sbin/ldconfig
+
+%files
+/usr/share/license/%{name}
 
 %files  -n dlogutil
-%attr(644,root,root) %manifest %{name}.manifest
-%attr(644,root,root) %license LICENSE.APLv2
-%attr(700,root,root) %{TZ_SYS_ETC}/dump.d/default.d/dlog_dump.sh
-%attr(700,root,root) %{_bindir}/dlogutil
-%attr(755,root,root) %{_sbindir}/dlogctrl
-%attr(644,root,root) %{_unitdir}/dlog@.service
-%{_unitdir}/dlog@all.service
-%{_unitdir}/dlog@radio.service
-%{_unitdir}/multi-user.target.wants/dlog@all.service
-%{_unitdir}/multi-user.target.wants/dlog@radio.service
-%attr(644,root,root) %{_libdir}/udev/rules.d/01-dlog.rules
-%attr(644,root,root) %config(noreplace) %{_sysconfdir}/dlog/platformlog.conf
-%attr(644,root,root) %config(noreplace) %{TZ_SYS_ETC}/dlog/dlog.all.conf
-%attr(644,root,root) %config(noreplace) %{TZ_SYS_ETC}/dlog/dlog.radio.conf
+%manifest dlogutil.manifest
+/usr/share/license/dlogutil
+%attr(755,root,app_logging) %{_bindir}/dlog_logger
+%attr(755,root,app_logging) %{_bindir}/dlogutil
+%attr(755,root,app_logging) %{_bindir}/dlogctrl
+%attr(755,root,app_logging) /opt/etc/dlog_logger.conf
+%{_libdir}/systemd/system/dlog_logger.service
+%{_libdir}/systemd/system/multi-user.target.wants/dlog_logger.service
+
 
 %files  -n libdlog
-%manifest %{name}.manifest
-%{_libdir}/libdlog.so.*
+%manifest libdlog.manifest
+/usr/share/license/libdlog
+%{_libdir}/libdlog.so.0
+%{_libdir}/libdlog.so.0.0.0
+%attr(664,root,app_logging) /opt/etc/dlog.conf
 
 %files -n libdlog-devel
-%manifest %{name}.manifest
 %{_includedir}/dlog/dlog.h
 %{_libdir}/pkgconfig/dlog.pc
 %{_libdir}/libdlog.so
-
-%files  -n dlogtests
-%license LICENSE.APLv2
-%attr(755,root,root) %{_bindir}/dlogtests
 
