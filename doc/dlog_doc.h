@@ -52,6 +52,79 @@ priority level indicates the urgency of log message
 	<td>Error message - Indicate error.</td>
 </tr>
 </table>
+
+<h1 class="pg">dlogutil</h1>
+<h2 class="pg">Introduction</h2>
+You can use dlogutil command to view and follow the contents of the log buffers. The general usage is :
+@code
+dlogutil [<option>] ... [<filter-spec>] ...
+@endcode
+
+<h2 class="pg">Filtering log output</h2>
+Every log message has a <I>tag</I> and a <I>priority</I> associated with it.
+Filter expression follows this format <B><I>tag:priority</I></B> where <I>tag</I> indicates the tag of interest and <I>priority</I> indicates the minimum level of priority to report for that tag. You can add any number of tag:priority specifications in a single filter expression.
+The tag of a log message is a short indicating the system component from which the message originates
+The <I>priority</I> is one of the following character values, orderd from lowest to highest priority:<br>
+D - debug<br>
+I - info<br>
+W - warning<br>
+E - Error<br>
+
+for example, if you want to see MY_APP tag and above of debug priority,
+@code
+# dlogutil MY_APP:D
+@endcode
+if you want to see all log message above of info priority.
+@code
+# dlogutil *:I
+@endcode
+
+<h2 class="pg">List of logutil command options</h2>
+
+<table>
+<tr>
+	<th>Option</th>
+	<th>Description</th>
+</tr>
+<tr>
+	<td>-b \<buffer\> </td>
+	<td>Alternate log buffer. The main buffer is used by default buffer. </td>
+</tr>
+<tr>
+	<td>-c</td>
+	<td>Clears the entire log and exits</td>
+</tr>
+<tr>
+	<td>-d</td>
+	<td>Dumps the log and exits.</td>
+</tr>
+<tr>
+	<td>-f \<filename\></td>
+	<td>Writes log to filename. The default is stdout</td>
+</tr>
+<tr>
+	<td>-g</td>
+	<td>Print the size of the specified log buffer and exits.</td>
+</tr>
+<tr>
+	<td>-n \<count\></td>
+	<td>Sets the maximum number of rotated logs to count. The default value is 4. Requires the -r option</td>
+</tr>
+<tr>
+	<td>-r \<Kbytes\></td>
+	<td>Rotates the log file every Kbytes of output. The default value is 16. Requires the -f option.</td>
+</tr>
+<tr>
+	<td>-s</td>
+	<td>Sets the default filter spec to silent.</td>
+</tr>
+<tr>
+	<td>-v \<format\></td>
+	<td>Sets the output format for log messages. The default is brief format. </td>
+</tr>
+
+</table>
+>>>>>>> mobile
 *
 **/
 #endif /* __TIZEN_SYSTEM_DLOG_DOC_H__ */
