@@ -392,7 +392,7 @@ static void do_logger(struct log_device *dev)
 					free(entry);
 					_E("unexpected length. Expected %d, got %d\n",
 							entry->entry.len,
-							ret - sizeof(struct logger_entry));
+							ret - (int)sizeof(struct logger_entry));
 					goto exit;//exit(EXIT_FAILURE);
 				}
 
