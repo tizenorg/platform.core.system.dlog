@@ -345,53 +345,45 @@ static inline char * strip_end(char *str)
  * Returns 0 on success and -1 on invalid wire format (entry will be
  * in unspecified state)
  */
-int log_process_log_buffer(struct logger_entry *buf, log_entry *entry)
+int log_process_log_buffer(struct logger_entry *entry_raw, log_entry *entry)
 {
-	int i, start = -1, end = -1;
+	entry->tv_sec = entry_raw->ts_usec/1000000;
+	entry->tv_nsec = 1000 * (entry_raw->ts_usec%1000000);
 
-	if (buf->len < 3) {
-		_E("Entry too small\n");
+	errno = 0;
+	entry->pid = strtol(entry_raw->pid_begin, NULL, 10);
+	if (errno) {
+		_E("Message pid out of bouds\n");
 		return -1;
 	}
 
-	entry->tv_sec = buf->sec;
-	entry->tv_nsec = buf->nsec;
-	entry->pid = buf->pid;
-	entry->tid = buf->tid;
-
-	entry->priority = buf->msg[0];
-	if (entry->priority < 0 || entry->priority > DLOG_SILENT) {
-		_E("Wrong priority message\n");
+	entry->tid = strtol(entry_raw->tid_begin, NULL, 10);
+	if (errno) {
+		_E("Message tid out of bouds\n");
 		return -1;
 	}
 
-	entry->tag = buf->msg + 1;
-	if (!strlen(entry->tag)) {
+	if (entry_raw->pri_begin) {
+		entry->priority = strtol(entry_raw->pri_begin, NULL, 10);
+		if (errno) {
+			_E("Wrong message priority\n");
+			return -1;
+		}
+	}
+	if (!entry_raw->pri_begin ||
+	    entry->priority < 0 || entry->priority > DLOG_SILENT) {
+		_E("Wrong message priority\n");
+		return -1;
+	}
+
+	if (!entry_raw->tag_begin) {
 		_E("No tag message\n");
 		return -1;
 	}
+	entry->tag = entry_raw->tag_begin;
 
-	for (i = 0; i < buf->len; i++) {
-		if (buf->msg[i] == '\0') {
-			if (start == -1) {
-				start = i + 1;
-			} else {
-				end = i;
-				break;
-			}
-		}
-	}
-	if (start == -1) {
-		_E("Malformed log message\n");
-		return -1;
-	}
-	if (end == -1) {
-		end = buf->len - 1;
-		buf->msg[end] = '\0';
-	}
-
-	entry->message = buf->msg + start;
-	entry->messageLen = end - start;
+	entry->messageLen = entry_raw->msg_end - entry_raw->msg_begin;
+	entry->message = entry_raw->msg_begin;
 
 	return 0;
 }

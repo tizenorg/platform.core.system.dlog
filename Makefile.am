@@ -13,6 +13,7 @@ lib_LTLIBRARIES = libdlog.la
 
 libdlog_la_SOURCES =  \
 	src/libdlog/log.c \
+	src/shared/logcommon.c \
 	include/dlog.h \
 	include/logcommon.h \
 	src/libdlog/logconfig.c \
@@ -24,7 +25,21 @@ libdlog_la_LIBADD = -lpthread \
 	$(systemd_journal_LIBS) \
 	$(CAPI_BASE_COMMON_LIBS)
 
+sbin_PROGRAMS = dloginit
 bin_PROGRAMS = dlogutil dlog_logger
+
+dloginit_CFLAGS =  \
+	$(AM_CFLAGS) \
+	-fPIE
+
+dloginit_LDFLAGS = \
+	$(AM_LDFLAGS) \
+	-pie
+
+dloginit_SOURCES = \
+	src/loginit/loginit.c \
+	include/logcommon.h \
+	include/dlog.h
 
 dlogutil_CFLAGS =  \
 	$(AM_CFLAGS) \
@@ -35,11 +50,13 @@ dlogutil_LDFLAGS = \
 	-pie
 
 dlogutil_SOURCES = \
+	src/shared/kmsg_ioctl.c \
+	src/shared/logcommon.c \
 	src/shared/logprint.c \
 	src/logutil/logutil.c \
 	src/shared/queued_entry.c \
 	src/shared/log_file.c \
-	include/logger_ioctl.h \
+	include/kmsg_ioctl.h \
 	include/logcommon.h \
 	include/queued_entry.h \
 	include/log_file.h \
@@ -54,10 +71,13 @@ dlog_logger_LDFLAGS = \
 	-pie
 
 dlog_logger_SOURCES = \
+	src/shared/kmsg_ioctl.c \
+	src/shared/logcommon.c \
 	src/shared/logprint.c \
 	src/logger/logger.c \
 	src/shared/queued_entry.c \
 	src/shared/log_file.c \
+	include/kmsg_ioctl.h \
 	include/logcommon.h \
 	include/queued_entry.h \
 	include/log_file.h \
@@ -66,6 +86,3 @@ dlog_logger_SOURCES = \
 # conf file
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = dlog.pc
-
-dlogrulesdir=$(libdir)/udev/rules.d
-dlogrules_DATA = 01-dlog.rules

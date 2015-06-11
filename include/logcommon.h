@@ -19,8 +19,10 @@
 #ifndef _LOGCOMMON_H
 #define _LOGCOMMON_H
 
+#include <linux/limits.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <dlog.h>
 
 #ifdef DEBUG_ON
 #define _D(...) printf(__VA_ARGS__)
@@ -29,12 +31,13 @@
 #endif
 #define _E(...) fprintf(stderr, __VA_ARGS__)
 
-#define LOGGER_LOG_MAIN		"log_main"
-#define LOGGER_LOG_RADIO	"log_radio"
-#define LOGGER_LOG_SYSTEM	"log_system"
-#define LOGGER_LOG_APPS	"log_apps"
+#define	LOG_MAIN_CONF_PREFIX	"LOG_MAIN="
+#define LOG_RADIO_CONF_PREFIX	"LOG_RADIO="
+#define LOG_SYSTEM_CONF_PREFIX	"LOG_SYSTEM="
+#define LOG_APPS_CONF_PREFIX	"LOG_APPS="
 
-#define LOGGER_ENTRY_MAX_LEN		(4*1024)
-#define LOGGER_ENTRY_MAX_PAYLOAD	(LOGGER_ENTRY_MAX_LEN - sizeof(struct logger_entry))
+int get_log_dev_names(char devs[LOG_ID_MAX][PATH_MAX]);
+
+log_id_t log_id_by_name(const char *name);
 
 #endif /* _LOGCOMMON_H */

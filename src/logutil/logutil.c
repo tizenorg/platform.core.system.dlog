@@ -35,12 +35,11 @@
 #include <queued_entry.h>
 #include <log_file.h>
 #include <logprint.h>
-#include <logger_ioctl.h>
+#include <kmsg_ioctl.h>
 
 #define DEFAULT_LOG_ROTATE_SIZE_KBYTES 16
 #define DEFAULT_MAX_ROTATED_LOGS 4
 #define MAX_QUEUED 4096
-#define LOG_FILE_DIR    "/dev/log_"
 
 static bool g_nonblock = false;
 static int g_tail_lines = 0;
@@ -60,9 +59,12 @@ struct log_device_t {
 	char* device;
 	int fd;
 	bool printed;
+	uint32_t log_read_size_max;
 	struct queued_entry_t* queue;
 	struct log_device_t* next;
 };
+
+static char g_devs[LOG_ID_MAX][PATH_MAX];
 
 static void processBuffer(struct log_device_t* dev, struct logger_entry *buf)
 {
@@ -177,14 +179,18 @@ static void read_log_lines(struct log_device_t* devices)
 		if (result >= 0) {
 			for (dev=devices; dev; dev = dev->next) {
 				if (FD_ISSET(dev->fd, &readset)) {
-					int err;
-					struct queued_entry_t *entry = new_queued_entry();
+					int ret;
+					struct queued_entry_t *entry =
+						new_queued_entry(dev->log_read_size_max);
 					/* NOTE: driver guarantees we read exactly one full entry */
-					err = read_queued_entry_from_dev(dev->fd, entry);
-					if (err == EINTR)
+					ret = read_queued_entry_from_dev(dev->fd, entry,
+									 dev->log_read_size_max);
+					if (ret == RQER_EINTR)
 						goto next;
-					else if (err == EAGAIN)
+					else if (ret == RQER_EAGAIN)
 						break;
+					else if (ret == RQER_PARSE)
+						continue;
 
 					enqueue(&dev->queue, entry);
 					++queued_lines;
@@ -242,24 +248,6 @@ static void read_log_lines(struct log_device_t* devices)
 next:
 		;
 	}
-}
-
-
-static int clear_log(int logfd)
-{
-	return ioctl(logfd, LOGGER_FLUSH_LOG);
-}
-
-/* returns the total size of the log's ring buffer */
-static int get_log_size(int logfd)
-{
-	return ioctl(logfd, LOGGER_GET_LOG_BUF_SIZE);
-}
-
-/* returns the readable size of the log's ring buffer (that is, amount of the log consumed) */
-static int get_log_readable_size(int logfd)
-{
-	return ioctl(logfd, LOGGER_GET_LOG_LEN);
 }
 
 static void setup_output()
@@ -426,6 +414,7 @@ int main(int argc, char **argv)
 	int i;
 	struct log_device_t* devices = NULL;
 	struct log_device_t* dev;
+	log_id_t id;
 
 	g_log_file.format = (log_format *)log_format_new();
 
@@ -437,6 +426,11 @@ int main(int argc, char **argv)
 	if (argc == 2 && 0 == strcmp(argv[1], "--help")) {
 		show_help(argv[0]);
 		exit(0);
+	}
+
+	if (0 != get_log_dev_names(g_devs)) {
+		_E("Unable to read initial configuration");
+		exit(-1);
 	}
 
 	for (;;) {
@@ -474,20 +468,20 @@ int main(int argc, char **argv)
 				break;
 
 			case 'b': {
-						  char *buf;
-						  if (asprintf(&buf, LOG_FILE_DIR "%s", optarg) == -1) {
-							  _E("Can't malloc LOG_FILE_DIR\n");
+						  id = log_id_by_name(optarg);
+						  if (id < 0) {
+							  _E("Unknown log buffer %s", optarg);
 							  exit(-1);
 						  }
 
-						  dev = log_devices_new(buf);
+						  dev = log_devices_new(g_devs[id]);
 						  if (dev == NULL) {
-							  _E("Can't add log device: %s\n", buf);
+							  _E("Can't add log device: %s\n", g_devs[id]);
 							  exit(-1);
 						  }
 						  if (devices) {
 							  if (log_devices_add_to_tail(devices, dev)) {
-								  _E("Open log device %s failed\n", buf);
+								  _E("Open log device %s failed\n", g_devs[id]);
 								  exit(-1);
 							  }
 						  } else {
@@ -548,9 +542,9 @@ int main(int argc, char **argv)
 	}
 
 	if (!devices) {
-		devices = log_devices_new("/dev/"LOGGER_LOG_MAIN);
+		devices = log_devices_new(g_devs[LOG_ID_MAIN]);
 		if (devices == NULL) {
-			_E("Can't add log device: %s\n", LOGGER_LOG_MAIN);
+			_E("Can't add log device: %s\n", g_devs[LOG_ID_MAIN]);
 			exit(-1);
 		}
 		g_dev_count = 1;
@@ -559,15 +553,15 @@ int main(int argc, char **argv)
 			accessmode = W_OK;
 
 		/* only add this if it's available */
-		if (0 == access("/dev/"LOGGER_LOG_SYSTEM, accessmode)) {
-			if (log_devices_add_to_tail(devices, log_devices_new("/dev/"LOGGER_LOG_SYSTEM))) {
-				_E("Can't add log device: %s\n", LOGGER_LOG_SYSTEM);
+		if (0 == access(g_devs[LOG_ID_SYSTEM], accessmode)) {
+			if (log_devices_add_to_tail(devices, log_devices_new(g_devs[LOG_ID_SYSTEM]))) {
+				_E("Can't add log device: %s\n", g_devs[LOG_ID_SYSTEM]);
 				exit(-1);
 			}
 		}
-		if (0 == access("/dev/"LOGGER_LOG_APPS, accessmode)) {
-			if (log_devices_add_to_tail(devices, log_devices_new("/dev/"LOGGER_LOG_APPS))) {
-				_E("Can't add log device: %s\n", LOGGER_LOG_APPS);
+		if (0 == access(g_devs[LOG_ID_APPS], accessmode)) {
+			if (log_devices_add_to_tail(devices, log_devices_new(g_devs[LOG_ID_APPS]))) {
+				_E("Can't add log device: %s\n", g_devs[LOG_ID_APPS]);
 				exit(-1);
 			}
 		}
@@ -614,34 +608,32 @@ int main(int argc, char **argv)
 			exit(EXIT_FAILURE);
 		}
 
-		if (is_clear_log) {
-			int ret;
-			ret = clear_log(dev->fd);
-			if (ret) {
-				_E("ioctl");
+		if (is_clear_log)
+			clear_log(dev->fd);
+
+		get_log_read_size_max(dev->fd, &dev->log_read_size_max);
+
+		if (mode != O_WRONLY) {
+			off_t off;
+
+			off = lseek(dev->fd, 0, SEEK_DATA);
+			if (off == -1) {
+				_E("Unable to lseek device %s. %s\n",
+				   dev->device, strerror(errno));
 				exit(EXIT_FAILURE);
 			}
 		}
 
 		if (getLogSize || g_nonblock) {
-			int size, readable;
+			uint32_t size;
 
-			size = get_log_size(dev->fd);
-			if (size < 0) {
-				_E("ioctl");
-				exit(EXIT_FAILURE);
-			}
+			get_log_size(dev->fd, &size);
 
-			readable = get_log_readable_size(dev->fd);
-			if (readable < 0) {
-				_E("ioctl");
-				exit(EXIT_FAILURE);
-			}
 			g_log_file.rotate_size_kbytes += size / 1024;
-			printf("%s: ring buffer is %dKb (%dKb consumed), "
-					"max entry is %db, max payload is %db\n", dev->device,
-					size / 1024, readable / 1024,
-					(int) LOGGER_ENTRY_MAX_LEN, (int) LOGGER_ENTRY_MAX_PAYLOAD);
+			printf("%s: cyclic ring buffer is %uKb. "
+			       "Max read entry log payload size is %uKb",
+			       dev->device, size/1024,
+			       dev->log_read_size_max/1024);
 		}
 
 		dev = dev->next;

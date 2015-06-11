@@ -37,6 +37,7 @@
 #include <queued_entry.h>
 #include <log_file.h>
 #include <logprint.h>
+#include <kmsg_ioctl.h>
 
 #define COMMAND_MAX 5
 #define DELIMITER " "
@@ -74,18 +75,13 @@ struct log_task_link {
 struct log_device {
 	int id;
 	int fd;
+	uint32_t log_read_size_max;
 	struct queued_entry_t *queue;
 	struct log_task_link *task;
 	struct log_device *next;
 };
 
-static const char *device_path_table[] = {
-	[LOG_ID_MAIN] = "/dev/log_main",
-	[LOG_ID_RADIO] = "/dev/log_radio",
-	[LOG_ID_SYSTEM] = "/dev/log_system",
-	[LOG_ID_APPS] = "/dev/log_apps",
-	[LOG_ID_MAX] = NULL
-};
+static char device_path_table[LOG_ID_MAX][PATH_MAX];
 
 static struct log_work *works;
 static struct log_device *devices;
@@ -99,23 +95,6 @@ static int device_list[] = {
 
 static int buffer_size = 0;
 static int min_interval = 0;
-
-/*
- * get log device id from device path table by device name
- */
-static int get_device_id_by_name(const char *name)
-{
-	int i;
-
-	if (name == NULL)
-		return -1;
-	for (i = 0; i < ARRAY_SIZE(device_path_table); i++) {
-		if (strstr(device_path_table[i], name) != NULL)
-			return i;
-	}
-
-	return -1;
-}
 
 /*
  * check device registration on watch device list
@@ -273,14 +252,18 @@ static void do_logger(struct log_device *dev)
 
 		for (pdev = dev; pdev; pdev = pdev->next) {
 			if (FD_ISSET(pdev->fd, &readset)) {
-				int err;
-				struct queued_entry_t *entry = new_queued_entry();
+				int ret;
+				struct queued_entry_t *entry =
+					new_queued_entry(pdev->log_read_size_max);
 
-				err = read_queued_entry_from_dev(pdev->fd, entry);
-				if (err == EINTR)
+				ret = read_queued_entry_from_dev(pdev->fd, entry,
+								 pdev->log_read_size_max);
+				if (ret == RQER_EINTR)
 					goto next;
-				else if (err == EAGAIN)
+				else if (ret == RQER_EAGAIN)
 					break;
+				else if (ret == RQER_PARSE)
+					continue;
 
 				enqueue(&pdev->queue, entry);
 				++queued_lines;
@@ -464,6 +447,7 @@ static void work_chain_free(struct log_work *work)
 static struct log_device *device_new(int id)
 {
 	struct log_device *dev;
+	off_t off;
 
 	if (LOG_ID_MAX <= id)
 		return NULL;
@@ -485,6 +469,16 @@ static struct log_device *device_new(int id)
 	dev->task = NULL;
 	dev->queue = NULL;
 	dev->next = NULL;
+	get_log_read_size_max(dev->fd, &dev->log_read_size_max);
+	_D("device %s log read size max %u\n",
+	   device_path_table[id], dev->log_read_size_max);
+
+	off = lseek(dev->fd, 0, SEEK_DATA);
+	if (off == -1) {
+		_E("Unable to lseek device %s. %s\n",
+		   device_path_table[id], strerror(errno));
+		exit(EXIT_FAILURE);
+	}
 
 	return dev;
 }
@@ -624,9 +618,9 @@ static int parse_command_line(char *linebuffer, struct log_command *cmd)
 			cmd->option_file = true;
 			break;
 		case 'b':
-			id = get_device_id_by_name(optarg);
+			id = log_id_by_name(optarg);
 			_D("command device name %s id %d\n", optarg, id);
-			if (id < 0 || LOG_ID_MAX <= id)
+			if (id < 0)
 				break;
 			cmd->option_buffer = true;
 			/* enable to log in device on/off struct */
@@ -850,6 +844,9 @@ int main(int argc, char **argv)
 	ncmd = parse_command(command_list);
 	/* If it have nothing command, exit. */
 	if (!ncmd)
+		goto exit;
+
+	if (0 != get_log_dev_names(device_path_table))
 		goto exit;
 
 	/* create log device */

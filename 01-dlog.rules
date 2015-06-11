@@ -1,4 +1,0 @@
-KERNEL=="log_system", MODE="0662", OWNER="log", GROUP="log"
-KERNEL=="log_radio", MODE="0662", OWNER="log", GROUP="log"
-KERNEL=="log_main", MODE="0662", OWNER="log", GROUP="log"
-KERNEL=="log_events", MODE="0662", OWNER="log", GROUP="log"
