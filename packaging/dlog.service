@@ -1,0 +1,12 @@
+[Unit]
+Description=Dlog devices initializer
+Requires=systemd-remount-fs.service
+After=systemd-remount-fs.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/dloginit
+RemainAfterExit=yes
+
+[Install]
+WantedBy=basic.target

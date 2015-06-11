@@ -51,9 +51,9 @@ typedef struct log_entry_t {
     log_priority priority;
     pid_t pid;
     pthread_t tid;
-    const char * tag;
+    char * tag;
     size_t messageLen;
-    const char * message;
+    char * message;
 } log_entry;
 
 log_format *log_format_new();
@@ -111,7 +111,7 @@ int log_should_print_line (
  * Returns 0 on success and -1 on invalid wire format (entry will be
  * in unspecified state)
  */
-int log_process_log_buffer(struct logger_entry *buf,
+int log_process_log_buffer(struct logger_entry *entry_raw,
                                  log_entry *entry);
 
 /**
