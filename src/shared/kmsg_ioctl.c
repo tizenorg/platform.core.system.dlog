@@ -16,16 +16,38 @@
  * limitations under the License.
  */
 
-#ifndef _LOGGER_IOCTL_H
-#define _LOGGER_IOCTL_H
 
 #include <sys/ioctl.h>
+#include <errno.h>
+#include <string.h>
+#include <stdlib.h>
 
-#define __LOGGERIO      0xAE
+#include <kmsg_ioctl.h>
+#include <logcommon.h>
 
-#define LOGGER_GET_LOG_BUF_SIZE         _IO(__LOGGERIO, 1) /* size of log */
-#define LOGGER_GET_LOG_LEN              _IO(__LOGGERIO, 2) /* used log len */
-#define LOGGER_GET_NEXT_ENTRY_LEN       _IO(__LOGGERIO, 3) /* next entry len */
-#define LOGGER_FLUSH_LOG                _IO(__LOGGERIO, 4) /* flush log */
+void clear_log(int fd)
+{
+	int ret = ioctl(fd, KMSG_CMD_CLEAR);
+	if (ret < 0) {
+		_E("ioctl KMSG_CMD_CLEAR failed. %s", strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+}
 
-#endif /* _LOGGER_IOCTL_H */
+void get_log_size(int fd, uint32_t *size)
+{
+	int ret = ioctl(fd, KMSG_CMD_GET_BUF_SIZE, size);
+	if (ret < 0) {
+		_E("ioctl KMSG_CMD_GET_BUF_SIZE failed. %s", strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+}
+
+void get_log_read_size_max(int fd, uint32_t *size)
+{
+	int ret = ioctl(fd, KMSG_CMD_GET_READ_SIZE_MAX, size);
+	if (ret < 0) {
+		_E("ioctl KMSG_CMD_GET_READ_SIZE_MAX failed. %s", strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+}

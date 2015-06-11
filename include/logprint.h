@@ -51,16 +51,16 @@ typedef struct log_entry_t {
     log_priority priority;
     pid_t pid;
     pthread_t tid;
-    const char * tag;
+    char * tag;
     size_t messageLen;
-    const char * message;
+    char * message;
 } log_entry;
 
 log_format *log_format_new();
 
 void log_format_free(log_format *p_format);
 
-void log_set_print_format(log_format *p_format, 
+void log_set_print_format(log_format *p_format,
         log_print_format format);
 
 /**
@@ -68,7 +68,7 @@ void log_set_print_format(log_format *p_format,
  */
 log_print_format log_format_from_string(const char *s);
 
-/** 
+/**
  * filterExpression: a single filter expression
  * eg "AT:d"
  *
@@ -78,12 +78,12 @@ log_print_format log_format_from_string(const char *s);
  *
  */
 
-int log_add_filter_rule(log_format *p_format, 
+int log_add_filter_rule(log_format *p_format,
         const char *filterExpression);
 
 
-/** 
- * filterString: a whitespace-separated set of filter expressions 
+/**
+ * filterString: a whitespace-separated set of filter expressions
  * eg "AT:d *:i"
  *
  * returns 0 on success and -1 on invalid expression
@@ -96,7 +96,7 @@ int log_add_filter_string(log_format *p_format,
         const char *filterString);
 
 
-/** 
+/**
  * returns 1 if this log line should be printed based on its priority
  * and tag, and 0 if it should not
  */
@@ -111,7 +111,7 @@ int log_should_print_line (
  * Returns 0 on success and -1 on invalid wire format (entry will be
  * in unspecified state)
  */
-int log_process_log_buffer(struct logger_entry *buf,
+int log_process_log_buffer(struct logger_entry *entry_raw,
                                  log_entry *entry);
 
 /**

@@ -83,6 +83,7 @@ AC_CHECK_FUNCS([memset])
 
 PKG_PROG_PKG_CONFIG
 PKG_CHECK_MODULES([CAPI_BASE_COMMON], [capi-base-common])
+PKG_CHECK_MODULES([LIBUDEV], [libudev])
 
 # output files
 AC_CONFIG_FILES([Makefile dlog.pc])

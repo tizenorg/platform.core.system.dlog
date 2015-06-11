@@ -13,6 +13,7 @@ Source203:  packaging/dlog_logger.conf-micro.in
 Source204:  packaging/dlog_logger.conf-debug.in
 Source301:  packaging/dlog_logger.service
 Source302:  packaging/dlog_logger.path
+Source401:  packaging/dlog.service
 
 %define systemd_journal ON
 
@@ -21,7 +22,11 @@ BuildRequires: automake
 BuildRequires: libtool
 BuildRequires: pkgconfig(libsystemd-journal)
 BuildRequires: pkgconfig(capi-base-common)
+BuildRequires: pkgconfig(libudev)
 Requires(post): coreutils
+Requires(post): /usr/bin/systemctl
+Requires(postun): /usr/bin/systemctl
+Requires(preun): /usr/bin/systemctl
 
 %description
 dlog API library
@@ -66,7 +71,8 @@ cp %{SOURCE102} .
 			--enable-journal \
 %endif
 			--enable-engineer_mode
-make %{?jobs:-j%jobs}
+make %{?jobs:-j%jobs} \
+	CFLAGS+=-DKMSG_DEV_CONFIG_FILE=\\\"%{_localstatedir}/dlog/dlog_init.conf\\\"
 
 %install
 rm -rf %{buildroot}
@@ -85,6 +91,8 @@ ln -s ../dlog_logger.path %{buildroot}%{_unitdir}/multi-user.target.wants/dlog_l
 
 # default set log output to external files
 cp %SOURCE202 %{buildroot}/opt/etc/dlog_logger.conf
+
+install -m 0644 %SOURCE401 %{buildroot}%{_unitdir}
 %endif
 
 mkdir -p %{buildroot}/usr/share/license
@@ -100,13 +108,26 @@ rm %{buildroot}/usr/bin/dlogutil
 cp %{_builddir}/%{name}-%{version}/scripts/dlogutil.sh %{buildroot}/usr/bin/dlogutil
 %endif
 
-mkdir -p %{buildroot}%{_udevrulesdir}
-cp 01-dlog.rules %{buildroot}%{_udevrulesdir}/01-dlog.rules
+mkdir -p %{buildroot}%{_localstatedir}/dlog
+
+mkdir -p %{buildroot}/var/log/dlog
+
+%if %{?systemd_journal} == OFF
+%preun
+systemctl disable dlog.service
+
+%post
+systemctl enable dlog.service
+%endif
+
+%postun
+systemctl daemon-reload
 
 %preun -n dlogutil
+systemctl disable dlog_logger.service
 
 %post -n dlogutil
-systemctl daemon-reload
+systemctl enable dlog_logger.service
 
 %postun -n dlogutil
 systemctl daemon-reload
@@ -119,6 +140,11 @@ systemctl daemon-reload
 
 %files
 /usr/share/license/%{name}
+%if %{?systemd_journal} == OFF
+%attr(700,root,root) %{_sbindir}/dloginit
+%attr(-,root,root) %{_unitdir}/dlog.service
+%dir %attr(755,root,root) %{_localstatedir}/dlog
+%endif
 
 %files  -n dlogutil
 %manifest dlogutil.manifest
@@ -126,8 +152,6 @@ systemctl daemon-reload
 %attr(750,log,log) %{_bindir}/dlogutil
 %attr(755,log,log) %{_bindir}/dlogctrl
 %attr(755,log,log) /var/log/dlog
-%attr(644,root,root) %{_udevrulesdir}/01-dlog.rules
-
 %if %{?systemd_journal} == OFF
 %attr(750,log,log) %{_bindir}/dlog_logger
 %attr(664,log,log) /opt/etc/dlog_logger.conf
