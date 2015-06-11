@@ -22,7 +22,8 @@
 #include <time.h>
 #include <pthread.h>
 
-#include <logger.h>
+#include <logcommon.h>
+#include <queued_entry.h>
 #include <dlog.h>
 
 #ifdef __cplusplus
