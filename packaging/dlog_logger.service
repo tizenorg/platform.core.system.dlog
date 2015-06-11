@@ -1,5 +1,7 @@
 [Unit]
 Description=Dumps dlog logs onto disk
+Requires=dlog.service
+After=dlog.service
 
 [Service]
 Nice=19
