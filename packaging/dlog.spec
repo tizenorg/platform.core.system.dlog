@@ -87,6 +87,8 @@ cp %SOURCE201 %{buildroot}/opt/etc/dlog.conf
 # default set log output to external files
 cp %SOURCE202 %{buildroot}/opt/etc/dlog_logger.conf
 
+mkdir -p %{buildroot}/var/log/dlog
+
 %preun -n dlogutil
 
 %post -n dlogutil
@@ -107,21 +109,22 @@ systemctl daemon-reload
 %files  -n dlogutil
 %manifest dlogutil.manifest
 /usr/share/license/dlogutil
-%attr(755,root,app_logging) %{_bindir}/dlog_logger
-%attr(755,root,app_logging) %{_bindir}/dlogutil
-%attr(755,root,app_logging) %{_bindir}/dlogctrl
-%attr(755,root,app_logging) /opt/etc/dlog_logger.conf
+%attr(750,log,log) %{_bindir}/dlog_logger
+%attr(750,log,log) %{_bindir}/dlogutil
+%attr(755,log,log) %{_bindir}/dlogctrl
+%attr(664,log,log) /opt/etc/dlog_logger.conf
 %{_libdir}/systemd/system/dlog_logger.service
 %{_libdir}/systemd/system/dlog_logger.path
 %{_libdir}/systemd/system/multi-user.target.wants/dlog_logger.path
-
+%attr(755,log,log) /var/log/dlog
+%attr(644,root,root) %{_libdir}/udev/rules.d/01-dlog.rules
 
 %files  -n libdlog
 %manifest libdlog.manifest
 /usr/share/license/libdlog
 %{_libdir}/libdlog.so.0
 %{_libdir}/libdlog.so.0.0.0
-%attr(664,root,app_logging) /opt/etc/dlog.conf
+%attr(664,log,log) /opt/etc/dlog.conf
 
 %files -n libdlog-devel
 %{_includedir}/dlog/dlog.h
