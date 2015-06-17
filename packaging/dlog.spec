@@ -87,6 +87,8 @@ cp %SOURCE201 %{buildroot}/opt/etc/dlog.conf
 # default set log output to external files
 cp %SOURCE202 %{buildroot}/opt/etc/dlog_logger.conf
 
+mkdir -p %{buildroot}/var/log/dlog
+
 %preun -n dlogutil
 
 %post -n dlogutil
@@ -114,7 +116,8 @@ systemctl daemon-reload
 %{_libdir}/systemd/system/dlog_logger.service
 %{_libdir}/systemd/system/dlog_logger.path
 %{_libdir}/systemd/system/multi-user.target.wants/dlog_logger.path
-
+%attr(755,log,log) /var/log/dlog
+%attr(644,root,root) %{_libdir}/udev/rules.d/01-dlog.rules
 
 %files  -n libdlog
 %manifest libdlog.manifest
