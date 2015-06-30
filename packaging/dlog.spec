@@ -15,7 +15,7 @@ Source301:  packaging/dlog_logger.service
 Source302:  packaging/dlog_logger.path
 Source401:  packaging/dlog.service
 
-%define systemd_journal ON
+%define systemd_journal OFF
 
 BuildRequires: autoconf
 BuildRequires: automake
