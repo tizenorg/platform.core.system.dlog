@@ -65,7 +65,7 @@ cp %{SOURCE102} .
 			--enable-fatal_on \
 			--enable-engineer_mode \
 			--enable-debug_enable \
-			--with-systemd-journal
+			--with-systemd-journal=no
 
 make %{?jobs:-j%jobs} \
 	CFLAGS+=-DKMSG_DEV_CONFIG_FILE=\\\"%{_localstatedir}/dlog/dlog_init.conf\\\" \
