@@ -17,6 +17,9 @@ AC_PROG_CC
 AC_PROG_GCC_TRADITIONAL
 AC_PROG_LIBTOOL
 
+AC_SUBST(M4_DEFINES)
+M4_DEFINES=
+
 # check for libsystemd-journal
 AC_ARG_WITH([systemd-journal],
 	AS_HELP_STRING([--with-systemd-journal], [check for systemd-journal]),
@@ -44,6 +47,7 @@ AC_ARG_ENABLE([engineer_mode],
 		engineer_mode=no)
 if test "x$engineer_mode" = "xyes" ; then
 	DEBUG_CFLAGS+=" -DTIZEN_ENGINEER_MODE"
+	M4_DEFINES="$M4_DEFINES -DTIZEN_ENGINEER_MODE"
 fi
 AC_ARG_ENABLE([debug_enable],
 	AS_HELP_STRING([--enable-debug_enable Turn on debug_enable]),
