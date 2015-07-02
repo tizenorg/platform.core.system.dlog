@@ -1,4 +1,4 @@
-AUTOMAKE_OPTIONS = subdir-objects
+AUTOMAKE_OPTIONS = subdir-objects foreign
 
 AM_CFLAGS = -I$(srcdir)/include \
 	$(DEBUG_CFLAGS) \
@@ -6,6 +6,7 @@ AM_CFLAGS = -I$(srcdir)/include \
 	$(CAPI_BASE_COMMON_CFLAGS)
 
 dlog_includedir = $(includedir)/dlog
+
 dlog_include_HEADERS = \
 	include/dlog.h
 
@@ -52,6 +53,9 @@ dlog_logger_SOURCES = \
 	src/logger/logger.c \
 	include/logger.h \
 	include/logprint.h
+
+include/%: include/%.m4
+	m4 -P $(M4_DEFINES) < $< > $@
 
 # conf file
 pkgconfigdir = $(libdir)/pkgconfig

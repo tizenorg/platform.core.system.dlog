@@ -45,12 +45,12 @@ extern "C" {
 #define __MODULE__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
 #endif
 
-#ifdef TIZEN_ENGINEER_MODE
-#ifndef TIZEN_DEBUG_ENABLE
-#define TIZEN_DEBUG_ENABLE
-#endif
+m4_ifdef(`TIZEN_ENGINEER_MODE',
+#ifndef TIZEN_ENGINEER_MODE
+#define TIZEN_ENGINEER_MODE
 #endif
 
+)m4_dnl
 /**
  * @addtogroup CAPI_SYSTEM_DLOG
  * @{
