@@ -60,7 +60,6 @@ cp %{SOURCE102} .
 %configure --disable-static \
 			--enable-fatal_on \
 			--enable-engineer_mode \
-			--enable-debug_enable \
 			--with-systemd-journal
 make %{?jobs:-j%jobs}
 

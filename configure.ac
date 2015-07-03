@@ -53,9 +53,6 @@ AC_ARG_ENABLE([debug_enable],
 	AS_HELP_STRING([--enable-debug_enable Turn on debug_enable]),
 		[debug_enable=yes],
 	    debug_enable=no)
-if test "x$debug_enable" = "xyes" ; then
-	DEBUG_CFLAGS+=" -DTIZEN_DEBUG_ENABLE"
-fi
 # check for fatal_on
 AC_ARG_ENABLE([fatal_on],
 	AS_HELP_STRING([--enable-fatal_on Turn on fatal assertion]),

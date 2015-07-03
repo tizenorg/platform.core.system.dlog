@@ -46,9 +46,7 @@ extern "C" {
 #endif
 
 m4_ifdef(`TIZEN_ENGINEER_MODE',
-#ifndef TIZEN_ENGINEER_MODE
-#define TIZEN_ENGINEER_MODE
-#endif
+#define DLOG_DEBUG_ENABLE
 
 )m4_dnl
 /**
@@ -114,7 +112,7 @@ static inline int __dlog_no_print(const char *fmt __attribute__((unused)), ...) 
 
 // Macro inner work---------------------------------------------------------------
 #undef LOG_
-#ifdef TIZEN_DEBUG_ENABLE
+#ifdef DLOG_DEBUG_ENABLE
 #define LOG_(id, prio, tag, fmt, arg...) \
 	({ do { \
 		__dlog_print(id, prio, tag, "%s: %s(%d) > " fmt, __MODULE__, __func__, __LINE__, ##arg); \
@@ -129,7 +127,7 @@ static inline int __dlog_no_print(const char *fmt __attribute__((unused)), ...) 
 #endif
 
 #undef SECURE_LOG_
-#ifdef TIZEN_DEBUG_ENABLE
+#ifdef DLOG_DEBUG_ENABLE
 #define SECURE_LOG_(id, prio, tag, fmt, arg...) \
 	({ do { \
 		__dlog_print(id, prio, tag, "%s: %s(%d) > [SECURE_LOG] " fmt, __MODULE__, __func__, __LINE__, ##arg); \
@@ -211,7 +209,7 @@ static inline int __dlog_no_print(const char *fmt __attribute__((unused)), ...) 
  *  LOGD("app debug %d", num);
  *  LOGE("app error %d", num);
  */
-#ifdef TIZEN_DEBUG_ENABLE
+#ifdef DLOG_DEBUG_ENABLE
 #define LOGD(format, arg...) LOG_(LOG_ID_MAIN, DLOG_DEBUG, LOG_TAG, format, ##arg)
 #else
 #define LOGD(format, arg...) NOP(format, ##arg)
@@ -228,7 +226,7 @@ static inline int __dlog_no_print(const char *fmt __attribute__((unused)), ...) 
  *  SLOGD("system debug %d", num);
  *  SLOGE("system error %d", num);
  */
-#ifdef TIZEN_DEBUG_ENABLE
+#ifdef DLOG_DEBUG_ENABLE
 #define SLOGD(format, arg...) LOG_(LOG_ID_SYSTEM, DLOG_DEBUG, LOG_TAG, format, ##arg)
 #else
 #define SLOGD(format, arg...) NOP(format, ##arg)
@@ -245,7 +243,7 @@ static inline int __dlog_no_print(const char *fmt __attribute__((unused)), ...) 
  *  RLOGD("radio debug %d", num);
  *  RLOGE("radio error %d", num);
  */
-#ifdef TIZEN_DEBUG_ENABLE
+#ifdef DLOG_DEBUG_ENABLE
 #define RLOGD(format, arg...) LOG_(LOG_ID_RADIO, DLOG_DEBUG, LOG_TAG, format, ##arg)
 #else
 #define RLOGD(format, arg...) NOP(format, ##arg)
@@ -258,7 +256,7 @@ static inline int __dlog_no_print(const char *fmt __attribute__((unused)), ...) 
  * @internal
  * @brief For Tizen OSP Application macro.
  */
-#ifdef TIZEN_DEBUG_ENABLE
+#ifdef DLOG_DEBUG_ENABLE
 #define ALOGD(format, arg...) LOG_(LOG_ID_APPS, DLOG_DEBUG, LOG_TAG, format, ##arg)
 #else
 #define ALOGD(format, arg...) NOP(format, ##arg)
