@@ -198,7 +198,7 @@ static int dlog_should_log(log_id_t log_id, const char* tag, int prio)
 {
 	int should_log;
 
-#ifndef TIZEN_DEBUG_ENABLE
+#ifndef DLOG_DEBUG_ENABLE
 	if (prio <= DLOG_DEBUG)
 		return DLOG_ERROR_INVALID_PARAMETER;
 #endif

@@ -48,14 +48,12 @@ AC_ARG_ENABLE([engineer_mode],
 if test "x$engineer_mode" = "xyes" ; then
 	DEBUG_CFLAGS+=" -DTIZEN_ENGINEER_MODE"
 	M4_DEFINES="$M4_DEFINES -DTIZEN_ENGINEER_MODE"
+	M4_DEFINES+="$M4_DEFINES -DDLOG_DEBUG_ENABLE"
 fi
 AC_ARG_ENABLE([debug_enable],
 	AS_HELP_STRING([--enable-debug_enable Turn on debug_enable]),
 		[debug_enable=yes],
 	    debug_enable=no)
-if test "x$debug_enable" = "xyes" ; then
-	DEBUG_CFLAGS+=" -DTIZEN_DEBUG_ENABLE"
-fi
 # check for fatal_on
 AC_ARG_ENABLE([fatal_on],
 	AS_HELP_STRING([--enable-fatal_on Turn on fatal assertion]),
