@@ -129,4 +129,3 @@ systemctl daemon-reload
 %{_includedir}/dlog/dlog.h
 %{_libdir}/pkgconfig/dlog.pc
 %{_libdir}/libdlog.so
-

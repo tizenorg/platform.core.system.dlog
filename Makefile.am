@@ -32,6 +32,7 @@ dlogutil_CFLAGS =  \
 
 dlogutil_LDFLAGS = \
 	$(AM_LDFLAGS) \
+	-lsystemd-journal \
 	-pie
 
 dlogutil_SOURCES = \
