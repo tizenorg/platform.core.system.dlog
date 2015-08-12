@@ -88,6 +88,10 @@ cp %SOURCE202 %{buildroot}/opt/etc/dlog_logger.conf
 
 mkdir -p %{buildroot}/var/log/dlog
 
+# Workaround: replace with dlogutil script due to scheduling issue
+rm %{buildroot}/usr/bin/dlogutil
+cp %{_builddir}/%{name}-%{version}/scripts/dlogutil.sh %{buildroot}/usr/bin/dlogutil
+
 %preun -n dlogutil
 
 %post -n dlogutil
