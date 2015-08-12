@@ -69,11 +69,11 @@ rm -rf %{buildroot}
 mkdir -p %{buildroot}/usr/bin/
 cp %{_builddir}/%{name}-%{version}/scripts/dlogctrl %{buildroot}/usr/bin/dlogctrl
 
-mkdir -p %{buildroot}%{_libdir}/systemd/system/multi-user.target.wants/
-install -m 0644 %SOURCE301 %{buildroot}%{_libdir}/systemd/system/
-install -m 0644 %SOURCE302 %{buildroot}%{_libdir}/systemd/system/
+mkdir -p %{buildroot}%{_unitdir}/systemd/system/multi-user.target.wants/
+install -m 0644 %SOURCE301 %{buildroot}%{_unitdir}/systemd/system/
+install -m 0644 %SOURCE302 %{buildroot}%{_unitdir}/systemd/system/
 
-ln -s ../dlog_logger.path %{buildroot}%{_libdir}/systemd/system/multi-user.target.wants/dlog_logger.path
+ln -s ../dlog_logger.path %{buildroot}%{_unitdir}/systemd/system/multi-user.target.wants/dlog_logger.path
 
 mkdir -p %{buildroot}/usr/share/license
 cp LICENSE.Apache-2.0 %{buildroot}/usr/share/license/%{name}
@@ -116,11 +116,11 @@ systemctl daemon-reload
 %attr(750,log,log) %{_bindir}/dlogutil
 %attr(755,log,log) %{_bindir}/dlogctrl
 %attr(664,log,log) /opt/etc/dlog_logger.conf
-%{_libdir}/systemd/system/dlog_logger.service
-%{_libdir}/systemd/system/dlog_logger.path
-%{_libdir}/systemd/system/multi-user.target.wants/dlog_logger.path
+%{_unitdir}/systemd/system/dlog_logger.service
+%{_unitdir}/systemd/system/dlog_logger.path
+%{_unitdir}/systemd/system/multi-user.target.wants/dlog_logger.path
 %attr(755,log,log) /var/log/dlog
-%attr(644,root,root) %{_libdir}/udev/rules.d/01-dlog.rules
+%attr(644,root,root) /usr/lib/udev/rules.d/01-dlog.rules
 
 %files  -n libdlog
 %manifest libdlog.manifest
