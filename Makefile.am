@@ -1,5 +1,7 @@
 AUTOMAKE_OPTIONS = subdir-objects foreign
 
+lib32dir = /usr/lib
+
 AM_CFLAGS = -I$(srcdir)/include \
 	$(DEBUG_CFLAGS) \
 	-Werror \
@@ -62,5 +64,5 @@ include/%: include/%.m4
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = dlog.pc
 
-dlogrulesdir=$(libdir)/udev/rules.d
+dlogrulesdir= $(lib32dir)/udev/rules.d
 dlogrules_DATA = 01-dlog.rules
