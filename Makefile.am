@@ -61,6 +61,3 @@ include/%: include/%.m4
 # conf file
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = dlog.pc
-
-dlogrulesdir=$(libdir)/udev/rules.d
-dlogrules_DATA = 01-dlog.rules
