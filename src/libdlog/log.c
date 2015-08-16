@@ -95,30 +95,13 @@ static inline const char* dlog_id_to_string(log_id_t log_id)
 static int __write_to_log_sd_journal(log_id_t log_id, log_priority prio, const char *tag, const char *msg)
 {
 	pid_t tid = (pid_t)syscall(SYS_gettid);
-
-	struct iovec vec[4];
-	char _prio[LOG_BUF_SIZE];
-	char _msg[LOG_BUF_SIZE];
-	char _tag[LOG_BUF_SIZE];
-	char _tid[LOG_BUF_SIZE];
-
-	snprintf(_prio, LOG_BUF_SIZE, "PRIORITY=%d", prio);
-	vec[0].iov_base = (void *)_prio;
-	vec[0].iov_len = strlen(vec[0].iov_base) + 1;
-
-	snprintf(_msg, LOG_BUF_SIZE, "MESSAGE=%s", msg);
-	vec[1].iov_base = (void *)_msg;
-	vec[1].iov_len = strlen(vec[1].iov_base) + 1;
-
-	snprintf(_tag, LOG_BUF_SIZE, "LOG_TAG=%s", tag);
-	vec[2].iov_base = (void *)_tag;
-	vec[2].iov_len = strlen(vec[2].iov_base) + 1;
-
-	snprintf(_tid, LOG_BUF_SIZE, "TID=%d", tid);
-	vec[3].iov_base = (void *)_tag;
-	vec[3].iov_len = strlen(vec[3].iov_base) + 1;
-
-	return sd_journal_sendv(vec, 4);
+	/* XXX: sd_journal_sendv() with manually filed iov-s might be faster */
+	return sd_journal_send("MESSAGE=%s", msg,
+			       "PRIORITY=%i", dlog_pri_to_journal_pri(prio),
+			       "LOG_TAG=%s", tag,
+			       "LOG_ID=%s", dlog_id_to_string(log_id),
+			       "TID=%d", tid,
+			       NULL);
 }
 
 #else
