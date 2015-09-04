@@ -21,10 +21,9 @@ AC_SUBST(M4_DEFINES)
 M4_DEFINES=
 
 # check for libsystemd-journal
-AC_ARG_WITH([systemd-journal],
-	AS_HELP_STRING([--with-systemd-journal], [check for systemd-journal]),
-	[], [with_systemd_journal=check])
-have_systemd_journal=no
+AC_ARG_ENABLE(journal, AS_HELP_STRING([--enable-journal], [enable systemd journal]),
+    [with_systemd_journal=yes],
+    with_systemd_journal=no)
 if test "x$with_systemd_journal" != "xno"; then
 	PKG_CHECK_MODULES(systemd_journal, [libsystemd-journal],
 		[AC_DEFINE(HAVE_SYSTEMD_JOURNAL, 1, [Define if systemd journal is available])

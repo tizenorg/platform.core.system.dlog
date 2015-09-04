@@ -33,7 +33,6 @@
 
 #include "dlog.h"
 
-#define  HAVE_SYSTEMD_JOURNAL
 #ifdef HAVE_SYSTEMD_JOURNAL
 #include <syslog.h>
 #include <systemd/sd-journal.h>

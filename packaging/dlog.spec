@@ -13,6 +13,9 @@ Source203:  packaging/dlog_logger.conf-micro.in
 Source204:  packaging/dlog_logger.conf-debug.in
 Source301:  packaging/dlog_logger.service
 Source302:  packaging/dlog_logger.path
+
+%define systemd_journal ON
+
 BuildRequires: autoconf
 BuildRequires: automake
 BuildRequires: libtool
@@ -59,8 +62,10 @@ cp %{SOURCE102} .
 %autogen --disable-static
 %configure --disable-static \
 			--enable-fatal_on \
-			--enable-engineer_mode \
-			--with-systemd-journal
+%if %{?systemd_journal} == ON
+			--enable-journal \
+%endif
+			--enable-engineer_mode
 make %{?jobs:-j%jobs}
 
 %install
@@ -69,28 +74,31 @@ rm -rf %{buildroot}
 mkdir -p %{buildroot}/usr/bin/
 cp %{_builddir}/%{name}-%{version}/scripts/dlogctrl %{buildroot}/usr/bin/dlogctrl
 
+mkdir -p %{buildroot}/opt/etc
+cp %SOURCE201 %{buildroot}/opt/etc/dlog.conf
+
+%if %{?systemd_journal} == OFF
 mkdir -p %{buildroot}%{_unitdir}/multi-user.target.wants/
 install -m 0644 %SOURCE301 %{buildroot}%{_unitdir}
 install -m 0644 %SOURCE302 %{buildroot}%{_unitdir}
-
 ln -s ../dlog_logger.path %{buildroot}%{_unitdir}/multi-user.target.wants/dlog_logger.path
+
+# default set log output to external files
+cp %SOURCE202 %{buildroot}/opt/etc/dlog_logger.conf
+%endif
 
 mkdir -p %{buildroot}/usr/share/license
 cp LICENSE.Apache-2.0 %{buildroot}/usr/share/license/%{name}
 cp LICENSE.Apache-2.0 %{buildroot}/usr/share/license/libdlog
 cp LICENSE.Apache-2.0 %{buildroot}/usr/share/license/dlogutil
 
-mkdir -p %{buildroot}/opt/etc
-cp %SOURCE201 %{buildroot}/opt/etc/dlog.conf
-
-# default set log output to external files
-cp %SOURCE202 %{buildroot}/opt/etc/dlog_logger.conf
-
 mkdir -p %{buildroot}/var/log/dlog
 
+%if %{?systemd_journal} == ON
 # Workaround: replace with dlogutil script due to scheduling issue
 rm %{buildroot}/usr/bin/dlogutil
 cp %{_builddir}/%{name}-%{version}/scripts/dlogutil.sh %{buildroot}/usr/bin/dlogutil
+%endif
 
 mkdir -p %{buildroot}%{_udevrulesdir}
 cp 01-dlog.rules %{buildroot}%{_udevrulesdir}/01-dlog.rules
@@ -115,15 +123,18 @@ systemctl daemon-reload
 %files  -n dlogutil
 %manifest dlogutil.manifest
 /usr/share/license/dlogutil
-%attr(750,log,log) %{_bindir}/dlog_logger
 %attr(750,log,log) %{_bindir}/dlogutil
 %attr(755,log,log) %{_bindir}/dlogctrl
+%attr(755,log,log) /var/log/dlog
+%attr(644,root,root) %{_udevrulesdir}/01-dlog.rules
+
+%if %{?systemd_journal} == OFF
+%attr(750,log,log) %{_bindir}/dlog_logger
 %attr(664,log,log) /opt/etc/dlog_logger.conf
 %{_unitdir}/dlog_logger.service
 %{_unitdir}/dlog_logger.path
 %{_unitdir}/multi-user.target.wants/dlog_logger.path
-%attr(755,log,log) /var/log/dlog
-%attr(644,root,root) %{_udevrulesdir}/01-dlog.rules
+%endif
 
 %files  -n libdlog
 %manifest libdlog.manifest
