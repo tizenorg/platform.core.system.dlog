@@ -24,7 +24,7 @@ libdlog_la_LIBADD = -lpthread \
 	$(systemd_journal_LIBS) \
 	$(CAPI_BASE_COMMON_LIBS)
 
-bin_PROGRAMS = dlogutil dlog_logger
+bin_PROGRAMS = dlogutil
 
 dlogutil_CFLAGS =  \
 	$(AM_CFLAGS) \
@@ -41,6 +41,9 @@ dlogutil_SOURCES = \
 	include/logger.h \
 	include/logprint.h
 
+if !HAVE_SYSTEMD_JOURNAL
+bin_PROGRAMS += dlog_logger
+
 dlog_logger_CFLAGS =  \
 	$(AM_CFLAGS) \
 	-fPIE
@@ -54,6 +57,7 @@ dlog_logger_SOURCES = \
 	src/logger/logger.c \
 	include/logger.h \
 	include/logprint.h
+endif
 
 include/%: include/%.m4
 	m4 -P $(M4_DEFINES) < $< > $@
