@@ -633,7 +633,7 @@ int main(int argc, char **argv)
 	}
 
 	/* get log size conflicts with write mode */
-	if (getLogSize && mode != O_RDONLY) {
+	if (getLogSize && mode != O_WRONLY) {
 		show_help(argv[0]);
 		exit(-1);
 	}
