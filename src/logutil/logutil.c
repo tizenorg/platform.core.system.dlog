@@ -90,7 +90,7 @@ static void processBuffer(struct log_device_t* dev, struct logger_entry *buf)
 			mgs_buf[1] = ' ';
 			bytes_written = write(g_log_file.fd, mgs_buf, 2);
 			if (bytes_written < 0) {
-				_E("output error");
+				_E("output error\n");
 				exit(-1);
 			}
 		}
@@ -98,7 +98,7 @@ static void processBuffer(struct log_device_t* dev, struct logger_entry *buf)
 		bytes_written = log_print_log_line(g_log_file.format, g_log_file.fd, &entry);
 
 		if (bytes_written < 0) {
-			_E("output error");
+			_E("output error\n");
 			exit(-1);
 		}
 	}
@@ -134,7 +134,7 @@ static void maybePrintStart(struct log_device_t* dev) {
 			char buf[1024];
 			snprintf(buf, sizeof(buf), "--------- beginning of %s\n", dev->device);
 			if (write(g_log_file.fd, buf, strlen(buf)) < 0) {
-				_E("output error");
+				_E("output error\n");
 				exit(-1);
 			}
 		}
@@ -505,6 +505,7 @@ int main(int argc, char **argv)
 	int err;
 	int has_set_log_format = 0;
 	int is_clear_log = 0;
+	int needs_file_path = 0;
 	int getLogSize = 0;
 	int mode = O_RDONLY;
 	int accessmode = R_OK;
@@ -526,7 +527,7 @@ int main(int argc, char **argv)
 	}
 
 	if (0 != get_log_dev_names(g_devs)) {
-		_E("Unable to read initial configuration");
+		_E("Unable to read initial configuration\n");
 		exit(-1);
 	}
 
@@ -567,7 +568,7 @@ int main(int argc, char **argv)
 			case 'b': {
 						  id = log_id_by_name(optarg);
 						  if (id < 0) {
-							  _E("Unknown log buffer %s", optarg);
+							  _E("Unknown log buffer %s\n", optarg);
 							  exit(-1);
 						  }
 
@@ -601,6 +602,7 @@ int main(int argc, char **argv)
 						  exit(-1);
 					  }
 					  g_log_file.rotate_size_kbytes = atoi(optarg);
+					  needs_file_path = 1;
 					  break;
 
 			case 'n':
@@ -665,7 +667,7 @@ int main(int argc, char **argv)
 
 	}
 
-	if (g_log_file.rotate_size_kbytes != 0 && g_log_file.path == NULL)
+	if (needs_file_path != 0 && g_log_file.path == NULL)
 	{
 		_E("-r requires -f as well\n");
 		show_help(argv[0]);
@@ -728,7 +730,7 @@ int main(int argc, char **argv)
 
 			g_log_file.rotate_size_kbytes += size / 1024;
 			printf("%s: cyclic ring buffer is %uKb. "
-			       "Max read entry log payload size is %uKb",
+			       "Max read entry log payload size is %uKb\n",
 			       dev->device, size/1024,
 			       dev->log_read_size_max/1024);
 		}
