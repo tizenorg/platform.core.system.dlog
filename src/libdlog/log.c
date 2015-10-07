@@ -168,7 +168,7 @@ static int __write_to_log_kernel(log_id_t log_id, log_priority prio, const char 
 
 	ret = write(log_fd, buf, len > LOG_BUF_SIZE ? LOG_BUF_SIZE : len);
 	if (ret < 0)
-	    ret = errno;
+	    ret = -errno;
 
 	return ret;
 }
@@ -248,7 +248,7 @@ static int dlog_should_log(log_id_t log_id, const char* tag, int prio)
 		if (!should_log) {
 			return DLOG_ERROR_NOT_PERMITTED;
 		} else if (should_log < 0) {
-			write_to_log(log_id, prio, tag,
+			write_to_log(log_id, (log_priority)prio, tag,
 			             "Your log has been blocked due to limit of log lines per minute.");
 			return DLOG_ERROR_NOT_PERMITTED;
 		}
@@ -271,7 +271,7 @@ int __dlog_vprint(log_id_t log_id, int prio, const char *tag, const char *fmt, v
 		return ret;
 
 	vsnprintf(buf, LOG_BUF_SIZE, fmt, ap);
-	ret = write_to_log(log_id, prio, tag, buf);
+	ret = write_to_log(log_id, (log_priority)prio, tag, buf);
 #ifdef FATAL_ON
 	__dlog_fatal_assert(prio);
 #endif
@@ -296,7 +296,7 @@ int __dlog_print(log_id_t log_id, int prio, const char *tag, const char *fmt, ..
 	vsnprintf(buf, LOG_BUF_SIZE, fmt, ap);
 	va_end(ap);
 
-	ret = write_to_log(log_id, prio, tag, buf);
+	ret = write_to_log(log_id, (log_priority)prio, tag, buf);
 #ifdef FATAL_ON
 	__dlog_fatal_assert(prio);
 #endif
@@ -327,7 +327,7 @@ int dlog_print(log_priority prio, const char *tag, const char *fmt, ...)
 	vsnprintf(buf, LOG_BUF_SIZE, fmt, ap);
 	va_end(ap);
 
-	return write_to_log(LOG_ID_APPS, prio, tag, buf);
+	return write_to_log(LOG_ID_APPS, (log_priority)prio, tag, buf);
 }
 
 void __attribute__((destructor)) __dlog_fini(void)

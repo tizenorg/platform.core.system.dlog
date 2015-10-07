@@ -123,6 +123,8 @@ static int rule_match(struct rule* r1, unsigned key, const char* s, int prio)
 static int util_prio_to_char(int prio)
 {
 	static const char pri_table[DLOG_PRIO_MAX] = {
+		[DLOG_UNKNOWN] = 0,
+		[DLOG_DEFAULT] = ' ',
 		[DLOG_VERBOSE] = 'V',
 		[DLOG_DEBUG] = 'D',
 		[DLOG_INFO] = 'I',
@@ -199,7 +201,8 @@ static struct hashmap* hashmap_create(int size, hash_cmp_func_t cmp_func,
 	internal_size |= internal_size >> 16;
 	internal_size++;
 
-	hm = malloc(sizeof(struct hashmap) + internal_size * sizeof(void*));
+	hm = (struct hashmap *)
+		malloc(sizeof(struct hashmap) + internal_size * sizeof(void *));
 	if (!hm) {
 		return NULL;
 	}
@@ -242,7 +245,7 @@ static struct rule* hashmap_search(struct hashmap* hm, unsigned key,
 	unsigned b0 = b;
 
 	while (hm->bucket[b]) {
-		if (!hm->match(hm->bucket[b], key, tag, prio)) {
+		if (!hm->match((struct rule *)(hm->bucket[b]), key, tag, prio)) {
 			break;
 		}
 
@@ -257,7 +260,7 @@ static struct rule* hashmap_search(struct hashmap* hm, unsigned key,
 		return NULL;
 	}
 
-	return hm->bucket[b];
+	return (struct rule *)(hm->bucket[b]);
 }
 
 /* Must be always executed after __log_config_read() */

@@ -172,7 +172,7 @@ log_format *log_format_new()
 {
 	log_format *p_ret;
 
-	p_ret = calloc(1, sizeof(log_format));
+	p_ret = (log_format *)calloc(1, sizeof(log_format));
 
 	if (!p_ret)
 		return NULL;
@@ -364,7 +364,7 @@ int log_process_log_buffer(struct logger_entry *entry_raw, log_entry *entry)
 	}
 
 	if (entry_raw->pri_begin) {
-		entry->priority = strtol(entry_raw->pri_begin, NULL, 10);
+		entry->priority = (log_priority)strtol(entry_raw->pri_begin, NULL, 10);
 		if (errno) {
 			_E("Wrong message priority\n");
 			return -1;

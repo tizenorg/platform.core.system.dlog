@@ -58,6 +58,14 @@ Requires(preun): /usr/bin/systemctl
 %description -n dlogutil
 Utilities for print log data
 
+%package -n dlog-tests
+Summary:    unit testing dlog
+Group:      Development/Libraries
+Requires:   lib%{name} = %{?epoch:%{epoch}:}%{version}-%{release}
+
+%description -n dlog-tests
+Unit testing dlog
+
 %prep
 %setup -q
 
@@ -73,6 +81,7 @@ cp %{SOURCE102} .
 			--enable-engineer_mode
 make %{?jobs:-j%jobs} \
 	CFLAGS+=-DKMSG_DEV_CONFIG_FILE=\\\"%{_localstatedir}/dlog/dlog_init.conf\\\"
+make -C unittests -f Makefile.tests
 
 %install
 rm -rf %{buildroot}
@@ -111,6 +120,8 @@ cp %{_builddir}/%{name}-%{version}/scripts/dlogutil.sh %{buildroot}/usr/bin/dlog
 mkdir -p %{buildroot}%{_localstatedir}/dlog
 
 mkdir -p %{buildroot}/var/log/dlog
+
+install -m 0755 %{_builddir}/%{name}-%{version}/unittests/dlogtest %{buildroot}/usr/bin/
 
 %preun
 systemctl disable dlog.service
@@ -167,3 +178,6 @@ systemctl daemon-reload
 %{_includedir}/dlog/dlog.h
 %{_libdir}/pkgconfig/dlog.pc
 %{_libdir}/libdlog.so
+
+%files -n dlog-tests
+/usr/bin/dlogtest
