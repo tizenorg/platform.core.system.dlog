@@ -1,0 +1,24 @@
+CC = $(CROSS_COMPILE)gcc
+CXX = $(CROSS_COMPILE)g++
+CFLAGS = -Wall -Os -pthread -I.. -I../include -DKMSG_DEV_CONFIG_FILE=\"/var/dlog/dlog_init.conf\"
+LIBS = -pthread -ludev
+APPNAME = dlogtest
+OBJS = gtest-all.o gtest-main.o LibDLog.o LogInit.o Logger.o
+
+APPNAME: $(OBJS)
+	$(CXX) -o $(APPNAME) $(OBJS) $(LIBS)
+
+%.o: %.c
+	$(CC) -c $< $(CFLAGS)
+
+%.o: %.cc
+	$(CXX) -c $< $(CFLAGS)
+
+install:
+	install -d $(DESTDIR)/usr/bin
+	install -m 755 $(APPNAME) $(DESTDIR)/usr/bin/$(APPNAME)
+
+clean:
+	rm -f *.o
+	rm -f $(APPNAME)
+	rm -f core

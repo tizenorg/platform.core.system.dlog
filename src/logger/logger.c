@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -80,20 +81,33 @@ struct log_device {
 	struct log_device *next;
 };
 
-static char device_path_table[LOG_ID_MAX][PATH_MAX];
-
-static struct log_work *works;
-static struct log_device *devices;
-static int device_list[] = {
-	[LOG_ID_MAIN] = false,
-	[LOG_ID_RADIO] = false,
-	[LOG_ID_SYSTEM] = false,
-	[LOG_ID_APPS] = false,
-	[LOG_ID_MAX] = false,
+struct logger_data {
+	char device_path_table[LOG_ID_MAX][PATH_MAX];
+	struct log_work *works;
+	struct log_device *devices;
+	int device_list[LOG_ID_MAX + 1];
+	int buffer_size;
+	int min_interval;
 };
 
-static int buffer_size = 0;
-static int min_interval = 0;
+static
+#ifdef TESTING
+__thread
+#endif
+struct logger_data logger = {
+	.device_path_table = { "", "", "", "", },
+	.works = NULL,
+	.devices = NULL,
+	.device_list = {
+		[LOG_ID_MAIN] = false,
+		[LOG_ID_RADIO] = false,
+		[LOG_ID_SYSTEM] = false,
+		[LOG_ID_APPS] = false,
+		[LOG_ID_MAX] = false,
+	},
+	.buffer_size = 0,
+	.min_interval = 0
+};
 
 /*
  * check device registration on watch device list
@@ -103,7 +117,7 @@ static int check_device(int id)
 	if (id < 0 || LOG_ID_MAX <= id)
 		return 0;
 
-	return (device_list[id] == true) ? 0 : -1;
+	return (logger.device_list[id] == true) ? 0 : -1;
 }
 
 /*
@@ -113,7 +127,7 @@ static int register_device(int id)
 {
 	if (id < 0 || LOG_ID_MAX <= id)
 		return -1;
-	device_list[id] = true;
+	logger.device_list[id] = true;
 
 	return 0;
 }
@@ -186,7 +200,7 @@ static void maybe_print_start(struct log_device *dev)
 			logwork->printed = true;
 			snprintf(buf, sizeof(buf),
 					"--------- beginning of %s\n",
-					device_path_table[dev->id]);
+					logger.device_path_table[dev->id]);
 			if (write(logwork->file.fd, buf, strlen(buf)) < 0) {
 				_E("maybe work error");
 				exit(EXIT_FAILURE);
@@ -228,7 +242,7 @@ static void do_logger(struct log_device *dev)
 	int queued_lines = 0;
 	int max = 0;
 
-	if (min_interval)
+	if (logger.min_interval)
 		commit_time = current_time = time(NULL);
 
 	for (pdev = dev; pdev; pdev = pdev->next) {
@@ -276,17 +290,17 @@ static void do_logger(struct log_device *dev)
 						print_next_entry(pdev);
 						--queued_lines;
 					}
-					if (min_interval)
+					if (logger.min_interval)
 						commit_time = time(NULL);
 					break;
 				}
 			}
 		}
 
-		if (min_interval) {
+		if (logger.min_interval) {
 			current_time = time(NULL);
-			if (current_time - commit_time < min_interval &&
-					queued_lines < buffer_size) {
+			if (current_time - commit_time < logger.min_interval &&
+					queued_lines < logger.buffer_size) {
 				sleep = true;
 				continue;
 			}
@@ -300,7 +314,7 @@ static void do_logger(struct log_device *dev)
 					break;
 				print_next_entry(pdev);
 				--queued_lines;
-				if (min_interval)
+				if (logger.min_interval)
 					commit_time = current_time;
 			}
 		} else {
@@ -312,12 +326,15 @@ static void do_logger(struct log_device *dev)
 					break;
 				print_next_entry(pdev);
 				--queued_lines;
-				if (min_interval)
+				if (logger.min_interval)
 					commit_time = current_time;
 			}
 		}
 next:
 		;
+#ifdef TESTING
+		break;
+#endif
 	}
 }
 
@@ -329,7 +346,7 @@ static struct log_work *work_new(void)
 {
 	struct log_work *work;
 
-	work = malloc(sizeof(struct log_work));
+	work = (struct log_work *)malloc(sizeof(struct log_work));
 	if (work == NULL) {
 		_E("failed to malloc log_work\n");
 		return NULL;
@@ -450,16 +467,16 @@ static struct log_device *device_new(int id)
 
 	if (LOG_ID_MAX <= id)
 		return NULL;
-	dev = malloc(sizeof(struct log_device));
+	dev = (struct log_device *)malloc(sizeof(struct log_device));
 	if (dev == NULL) {
 		_E("failed to malloc log_device\n");
 		return NULL;
 	}
 	dev->id = id;
-	dev->fd = open(device_path_table[id], O_RDONLY);
+	dev->fd = open(logger.device_path_table[id], O_RDONLY);
 	if (dev->fd < 0) {
 		_E("Unable to open log device '%s': %s\n",
-				device_path_table[id],
+				logger.device_path_table[id],
 				strerror(errno));
 		free(dev);
 		return NULL;
@@ -470,12 +487,12 @@ static struct log_device *device_new(int id)
 	dev->next = NULL;
 	get_log_read_size_max(dev->fd, &dev->log_read_size_max);
 	_D("device %s log read size max %u\n",
-	   device_path_table[id], dev->log_read_size_max);
+	   logger.device_path_table[id], dev->log_read_size_max);
 
 	off = lseek(dev->fd, 0, SEEK_DATA);
 	if (off == -1) {
 		_E("Unable to lseek device %s. %s\n",
-		   device_path_table[id], strerror(errno));
+		   logger.device_path_table[id], strerror(errno));
 		exit(EXIT_FAILURE);
 	}
 
@@ -507,17 +524,17 @@ static void device_add(int id)
 	if (check_device(id) < 0)
 		return;
 
-	if (!devices) {
-			devices = device_new(id);
-			if (devices == NULL) {
+	if (!logger.devices) {
+			logger.devices = device_new(id);
+			if (logger.devices == NULL) {
 				_E("failed to device_new: %s\n",
-						device_path_table[id]);
+						logger.device_path_table[id]);
 				exit(EXIT_FAILURE);
 			}
 	} else {
-		if (device_add_to_tail(devices, device_new(id)) < 0) {
+		if (device_add_to_tail(logger.devices, device_new(id)) < 0) {
 			_E("failed to device_add_to_tail: %s\n",
-					device_path_table[id]);
+						logger.device_path_table[id]);
 			exit(EXIT_FAILURE);
 		}
 	}
@@ -741,10 +758,11 @@ exit:
  */
 static void cleanup(void)
 {
-	work_chain_free(works);
-	device_chain_free(devices);
+	work_chain_free(logger.works);
+	device_chain_free(logger.devices);
 }
 
+#ifndef TESTING
 /*
  * SIGINT, SIGTERM, SIGQUIT signal handler
  */
@@ -779,9 +797,10 @@ static int parse_argv(int argc, char *argv[]) {
 					help();
 					goto exit;
 				}
-				min_interval = atoi(optarg);
-				if (min_interval < 0 || INTERVAL_MAX < min_interval)
-					min_interval = 0;
+				logger.min_interval = atoi(optarg);
+				if (logger.min_interval < 0 ||
+					    INTERVAL_MAX < logger.min_interval)
+					logger.min_interval = 0;
 				ret = 1;
 				break;
 			case 'b':
@@ -791,9 +810,10 @@ static int parse_argv(int argc, char *argv[]) {
 					help();
 					goto exit;
 				}
-				buffer_size = atoi(optarg);
-				if (buffer_size < 0 || BUFFER_MAX < buffer_size)
-					buffer_size = 0;
+				logger.buffer_size = atoi(optarg);
+				if (logger.buffer_size < 0 ||
+						BUFFER_MAX < logger.buffer_size)
+					logger.buffer_size = 0;
 				ret = 1;
 				break;
 			case 'h':
@@ -810,15 +830,21 @@ exit:
 	optopt = 0;
 	return ret;
 }
+#endif
 
-
+#ifndef TESTING
 int main(int argc, char **argv)
+#else
+static int _main(void)
+#endif
 {
-	int i, r, ncmd;
+	int i, ncmd;
 	struct stat statbuf;
 	struct log_device *dev;
 	struct log_work *work;
 	struct log_command command_list[COMMAND_MAX];
+#ifndef TESTING
+	int r;
 	struct sigaction act;
 
 	/* set the signal handler for free dynamically allocated memory. */
@@ -839,13 +865,14 @@ int main(int argc, char **argv)
 		if (r <= 0)
 			goto exit;
 	}
+#endif
 	/* parse command from command configuration file. */
 	ncmd = parse_command(command_list);
 	/* If it have nothing command, exit. */
 	if (!ncmd)
 		goto exit;
 
-	if (0 != get_log_dev_names(device_path_table))
+	if (0 != get_log_dev_names(logger.device_path_table))
 		goto exit;
 
 	/* create log device */
@@ -862,7 +889,7 @@ int main(int argc, char **argv)
 			goto clean_exit;
 		}
 		/* attatch the work to global works variable */
-		if (work_add_to_tail(works, work) < 0) {
+		if (work_add_to_tail(logger.works, work) < 0) {
 			_E("failed to work_add_to_tail\n");
 			goto clean_exit;
 		}
@@ -888,7 +915,7 @@ int main(int argc, char **argv)
 		work->file.format = command_list[i].format;
 
 		/* 5. attatch the work to device task for logging */
-		dev = devices;
+		dev = logger.devices;
 		while (dev) {
 			if (command_list[i].devices[dev->id] == true) {
 				work_add_to_device(dev, work);
@@ -897,12 +924,16 @@ int main(int argc, char **argv)
 		}
 	}
 
+#ifndef TESTING
 	/* do log */
-	do_logger(devices);
+	do_logger(logger.devices);
+#else
+	goto exit;
+#endif
 
 clean_exit:
-	work_chain_free(works);
-	device_chain_free(devices);
+	work_chain_free(logger.works);
+	device_chain_free(logger.devices);
 exit:
 	return 0;
 }

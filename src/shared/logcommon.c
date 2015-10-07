@@ -23,7 +23,7 @@
 #define MAX_PREFIX_SIZE	32
 #define LINE_MAX	(MAX_PREFIX_SIZE+PATH_MAX)
 
-static char* get_dev_from_line(char *line, char *prefix)
+static char* get_dev_from_line(char *line, const char *prefix)
 {
 	size_t len = strlen(prefix);
 	if (strncmp(line, prefix, len))
@@ -101,5 +101,5 @@ log_id_t log_id_by_name(const char *name)
 	else if (0 == strcmp(name, "apps"))
 		return LOG_ID_APPS;
 	else
-		return -1;
+		return (log_id_t)-1;
 }

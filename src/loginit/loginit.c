@@ -32,7 +32,9 @@
 
 #define DEV_KMSG	"/dev/kmsg"
 
-int g_minors[LOG_ID_MAX] = {-1, -1, -1, -1};
+#ifndef TESTING
+static int g_minors[LOG_ID_MAX] = {-1, -1, -1, -1};
+#endif
 
 static void prepare_udev_monitor(struct udev_monitor **mon)
 {
@@ -90,7 +92,7 @@ static void remove_kmsg_devs(int fd)
 	}
 }
 
-static int get_uid(char *name, uid_t *uid)
+static int get_uid(const char *name, uid_t *uid)
 {
 	struct passwd *pw;
 
@@ -105,7 +107,7 @@ static int get_uid(char *name, uid_t *uid)
 	return 0;
 }
 
-static int get_gid(char *name, gid_t *gid)
+static int get_gid(const char *name, gid_t *gid)
 {
 	struct group *gr;
 
@@ -199,6 +201,8 @@ static int write_config(FILE *config_file)
 		       LOG_APPS_CONF_PREFIX, DEV_KMSG, g_minors[LOG_ID_APPS]);
 }
 
+#ifndef TESTING
+
 int main()
 {
 	FILE *config_file;
@@ -234,3 +238,5 @@ error:
 	remove_kmsg_devs(kmsg_fd);
 	exit(EXIT_FAILURE);
 }
+
+#endif
