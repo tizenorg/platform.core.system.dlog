@@ -94,7 +94,21 @@ static inline const char* dlog_id_to_string(log_id_t log_id)
 
 static int __write_to_log_sd_journal(log_id_t log_id, log_priority prio, const char *tag, const char *msg)
 {
+	const char *lid_str = dlog_id_to_string(log_id);
+
 	pid_t tid = (pid_t)syscall(SYS_gettid);
+
+	if(!msg)
+		return DLOG_ERROR_INVALID_PARAMETER;
+
+	if(strncmp(lid_str, "UNKNOWN", 7) == 0)
+		return DLOG_ERROR_INVALID_PARAMETER;
+
+	if(prio < DLOG_VERBOSE || prio >= DLOG_PRIO_MAX)
+		return DLOG_ERROR_INVALID_PARAMETER;
+
+	if(!tag)
+		tag = "";
 
 	struct iovec vec[5];
 	char _msg[LOG_BUF_SIZE + 8];
@@ -115,7 +129,7 @@ static int __write_to_log_sd_journal(log_id_t log_id, log_priority prio, const c
 	vec[2].iov_base = (void *)_tag;
 	vec[2].iov_len = strlen(vec[2].iov_base);
 
-	snprintf(_log_id, LOG_BUF_SIZE + 7, "LOG_ID=%s", dlog_id_to_string(log_id));
+	snprintf(_log_id, LOG_BUF_SIZE + 7, "LOG_ID=%s", lid_str);
 	vec[3].iov_base = (void *)_log_id;
 	vec[3].iov_len = strlen(vec[3].iov_base);
 
