@@ -96,6 +96,18 @@ static int __write_to_log_sd_journal(log_id_t log_id, log_priority prio, const c
 {
 	pid_t tid = (pid_t)syscall(SYS_gettid);
 
+	if(strcmp(dlog_id_to_string(log_id), "UNKNOWN") == 0)
+		return DLOG_ERROR_INVALID_PARAMETER;
+
+	if(prio < DLOG_VERBOSE || prio >= DLOG_PRIO_MAX)
+		return DLOG_ERROR_INVALID_PARAMETER;
+
+	if(!tag)
+		tag = "";
+
+	if(!msg)
+		return DLOG_ERROR_INVALID_PARAMETER;
+
 	struct iovec vec[5];
 	char _msg[LOG_BUF_SIZE + 8];
 	char _prio[LOG_BUF_SIZE + 9];
