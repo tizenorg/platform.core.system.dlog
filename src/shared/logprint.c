@@ -24,8 +24,8 @@
 #include <ctype.h>
 #include <unistd.h>
 
+#include <logcommon.h>
 #include <logprint.h>
-
 
 typedef struct FilterInfo_t {
 	char *mTag;
@@ -152,10 +152,10 @@ void dump_filters(log_format *p_format)
 		if (p_fi->mPri == DLOG_DEFAULT) {
 			cPri = filter_pri_to_char(p_format->global_pri);
 		}
-		fprintf(stderr, "%s:%c\n", p_fi->mTag, cPri);
+		_E("%s:%c\n", p_fi->mTag, cPri);
 	}
 
-	fprintf(stderr, "*:%c\n", filter_pri_to_char(p_format->global_pri));
+	_E("*:%c\n", filter_pri_to_char(p_format->global_pri));
 
 }
 
@@ -350,7 +350,7 @@ int log_process_log_buffer(struct logger_entry *buf, log_entry *entry)
 	int i, start = -1, end = -1;
 
 	if (buf->len < 3) {
-		fprintf(stderr, "Entry too small\n");
+		_E("Entry too small\n");
 		return -1;
 	}
 
@@ -361,13 +361,13 @@ int log_process_log_buffer(struct logger_entry *buf, log_entry *entry)
 
 	entry->priority = buf->msg[0];
 	if (entry->priority < 0 || entry->priority > DLOG_SILENT) {
-		fprintf(stderr, "Wrong priority message\n");
+		_E("Wrong priority message\n");
 		return -1;
 	}
 
 	entry->tag = buf->msg + 1;
 	if (!strlen(entry->tag)) {
-		fprintf(stderr, "No tag message\n");
+		_E("No tag message\n");
 		return -1;
 	}
 
@@ -382,7 +382,7 @@ int log_process_log_buffer(struct logger_entry *buf, log_entry *entry)
 		}
 	}
 	if (start == -1) {
-		fprintf(stderr, "Malformed log message\n");
+		_E("Malformed log message\n");
 		return -1;
 	}
 	if (end == -1) {
@@ -627,13 +627,13 @@ int log_print_log_line(
 	} while (ret < 0 && errno == EINTR);
 
 	if (ret < 0) {
-		fprintf(stderr, "+++ LOG: write failed (errno=%d)\n", errno);
+		_E("+++ LOG: write failed (errno=%d)\n", errno);
 		ret = 0;
 		goto done;
 	}
 
 	if (((size_t)ret) < totalLen) {
-		fprintf(stderr, "+++ LOG: write partial (%d of %d)\n", ret,
+		_E("+++ LOG: write partial (%d of %d)\n", ret,
 				(int)totalLen);
 		goto done;
 	}
@@ -656,7 +656,7 @@ void logprint_run_tests()
 
 	p_format = log_format_new();
 
-	fprintf(stderr, "running tests\n");
+	_E("running tests\n");
 
 	tag = "random";
 
@@ -712,6 +712,6 @@ void logprint_run_tests()
 
 	log_format_free(p_format);
 
-	fprintf(stderr, "tests complete\n");
+	_E("tests complete\n");
 }
 
