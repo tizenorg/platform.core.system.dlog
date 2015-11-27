@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2005-2008, The Android Open Source Project
- * Copyright (c) 2009-2013, Samsung Electronics Co., Ltd. All rights reserved.
+ * Copyright (c) 2009-2015, Samsung Electronics Co., Ltd. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,19 +33,13 @@
 #include <sys/stat.h>
 #include <arpa/inet.h>
 
-#include <logger.h>
+#include <logcommon.h>
+#include <queued_entry.h>
+#include <log_file.h>
 #include <logprint.h>
-
-#ifdef DEBUG_ON
-#define _D(...) printf(__VA_ARGS__)
-#else
-#define _D(...) do { } while (0)
-#endif
-#define _E(...) fprintf(stderr, __VA_ARGS__)
 
 #define COMMAND_MAX 5
 #define DELIMITER " "
-#define FILE_PERMS (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP)
 #define MAX_ARGS 16
 #define MAX_ROTATED 4
 #define MAX_QUEUED 4096
@@ -55,14 +49,6 @@
 #define CONFIG_FILE "/opt/etc/dlog_logger.conf"
 
 #define ARRAY_SIZE(name) (sizeof(name)/sizeof(name[0]))
-
-struct queued_entry {
-	union {
-		unsigned char buf[LOGGER_ENTRY_MAX_LEN + 1] __attribute__((aligned(4)));
-		struct logger_entry entry __attribute__((aligned(4)));
-	};
-	struct queued_entry *next;
-};
 
 struct log_command {
 	char *filename;
@@ -75,13 +61,8 @@ struct log_command {
 };
 
 struct log_work {
-	char *filename;
+	struct log_file file;
 	bool printed;
-	int fd;
-	int size;
-	int rotate_size;
-	int max_rotated;
-	log_format *format;
 	struct log_work *next;
 };
 
@@ -93,7 +74,7 @@ struct log_task_link {
 struct log_device {
 	int id;
 	int fd;
-	struct queued_entry *queue;
+	struct queued_entry_t *queue;
 	struct log_task_link *task;
 	struct log_device *next;
 };
@@ -160,75 +141,6 @@ static int register_device(int id)
 }
 
 /*
- * comparison function to distinct entries by time
- */
-static int cmp(struct queued_entry *a, struct queued_entry *b)
-{
-	int n = a->entry.sec - b->entry.sec;
-	if (n != 0)
-		return n;
-
-	return a->entry.nsec - b->entry.nsec;
-}
-
-/*
- * enqueueing the log_entry into the log_device
- */
-static void enqueue(struct log_device *device, struct queued_entry *entry)
-{
-	if (device->queue == NULL) {
-		device->queue = entry;
-	} else {
-		struct queued_entry **e = &device->queue;
-		while (*e && cmp(entry, *e) >= 0)
-			e = &((*e)->next);
-		entry->next = *e;
-		*e = entry;
-	}
-}
-
-/*
- * open file
- */
-static int open_work(const char *path)
-{
-	return open(path, O_WRONLY | O_APPEND | O_CREAT, FILE_PERMS);
-}
-
-/*
- * rotate log files
- */
-static void rotate_logs(struct log_work *logwork)
-{
-	int i, ret;
-	char *filename;
-	char file0[NAME_MAX];
-	char file1[NAME_MAX];
-
-	close(logwork->fd);
-	filename = logwork->filename;
-	for (i = logwork->max_rotated ; i > 0 ; i--) {
-		snprintf(file1, NAME_MAX, "%s.%d", filename, i);
-		if (i - 1 == 0)
-			snprintf(file0, NAME_MAX, "%s",  filename);
-		else
-			snprintf(file0, NAME_MAX, "%s.%d", filename, i - 1);
-		ret = rename(file0, file1);
-		if (ret < 0 && errno != ENOENT)
-			_E("while rotating log works");
-	}
-	/* open log file again */
-	logwork->fd = open_work(filename);
-	if (logwork->fd < 0) {
-		_E("couldn't open log file");
-		exit(EXIT_FAILURE);
-	}
-	logwork->size = 0;
-
-	return;
-}
-
-/*
  * process to print log
  * and check the log file size to rotate
  */
@@ -245,20 +157,20 @@ static void process_buffer(struct log_device *dev, struct logger_entry *buf)
 
 	for (task = dev->task; task; task = task->next) {
 		logwork = task->work;
-		if (log_should_print_line(logwork->format,
+		if (log_should_print_line(logwork->file.format,
 					entry.tag, entry.priority)) {
 			bytes_written =
-				log_print_log_line(logwork->format,
-						logwork->fd, &entry);
+				log_print_log_line(logwork->file.format,
+						logwork->file.fd, &entry);
 			if (bytes_written < 0) {
 				_E("work error");
 				exit(EXIT_FAILURE);
 			}
-			logwork->size += bytes_written;
+			logwork->file.size += bytes_written;
 		}
-		if (logwork->rotate_size > 0 &&
-				(logwork->size / 1024) >= logwork->rotate_size) {
-			rotate_logs(logwork);
+		if (logwork->file.rotate_size_kbytes > 0 &&
+				(logwork->file.size / 1024) >= logwork->file.rotate_size_kbytes) {
+			rotate_logs(&logwork->file);
 		}
 	}
 
@@ -297,7 +209,7 @@ static void maybe_print_start(struct log_device *dev)
 			snprintf(buf, sizeof(buf),
 					"--------- beginning of %s\n",
 					device_path_table[dev->id]);
-			if (write(logwork->fd, buf, strlen(buf)) < 0) {
+			if (write(logwork->file.fd, buf, strlen(buf)) < 0) {
 				_E("maybe work error");
 				exit(EXIT_FAILURE);
 			}
@@ -311,9 +223,8 @@ static void maybe_print_start(struct log_device *dev)
 static void skip_next_entry(struct log_device *dev)
 {
 	maybe_print_start(dev);
-	struct queued_entry *entry = dev->queue;
-	dev->queue = entry->next;
-	free(entry);
+	struct queued_entry_t* entry = pop_queued_entry(&dev->queue);
+	free_queued_entry(entry);
 }
 
 /*
@@ -333,7 +244,7 @@ static void do_logger(struct log_device *dev)
 {
 	time_t commit_time = 0, current_time = 0;
 	struct log_device *pdev;
-	int ret, result;
+	int result;
 	fd_set readset;
 	bool sleep = false;
 	int queued_lines = 0;
@@ -362,43 +273,16 @@ static void do_logger(struct log_device *dev)
 
 		for (pdev = dev; pdev; pdev = pdev->next) {
 			if (FD_ISSET(pdev->fd, &readset)) {
-				struct queued_entry *entry =
-					(struct queued_entry *)
-					malloc(sizeof(struct queued_entry));
-				if (entry == NULL) {
-					_E("failed to malloc queued_entry\n");
-					goto exit;//exit(EXIT_FAILURE);
-				}
-				entry->next = NULL;
-				ret = read(pdev->fd, entry->buf,
-						LOGGER_ENTRY_MAX_LEN);
-				if (ret < 0) {
-					if (errno == EINTR) {
-						free(entry);
-						goto next;
-					}
-					if (errno == EAGAIN) {
-						free(entry);
-						break;
-					}
-					_E("dlogutil read");
-					goto exit;//exit(EXIT_FAILURE);
-				} else if (!ret) {
-					free(entry);
-					_E("read: Unexpected EOF!\n");
-					exit(EXIT_FAILURE);
-				} else if (entry->entry.len !=
-						ret - sizeof(struct logger_entry)) {
-					free(entry);
-					_E("unexpected length. Expected %d, got %d\n",
-							entry->entry.len,
-							ret - (int)sizeof(struct logger_entry));
-					goto exit;//exit(EXIT_FAILURE);
-				}
+				int err;
+				struct queued_entry_t *entry = new_queued_entry();
 
-				entry->entry.msg[entry->entry.len] = '\0';
+				err = read_queued_entry_from_dev(pdev->fd, entry);
+				if (err == EINTR)
+					goto next;
+				else if (err == EAGAIN)
+					break;
 
-				enqueue(pdev, entry);
+				enqueue(&pdev->queue, entry);
 				++queued_lines;
 
 				if (MAX_QUEUED < queued_lines) {
@@ -453,8 +337,6 @@ static void do_logger(struct log_device *dev)
 next:
 		;
 	}
-exit:
-	exit(EXIT_FAILURE);
 }
 
 
@@ -470,10 +352,10 @@ static struct log_work *work_new(void)
 		_E("failed to malloc log_work\n");
 		return NULL;
 	}
-	work->filename = NULL;
-	work->fd = -1;
+	work->file.path = NULL;
+	work->file.fd = -1;
 	work->printed = false;
-	work->size = 0;
+	work->file.size = 0;
 	work->next = NULL;
 	_D("work alloc %p\n", work);
 
@@ -545,16 +427,16 @@ static void work_free(struct log_work *work)
 {
 	if (!work)
 		return;
-	if (work->filename) {
-		free(work->filename);
-		work->filename = NULL;
-		if (work->fd != -1) {
-			close(work->fd);
-			work->fd = -1;
+	if (work->file.path) {
+		free(work->file.path);
+		work->file.path = NULL;
+		if (work->file.fd != -1) {
+			close(work->file.fd);
+			work->file.fd = -1;
 		}
 	}
-	log_format_free(work->format);
-	work->format = NULL;
+	log_format_free(work->file.format);
+	work->file.format = NULL;
 	free(work);
 	work = NULL;
 }
@@ -658,13 +540,7 @@ static void device_free(struct log_device *dev)
 	if (!dev)
 		return;
 	if (dev->queue) {
-		while (dev->queue->next) {
-			struct queued_entry *tmp =
-				dev->queue->next;
-			dev->queue->next = tmp->next;
-			free(tmp);
-		}
-		free(dev->queue);
+		free_queued_entry_list(dev->queue);
 		dev->queue = NULL;
 	}
 	if (dev->task) {
@@ -995,29 +871,25 @@ int main(int argc, char **argv)
 			goto clean_exit;
 		}
 		/* 1. set filename, fd and file current size */
-		work->filename = command_list[i].filename;
-		if (work->filename == NULL) {
+		work->file.path = command_list[i].filename;
+		if (work->file.path == NULL) {
 			_E("file name is NULL");
 			goto clean_exit;
 		}
-		work->fd = open_work(work->filename);
-		if (work->fd < 0) {
-			_E("failed to open log file");
-			exit(EXIT_FAILURE);
-		}
-		if (fstat(work->fd, &statbuf) == -1)
-			work->size = 0;
+		open_logfile(&work->file);
+		if (fstat(work->file.fd, &statbuf) == -1)
+			work->file.size = 0;
 		else
-			work->size = statbuf.st_size;
+			work->file.size = statbuf.st_size;
 
 		/* 2. set size limits for log files */
-		work->rotate_size = command_list[i].rotate_size;
+		work->file.rotate_size_kbytes = command_list[i].rotate_size;
 
 		/* 3. set limit on the number of rotated log files */
-		work->max_rotated = command_list[i].max_rotated;
+		work->file.max_rotated = command_list[i].max_rotated;
 
 		/* 4. set log_format to filter logs*/
-		work->format = command_list[i].format;
+		work->file.format = command_list[i].format;
 
 		/* 5. attatch the work to device task for logging */
 		dev = devices;

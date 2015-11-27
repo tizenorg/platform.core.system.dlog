@@ -15,6 +15,7 @@ lib_LTLIBRARIES = libdlog.la
 libdlog_la_SOURCES =  \
 	src/libdlog/log.c \
 	include/dlog.h \
+	include/logcommon.h \
 	src/libdlog/logconfig.c \
 	include/logconfig.h \
 	src/libdlog/loglimiter.c \
@@ -38,7 +39,12 @@ dlogutil_LDFLAGS = \
 dlogutil_SOURCES = \
 	src/shared/logprint.c \
 	src/logutil/logutil.c \
-	include/logger.h \
+	src/shared/queued_entry.c \
+	src/shared/log_file.c \
+	include/logger_ioctl.h \
+	include/logcommon.h \
+	include/queued_entry.h \
+	include/log_file.h \
 	include/logprint.h
 
 if !HAVE_SYSTEMD_JOURNAL
@@ -55,7 +61,11 @@ dlog_logger_LDFLAGS = \
 dlog_logger_SOURCES = \
 	src/shared/logprint.c \
 	src/logger/logger.c \
-	include/logger.h \
+	src/shared/queued_entry.c \
+	src/shared/log_file.c \
+	include/logcommon.h \
+	include/queued_entry.h \
+	include/log_file.h \
 	include/logprint.h
 endif
 

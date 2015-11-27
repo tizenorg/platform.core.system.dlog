@@ -28,6 +28,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <dlog.h>
+#include <logcommon.h>
 #include "loglimiter.h"
 #include "logconfig.h"
 #ifdef HAVE_SYSTEMD_JOURNAL
@@ -40,11 +41,6 @@
 #endif
 
 #define LOG_BUF_SIZE	1024
-
-#define LOG_MAIN	"log_main"
-#define LOG_RADIO	"log_radio"
-#define LOG_SYSTEM	"log_system"
-#define LOG_APPS	"log_apps"
 
 #define VALUE_MAX 2
 #define LOG_CONFIG_FILE "/opt/etc/dlog.conf"
@@ -80,10 +76,10 @@ static inline int dlog_pri_to_journal_pri(log_priority prio)
 static inline const char* dlog_id_to_string(log_id_t log_id)
 {
 	static const char* id_table[LOG_ID_MAX] = {
-		[LOG_ID_MAIN]   = LOG_MAIN,
-		[LOG_ID_RADIO]  = LOG_RADIO,
-		[LOG_ID_SYSTEM] = LOG_SYSTEM,
-		[LOG_ID_APPS]   = LOG_APPS,
+		[LOG_ID_MAIN]   = LOGGER_LOG_MAIN,
+		[LOG_ID_RADIO]  = LOGGER_LOG_RADIO,
+		[LOG_ID_SYSTEM] = LOGGER_LOG_SYSTEM,
+		[LOG_ID_APPS]   = LOGGER_LOG_APPS,
 	};
 
 	if (log_id < 0 || log_id >= LOG_ID_MAX || !id_table[log_id])
@@ -204,10 +200,10 @@ static void __dlog_init(void)
 	write_to_log = __write_to_log_sd_journal;
 #else
 	/* open device */
-	log_fds[LOG_ID_MAIN] = open("/dev/"LOG_MAIN, O_WRONLY);
-	log_fds[LOG_ID_SYSTEM] = open("/dev/"LOG_SYSTEM, O_WRONLY);
-	log_fds[LOG_ID_RADIO] = open("/dev/"LOG_RADIO, O_WRONLY);
-	log_fds[LOG_ID_APPS] = open("/dev/"LOG_APPS, O_WRONLY);
+	log_fds[LOG_ID_MAIN] = open("/dev/"LOGGER_LOG_MAIN, O_WRONLY);
+	log_fds[LOG_ID_SYSTEM] = open("/dev/"LOGGER_LOG_SYSTEM, O_WRONLY);
+	log_fds[LOG_ID_RADIO] = open("/dev/"LOGGER_LOG_RADIO, O_WRONLY);
+	log_fds[LOG_ID_APPS] = open("/dev/"LOGGER_LOG_APPS, O_WRONLY);
 	if (log_fds[LOG_ID_MAIN] < 0) {
 		write_to_log = __write_to_log_null;
 	} else {
