@@ -15,7 +15,7 @@ Source301:  packaging/dlog_logger.service
 Source302:  packaging/dlog_logger.path
 Source401:  packaging/dlog.service
 
-%define systemd_journal OFF
+%define systemd_journal ON
 
 BuildRequires: autoconf
 BuildRequires: automake
@@ -58,6 +58,7 @@ Requires(preun): /usr/bin/systemctl
 %description -n dlogutil
 Utilities for print log data
 
+%if %{?systemd_journal} == OFF
 %package -n dlog-tests
 Summary:    unit testing dlog
 Group:      Development/Libraries
@@ -65,6 +66,7 @@ Requires:   lib%{name} = %{?epoch:%{epoch}:}%{version}-%{release}
 
 %description -n dlog-tests
 Unit testing dlog
+%endif
 
 %prep
 %setup -q
@@ -81,7 +83,9 @@ cp %{SOURCE102} .
 			--enable-engineer_mode
 make %{?jobs:-j%jobs} \
 	CFLAGS+=-DKMSG_DEV_CONFIG_FILE=\\\"%{_localstatedir}/dlog/dlog_init.conf\\\"
+%if %{?systemd_journal} == OFF
 make -C unittests -f Makefile.tests
+%endif
 
 %install
 rm -rf %{buildroot}
@@ -92,6 +96,7 @@ cp %{_builddir}/%{name}-%{version}/scripts/dlogctrl %{buildroot}/usr/bin/dlogctr
 mkdir -p %{buildroot}/opt/etc
 cp %SOURCE201 %{buildroot}/opt/etc/dlog.conf
 
+
 %if %{?systemd_journal} == OFF
 mkdir -p %{buildroot}%{_unitdir}/multi-user.target.wants/
 install -m 0644 %SOURCE301 %{buildroot}%{_unitdir}
@@ -100,9 +105,8 @@ ln -s ../dlog_logger.path %{buildroot}%{_unitdir}/multi-user.target.wants/dlog_l
 
 # default set log output to external files
 cp %SOURCE202 %{buildroot}/opt/etc/dlog_logger.conf
-%endif
-
 install -m 0644 %SOURCE401 %{buildroot}%{_unitdir}
+%endif
 
 mkdir -p %{buildroot}/usr/share/license
 cp LICENSE.Apache-2.0 %{buildroot}/usr/share/license/%{name}
@@ -115,19 +119,18 @@ mkdir -p %{buildroot}/var/log/dlog
 # Workaround: replace with dlogutil script due to scheduling issue
 rm %{buildroot}/usr/bin/dlogutil
 cp %{_builddir}/%{name}-%{version}/scripts/dlogutil.sh %{buildroot}/usr/bin/dlogutil
+%else
+install -m 0755 %{_builddir}/%{name}-%{version}/unittests/dlogtest %{buildroot}/usr/bin/
 %endif
 
 mkdir -p %{buildroot}%{_localstatedir}/dlog
-
 mkdir -p %{buildroot}/var/log/dlog
 
-install -m 0755 %{_builddir}/%{name}-%{version}/unittests/dlogtest %{buildroot}/usr/bin/
-
 %preun
-systemctl disable dlog.service
+systemctl disable dlog.service || true
 
 %post
-systemctl enable dlog.service
+systemctl enable dlog.service || true
 
 %postun
 systemctl daemon-reload
@@ -150,8 +153,10 @@ systemctl daemon-reload
 %files
 /usr/share/license/%{name}
 %attr(700,root,root) %{_sbindir}/dloginit
-%attr(-,root,root) %{_unitdir}/dlog.service
 %dir %attr(755,root,root) %{_localstatedir}/dlog
+%if %{?systemd_journal} == OFF
+%attr(-,root,root) %{_unitdir}/dlog.service
+%endif
 
 %files  -n dlogutil
 %manifest dlogutil.manifest
@@ -179,5 +184,7 @@ systemctl daemon-reload
 %{_libdir}/pkgconfig/dlog.pc
 %{_libdir}/libdlog.so
 
+%if %{?systemd_journal} == OFF
 %files -n dlog-tests
 /usr/bin/dlogtest
+%endif
