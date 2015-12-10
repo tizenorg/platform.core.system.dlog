@@ -168,7 +168,7 @@ static int __write_to_log_kernel(log_id_t log_id, log_priority prio, const char 
 
 	ret = write(log_fd, buf, len > LOG_BUF_SIZE ? LOG_BUF_SIZE : len);
 	if (ret < 0)
-	    ret = errno;
+	    ret = -errno;
 
 	return ret;
 }
