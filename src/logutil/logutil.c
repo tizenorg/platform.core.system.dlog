@@ -196,6 +196,8 @@ static void read_log_lines(struct log_device_t* devices)
 						break;
 					else if (ret == RQER_PARSE)
 						continue;
+					else if (ret == RQER_EPIPE) // EPIPE is not an error: it signals the cyclic buffer having made a full turn and overwritten previous data.
+						continue;
 
 					enqueue(&dev->queue, entry);
 					++queued_lines;

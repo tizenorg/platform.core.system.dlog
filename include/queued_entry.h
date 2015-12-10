@@ -45,6 +45,8 @@ struct queued_entry_t {
 #define RQER_EINTR	1
 #define RQER_EAGAIN	2
 #define RQER_PARSE	3
+#define RQER_EPIPE      4
+//TODO: consider enum
 
 struct queued_entry_t* new_queued_entry(uint32_t log_read_size_max);
 void free_queued_entry(struct queued_entry_t* entry);
