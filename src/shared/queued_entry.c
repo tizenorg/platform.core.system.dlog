@@ -145,6 +145,8 @@ int read_queued_entry_from_dev(int fd, struct queued_entry_t *entry,
 			return RQER_EINTR;
 		case EAGAIN:
 			return RQER_EAGAIN;
+		case EPIPE:
+			return RQER_EPIPE;
 		default:
 			_E("read: %s", strerror(errno));
 			exit(EXIT_FAILURE);
