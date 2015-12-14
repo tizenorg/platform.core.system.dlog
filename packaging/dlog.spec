@@ -118,6 +118,7 @@ systemctl disable dlog.service
 
 %post
 systemctl enable dlog.service
+chsmack -a System /var/log/dlog
 %endif
 
 %postun
