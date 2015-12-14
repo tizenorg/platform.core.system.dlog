@@ -127,6 +127,7 @@ systemctl daemon-reload
 systemctl disable dlog_logger.service
 
 %post -n dlogutil
+chsmack -a System /var/log/dlog
 systemctl enable dlog_logger.service
 
 %postun -n dlogutil
