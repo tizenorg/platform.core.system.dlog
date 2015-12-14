@@ -13,7 +13,8 @@ Source203:  packaging/dlog_logger.conf-micro.in
 Source204:  packaging/dlog_logger.conf-debug.in
 Source301:  packaging/dlog_logger.service
 Source302:  packaging/dlog_logger.path
-Source401:  packaging/dlog.service
+Source401:  packaging/dloginit.service
+Source501:  packaging/01-dlog.rules
 
 %define systemd_journal OFF
 
@@ -72,7 +73,7 @@ cp %{SOURCE102} .
 %endif
 			--enable-engineer_mode
 make %{?jobs:-j%jobs} \
-	CFLAGS+=-DKMSG_DEV_CONFIG_FILE=\\\"%{_localstatedir}/dlog/dlog_init.conf\\\"
+	CFLAGS+=-DKMSG_DEV_CONFIG_FILE=\\\"/run/dloginit.conf\\\"
 
 %install
 rm -rf %{buildroot}
@@ -92,7 +93,13 @@ ln -s ../dlog_logger.path %{buildroot}%{_unitdir}/multi-user.target.wants/dlog_l
 # default set log output to external files
 cp %SOURCE202 %{buildroot}/opt/etc/dlog_logger.conf
 
+mkdir -p %{buildroot}%{_unitdir}/sysinit.target.wants/
 install -m 0644 %SOURCE401 %{buildroot}%{_unitdir}
+ln -s ../dloginit.service %{buildroot}%{_unitdir}/sysinit.target.wants/dloginit.service
+
+mkdir -p %{buildroot}%{_udevrulesdir}
+install -m 0644 %SOURCE501 %{buildroot}%{_udevrulesdir}/01-dlog.rules
+
 %endif
 
 mkdir -p %{buildroot}/usr/share/license
@@ -108,27 +115,15 @@ rm %{buildroot}/usr/bin/dlogutil
 cp %{_builddir}/%{name}-%{version}/scripts/dlogutil.sh %{buildroot}/usr/bin/dlogutil
 %endif
 
-mkdir -p %{buildroot}%{_localstatedir}/dlog
-
 mkdir -p %{buildroot}/var/log/dlog
 
 %if %{?systemd_journal} == OFF
-%preun
-systemctl disable dlog.service
-
 %post
-systemctl enable dlog.service
 chsmack -a System /var/log/dlog
 %endif
 
 %postun
 systemctl daemon-reload
-
-%preun -n dlogutil
-systemctl disable dlog_logger.service
-
-%post -n dlogutil
-systemctl enable dlog_logger.service
 
 %postun -n dlogutil
 systemctl daemon-reload
@@ -143,8 +138,9 @@ systemctl daemon-reload
 /usr/share/license/%{name}
 %if %{?systemd_journal} == OFF
 %attr(700,root,root) %{_sbindir}/dloginit
-%attr(-,root,root) %{_unitdir}/dlog.service
-%dir %attr(755,root,root) %{_localstatedir}/dlog
+%attr(-,root,root) %{_unitdir}/dloginit.service
+%{_unitdir}/sysinit.target.wants/dloginit.service
+%{_udevrulesdir}/01-dlog.rules
 %endif
 
 %files  -n dlogutil
