@@ -35,9 +35,18 @@
 #define LOG_RADIO_CONF_PREFIX   "LOG_RADIO="
 #define LOG_SYSTEM_CONF_PREFIX  "LOG_SYSTEM="
 #define LOG_APPS_CONF_PREFIX    "LOG_APPS="
+#define LOG_TYPE_CONF_PREFIX    "LOG_TYPE="
+
+enum
+	{ DLOG_MODE_KMSG
+	, DLOG_MODE_JOURNAL
+	, DLOG_MODE_LOGGER
+};
 
 int get_log_dev_names(char devs[LOG_ID_MAX][PATH_MAX]);
 
 log_id_t log_id_by_name(const char *name);
+
+int dlog_mode_detect ();
 
 #endif /* _LOGCOMMON_H */

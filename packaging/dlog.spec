@@ -16,8 +16,6 @@ Source302:  packaging/dlog_logger.path
 Source401:  packaging/dloginit.service
 Source501:  packaging/01-dlog.rules
 
-%define systemd_journal OFF
-
 BuildRequires: autoconf
 BuildRequires: automake
 BuildRequires: libtool
@@ -68,15 +66,13 @@ cp %{SOURCE102} .
 %autogen --disable-static
 %configure --disable-static \
 			--enable-fatal_on \
-%if %{?systemd_journal} == ON
-			--enable-journal \
-%endif
 			--enable-engineer_mode
 make %{?jobs:-j%jobs} \
 	CFLAGS+=-DKMSG_DEV_CONFIG_FILE=\\\"/run/dloginit.conf\\\"
 
 %install
 rm -rf %{buildroot}
+
 %make_install
 mkdir -p %{buildroot}/usr/bin/
 cp %{_builddir}/%{name}-%{version}/scripts/dlogctrl %{buildroot}/usr/bin/dlogctrl
@@ -84,7 +80,6 @@ cp %{_builddir}/%{name}-%{version}/scripts/dlogctrl %{buildroot}/usr/bin/dlogctr
 mkdir -p %{buildroot}/opt/etc
 cp %SOURCE201 %{buildroot}/opt/etc/dlog.conf
 
-%if %{?systemd_journal} == OFF
 mkdir -p %{buildroot}%{_unitdir}/multi-user.target.wants/
 install -m 0644 %SOURCE301 %{buildroot}%{_unitdir}
 install -m 0644 %SOURCE302 %{buildroot}%{_unitdir}
@@ -100,8 +95,6 @@ ln -s ../dloginit.service %{buildroot}%{_unitdir}/sysinit.target.wants/dloginit.
 mkdir -p %{buildroot}%{_udevrulesdir}
 install -m 0644 %SOURCE501 %{buildroot}%{_udevrulesdir}/01-dlog.rules
 
-%endif
-
 mkdir -p %{buildroot}/usr/share/license
 cp LICENSE.Apache-2.0 %{buildroot}/usr/share/license/%{name}
 cp LICENSE.Apache-2.0 %{buildroot}/usr/share/license/libdlog
@@ -109,22 +102,15 @@ cp LICENSE.Apache-2.0 %{buildroot}/usr/share/license/dlogutil
 
 mkdir -p %{buildroot}/var/log/dlog
 
-%if %{?systemd_journal} == ON
 # Workaround: replace with dlogutil script due to scheduling issue
-rm %{buildroot}/usr/bin/dlogutil
-cp %{_builddir}/%{name}-%{version}/scripts/dlogutil.sh %{buildroot}/usr/bin/dlogutil
-%endif
-
-mkdir -p %{buildroot}/var/log/dlog
+#cp %{_builddir}/%{name}-%{version}/scripts/dlogutil.sh %{buildroot}/usr/bin/dlogutil
 
 %post
 systemctl daemon-reload
 
 %post -n dlogutil
 systemctl daemon-reload
-%if %{?systemd_journal} == OFF
 chsmack -a System /var/log/dlog
-%endif
 
 %postun -n dlogutil
 systemctl daemon-reload
@@ -137,12 +123,10 @@ systemctl daemon-reload
 
 %files
 /usr/share/license/%{name}
-%if %{?systemd_journal} == OFF
 %attr(700,root,root) %{_sbindir}/dloginit
 %attr(-,root,root) %{_unitdir}/dloginit.service
 %{_unitdir}/sysinit.target.wants/dloginit.service
 %{_udevrulesdir}/01-dlog.rules
-%endif
 
 %files  -n dlogutil
 %manifest dlogutil.manifest
@@ -150,13 +134,11 @@ systemctl daemon-reload
 %attr(750,log,log) %{_bindir}/dlogutil
 %attr(755,log,log) %{_bindir}/dlogctrl
 %attr(755,log,log) /var/log/dlog
-%if %{?systemd_journal} == OFF
 %attr(750,log,log) %{_bindir}/dlog_logger
 %attr(664,log,log) /opt/etc/dlog_logger.conf
 %{_unitdir}/dlog_logger.service
 %{_unitdir}/dlog_logger.path
 %{_unitdir}/multi-user.target.wants/dlog_logger.path
-%endif
 
 %files  -n libdlog
 %manifest libdlog.manifest

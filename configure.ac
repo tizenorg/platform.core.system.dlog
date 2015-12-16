@@ -20,25 +20,6 @@ AC_PROG_LIBTOOL
 AC_SUBST(M4_DEFINES)
 M4_DEFINES=
 
-# check for libsystemd-journal
-AC_ARG_ENABLE(journal, AS_HELP_STRING([--enable-journal], [enable systemd journal]),
-    [with_systemd_journal=yes],
-    with_systemd_journal=no)
-if test "x$with_systemd_journal" != "xno"; then
-	PKG_CHECK_MODULES(systemd_journal, [libsystemd-journal],
-		[AC_DEFINE(HAVE_SYSTEMD_JOURNAL, 1, [Define if systemd journal is available])
-		have_systemd_journal=yes],
-	    have_systemd_journal=no)
-	if test "x$have_systemd_journal" = "xno" -a "x$with_systemd_journal" = "xyes"; then
-		AC_MSG_ERROR([systemd journal requested but libraries not found])
-	fi
-fi
-AM_CONDITIONAL(HAVE_SYSTEMD_JOURNAL, [test "x$have_systemd_journal" = "xyes"])
-if test "x$have_systemd_journal" = "xyes" ; then
-	systemd_journal=systemd-journal
-fi
-AC_SUBST(systemd_journal)
-
 # check binary type for tizen engineer mode
 AC_ARG_ENABLE([engineer_mode],
 	AS_HELP_STRING([--enable-engineer_mode Turn on engineer_mode]),
