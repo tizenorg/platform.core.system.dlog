@@ -40,8 +40,6 @@
 #include <logprint.h>
 #include <kmsg_ioctl.h>
 
-#ifndef HAVE_SYSTEMD_JOURNAL
-
 #define DEFAULT_LOG_ROTATE_SIZE_KBYTES 16
 #define DEFAULT_MAX_ROTATED_LOGS 4
 #define MAX_QUEUED 4096
@@ -155,7 +153,7 @@ static void printNextEntry(struct log_device_t* dev)
 }
 
 
-static void read_log_lines(struct log_device_t* devices)
+static void read_log_lines(struct log_device_t* devices, int mode)
 {
 	struct log_device_t* dev;
 	int max = 0;
@@ -195,7 +193,7 @@ static void read_log_lines(struct log_device_t* devices)
 					else if (ret == RQER_EAGAIN)
 						break;
 					else if (ret == RQER_PARSE
-					      || ret == RQER_EPIPE) // EPIPE is not an error: it signals the cyclic buffer having made a full turn and overwritten previous data
+					     || (ret == RQER_EPIPE && mode == DLOG_MODE_KMSG)) // EPIPE is not an error for kmsg: it signals the cyclic buffer having made a full turn and overwritten previous data
 						continue;
 
 					enqueue(&dev->queue, entry);
@@ -408,11 +406,15 @@ static int log_devices_add_to_tail(struct log_device_t *devices, struct log_devi
 
 	return 0;
 }
-#endif
 
-int main(int argc, char **argv)
+int main_logger(int argc, char **argv)
 {
-#ifdef HAVE_SYSTEMD_JOURNAL
+	// TODO: learn whether we should implement this at all in the first place - if so, implement
+	return 0;
+}
+
+int main_journal(int argc, char **argv)
+{
 	int r;
 	sd_journal *j;
 
@@ -502,7 +504,10 @@ int main(int argc, char **argv)
 	sd_journal_close(j);
 
 	return 0;
-#else
+}
+
+int main_kmsg (int argc, char **argv, int dlog_mode)
+{
 	int err;
 	int has_set_log_format = 0;
 	int is_clear_log = 0;
@@ -747,10 +752,24 @@ int main(int argc, char **argv)
 		return 0;
 	}
 
-	read_log_lines(devices);
+	read_log_lines(devices, dlog_mode);
 
 	log_devices_chain_free(devices);
 
 	return 0;
-#endif
+}
+
+int main(int argc, char **argv)
+{
+	int mode = dlog_mode_detect();
+	switch (mode) {
+		case DLOG_MODE_JOURNAL:
+			return main_journal (argc, argv);
+		case DLOG_MODE_KMSG:
+		case DLOG_MODE_LOGGER:
+			return main_kmsg (argc, argv, mode);
+		default:
+			assert (0);
+			return 1;
+	}
 }

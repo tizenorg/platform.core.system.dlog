@@ -30,7 +30,7 @@
 #include <logcommon.h>
 #include <dlog.h>
 
-#define DEV_KMSG	"/dev/kmsg"
+#define DEV_KMSG "/dev/kmsg"
 
 int g_minors[LOG_ID_MAX] = {-1, -1, -1, -1};
 
@@ -69,14 +69,36 @@ static void remove_kmsg_devs(int fd)
 static int write_config(FILE *config_file)
 {
 	return fprintf(config_file,
+		       "%s%s\n"
 		       "%s%s%d\n"
 		       "%s%s%d\n"
 		       "%s%s%d\n"
 		       "%s%s%d",
-		       LOG_MAIN_CONF_PREFIX, DEV_KMSG, g_minors[LOG_ID_MAIN],
-		       LOG_RADIO_CONF_PREFIX, DEV_KMSG, g_minors[LOG_ID_RADIO],
+		       LOG_TYPE_CONF_PREFIX,   "kmsg",
+		       LOG_MAIN_CONF_PREFIX,   DEV_KMSG, g_minors[LOG_ID_MAIN],
+		       LOG_RADIO_CONF_PREFIX,  DEV_KMSG, g_minors[LOG_ID_RADIO],
 		       LOG_SYSTEM_CONF_PREFIX, DEV_KMSG, g_minors[LOG_ID_SYSTEM],
-		       LOG_APPS_CONF_PREFIX, DEV_KMSG, g_minors[LOG_ID_APPS]);
+		       LOG_APPS_CONF_PREFIX,   DEV_KMSG, g_minors[LOG_ID_APPS]);
+}
+
+static int write_config_non_kmsg (FILE *config_file)
+{
+	FILE *logfile = fopen("/dev/log_main", "r");
+	if (!logfile) return fprintf(config_file, "TYPE=journal");
+	else {
+		fclose(logfile);
+		return fprintf(config_file,
+			"%s%s\n"
+			"%s%s\n"
+			"%s%s\n"
+			"%s%s\n"
+			"%s%s",
+			LOG_TYPE_CONF_PREFIX,   "logger",
+			LOG_MAIN_CONF_PREFIX,   "/dev/log_main",
+			LOG_RADIO_CONF_PREFIX,  "/dev/log_radio",
+			LOG_SYSTEM_CONF_PREFIX, "/dev/log_system",
+			LOG_APPS_CONF_PREFIX,   "/dev/log_apps");
+	}
 }
 
 int main()
@@ -105,6 +127,7 @@ int main()
 	return 0;
 
 error:
+	write_config_non_kmsg (config_file);
 	remove_kmsg_devs(kmsg_fd);
 	exit(EXIT_FAILURE);
 }
