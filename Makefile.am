@@ -51,7 +51,6 @@ dlogutil_SOURCES = \
 	include/log_file.h \
 	include/logprint.h
 
-if !HAVE_SYSTEMD_JOURNAL
 bin_PROGRAMS += dlog_logger
 sbin_PROGRAMS = dloginit
 
@@ -90,7 +89,6 @@ dlog_logger_SOURCES = \
 	include/queued_entry.h \
 	include/log_file.h \
 	include/logprint.h
-endif
 
 include/%: include/%.m4
 	m4 -P $(M4_DEFINES) < $< > $@
