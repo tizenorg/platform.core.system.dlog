@@ -18,6 +18,8 @@
 
 #include <string.h>
 
+#include <sys/stat.h>
+
 #include <logcommon.h>
 
 #define MAX_PREFIX_SIZE 32
@@ -102,4 +104,12 @@ log_id_t log_id_by_name(const char *name)
 		return LOG_ID_APPS;
 	else
 		return -1;
+}
+
+int dlog_mode_detect (void)
+{
+	struct stat temp;
+
+	if (!stat ("/usr/sbin/dloginit", &temp)) return DLOG_MODE_KMSG;
+	else return DLOG_MODE_JOURNAL;
 }
