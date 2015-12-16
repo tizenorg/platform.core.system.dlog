@@ -40,8 +40,6 @@
 #include <logprint.h>
 #include <kmsg_ioctl.h>
 
-#ifndef HAVE_SYSTEMD_JOURNAL
-
 #define DEFAULT_LOG_ROTATE_SIZE_KBYTES 16
 #define DEFAULT_MAX_ROTATED_LOGS 4
 #define MAX_QUEUED 4096
@@ -408,11 +406,50 @@ static int log_devices_add_to_tail(struct log_device_t *devices, struct log_devi
 
 	return 0;
 }
-#endif
 
-int main(int argc, char **argv)
+int main_logger(int argc, char **argv)
 {
-#ifdef HAVE_SYSTEMD_JOURNAL
+	// TODO: learn whether we should implement this at all in the first place - if so, implement
+	return 0;
+}
+
+// ugly hax -- the proper way won't work due to a scheduling issue
+int main_journal_workaround (int argc, char **argv)
+{
+	int opt;
+	for (;;) {
+
+		opt = getopt(argc, argv, "cdt:gsf:r:n:v:b:D");
+
+		if (opt < 0) {
+			break;
+		}
+
+		switch(opt) {
+			case 'g':
+				printf ("1024\n");
+				return 0;
+			case 's':
+			case 'c':
+			case 'd':
+			case 't':
+			case 'b':
+			case 'f':
+			case 'r':
+			case 'n':
+			case 'v':
+				break;
+			default:
+				_E("Unrecognized Option\n");
+				show_help (argv[0]);
+				return -1;
+		}
+	}
+	return system ("journalctl -f");
+}
+
+int main_journal(int argc, char **argv)
+{
 	int r;
 	sd_journal *j;
 
@@ -502,7 +539,10 @@ int main(int argc, char **argv)
 	sd_journal_close(j);
 
 	return 0;
-#else
+}
+
+int main_kmsg(int argc, char **argv)
+{
 	int err;
 	int has_set_log_format = 0;
 	int is_clear_log = 0;
@@ -752,5 +792,14 @@ int main(int argc, char **argv)
 	log_devices_chain_free(devices);
 
 	return 0;
-#endif
+}
+
+int main(int argc, char **argv)
+{
+	switch (dlog_mode_detect()) {
+		case DLOG_MODE_KMSG: return main_kmsg (argc, argv);
+		case DLOG_MODE_JOURNAL: return main_journal_workaround (argc, argv);
+		case DLOG_MODE_LOGGER: return main_logger (argc, argv);
+		default: assert (0); return 1;
+	}
 }

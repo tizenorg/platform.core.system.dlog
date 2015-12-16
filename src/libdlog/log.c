@@ -31,11 +31,9 @@
 #include <logcommon.h>
 #include "loglimiter.h"
 #include "logconfig.h"
-#ifdef HAVE_SYSTEMD_JOURNAL
 #define SD_JOURNAL_SUPPRESS_LOCATION 1
 #include <syslog.h>
 #include <systemd/sd-journal.h>
-#endif
 #ifdef FATAL_ON
 #include <assert.h>
 #endif
@@ -45,15 +43,12 @@
 #define VALUE_MAX 2
 #define LOG_CONFIG_FILE "/opt/etc/dlog.conf"
 
-#ifndef HAVE_SYSTEMD_JOURNAL
 static int log_fds[(int)LOG_ID_MAX] = { -1, -1, -1, -1 };
 static char log_devs[LOG_ID_MAX][PATH_MAX];
-#endif
 static int (*write_to_log)(log_id_t, log_priority, const char *tag, const char *msg) = NULL;
 static pthread_mutex_t log_init_lock = PTHREAD_MUTEX_INITIALIZER;
 static struct log_config config;
 
-#ifdef HAVE_SYSTEMD_JOURNAL
 static inline int dlog_pri_to_journal_pri(log_priority prio)
 {
 	static int pri_table[DLOG_PRIO_MAX] = {
@@ -137,7 +132,6 @@ static int __write_to_log_sd_journal(log_id_t log_id, log_priority prio, const c
 	return sd_journal_sendv(vec, 5);
 }
 
-#else
 static int __write_to_log_null(log_id_t log_id, log_priority prio, const char *tag, const char *msg)
 {
 	return DLOG_ERROR_NOT_PERMITTED;
@@ -172,7 +166,6 @@ static int __write_to_log_kernel(log_id_t log_id, log_priority prio, const char 
 
 	return ret;
 }
-#endif
 
 static void __configure(void)
 {
@@ -191,30 +184,34 @@ static void __configure(void)
 static void __dlog_init(void)
 {
 	pthread_mutex_lock(&log_init_lock);
-	/* configuration */
 	__configure();
-#ifdef HAVE_SYSTEMD_JOURNAL
-	write_to_log = __write_to_log_sd_journal;
-#else
-	/* open device */
-	if (0 == get_log_dev_names(log_devs)) {
-		log_fds[LOG_ID_MAIN] = open(log_devs[LOG_ID_MAIN], O_WRONLY);
-		log_fds[LOG_ID_SYSTEM] = open(log_devs[LOG_ID_SYSTEM], O_WRONLY);
-		log_fds[LOG_ID_RADIO] = open(log_devs[LOG_ID_RADIO], O_WRONLY);
-		log_fds[LOG_ID_APPS] = open(log_devs[LOG_ID_APPS], O_WRONLY);
+
+	switch (dlog_mode_detect()) {
+		case DLOG_MODE_JOURNAL:
+			write_to_log = __write_to_log_sd_journal;
+			break;
+		case DLOG_MODE_KMSG:
+		case DLOG_MODE_LOGGER:
+			if (0 == get_log_dev_names(log_devs)) {
+				log_fds[LOG_ID_MAIN]   = open(log_devs[LOG_ID_MAIN],   O_WRONLY);
+				log_fds[LOG_ID_SYSTEM] = open(log_devs[LOG_ID_SYSTEM], O_WRONLY);
+				log_fds[LOG_ID_RADIO]  = open(log_devs[LOG_ID_RADIO],  O_WRONLY);
+				log_fds[LOG_ID_APPS]   = open(log_devs[LOG_ID_APPS],   O_WRONLY);
+			}
+			if (log_fds[LOG_ID_MAIN] < 0) {
+				write_to_log = __write_to_log_null;
+			} else {
+				write_to_log = __write_to_log_kernel;
+			}
+			if (log_fds[LOG_ID_RADIO] < 0)
+				log_fds[LOG_ID_RADIO]  = log_fds[LOG_ID_MAIN];
+			if (log_fds[LOG_ID_SYSTEM] < 0)
+				log_fds[LOG_ID_SYSTEM] = log_fds[LOG_ID_MAIN];
+			if (log_fds[LOG_ID_APPS] < 0)
+				log_fds[LOG_ID_APPS]   = log_fds[LOG_ID_MAIN];
+			break;
+		default: assert (0); break;
 	}
-	if (log_fds[LOG_ID_MAIN] < 0) {
-		write_to_log = __write_to_log_null;
-	} else {
-		write_to_log = __write_to_log_kernel;
-	}
-	if (log_fds[LOG_ID_RADIO] < 0)
-		log_fds[LOG_ID_RADIO] = log_fds[LOG_ID_MAIN];
-	if (log_fds[LOG_ID_SYSTEM] < 0)
-		log_fds[LOG_ID_SYSTEM] = log_fds[LOG_ID_MAIN];
-	if (log_fds[LOG_ID_APPS] < 0)
-		log_fds[LOG_ID_APPS] = log_fds[LOG_ID_MAIN];
-#endif
 	pthread_mutex_unlock(&log_init_lock);
 }
 

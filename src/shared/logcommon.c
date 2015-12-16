@@ -54,6 +54,11 @@ int get_log_dev_names(char devs[LOG_ID_MAX][PATH_MAX])
 		if (line[len-1] == '\n')
 			line[len-1] = '\0';
 
+		dev = get_dev_from_line (line, LOG_TYPE_CONF_PREFIX);
+		if (dev) {
+			continue;
+		}
+
 		dev = get_dev_from_line(line, LOG_MAIN_CONF_PREFIX);
 		if (dev) {
 			strncpy(devs[LOG_ID_MAIN], dev, PATH_MAX);
@@ -102,4 +107,18 @@ log_id_t log_id_by_name(const char *name)
 		return LOG_ID_APPS;
 	else
 		return -1;
+}
+
+int dlog_mode_detect (void)
+{
+	char buffer [256];
+	FILE * config;
+
+	if (!(config = fopen (KMSG_DEV_CONFIG_FILE, "r"))) return DLOG_MODE_JOURNAL;
+	if (!fscanf (config, LOG_TYPE_CONF_PREFIX "%s", buffer)) return DLOG_MODE_JOURNAL;
+	fclose (config);
+
+	if (!strcmp ("kmsg", buffer)) return DLOG_MODE_KMSG;
+	else if (!strcmp ("logger", buffer)) return DLOG_MODE_LOGGER;
+	else return DLOG_MODE_JOURNAL;
 }
