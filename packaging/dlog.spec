@@ -103,6 +103,15 @@ cp %{_builddir}/%{name}-%{version}/scripts/dlogutil.sh %{buildroot}/usr/bin/dlog
 mkdir -p %{buildroot}%{_udevrulesdir}
 cp 01-dlog.rules %{buildroot}%{_udevrulesdir}/01-dlog.rules
 
+# Make the file telling the current backend
+mkdir -p %{buildroot}/etc
+
+%if %{?systemd_journal} == ON
+	echo journal > %{buildroot}/etc/dlog_backend
+%else
+	echo logger > %{buildroot}/etc/dlog_backend
+%endif
+
 %preun -n dlogutil
 
 %post -n dlogutil
@@ -142,6 +151,7 @@ systemctl daemon-reload
 %{_libdir}/libdlog.so.0
 %{_libdir}/libdlog.so.0.0.0
 %attr(664,log,log) /opt/etc/dlog.conf
+%attr(644,log,log) /etc/dlog_backend
 
 %files -n libdlog-devel
 %{_includedir}/dlog/dlog.h
