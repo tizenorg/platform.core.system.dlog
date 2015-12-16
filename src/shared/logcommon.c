@@ -18,6 +18,8 @@
 
 #include <string.h>
 
+#include <sys/stat.h>
+
 #include <logcommon.h>
 
 #define MAX_PREFIX_SIZE 32
@@ -102,4 +104,18 @@ log_id_t log_id_by_name(const char *name)
 		return LOG_ID_APPS;
 	else
 		return -1;
+}
+
+int dlog_mode_detect (void)
+{
+	char buffer [256];
+	FILE * config;
+
+	if (!(config = fopen (KMSG_DEV_CONFIG_FILE, "r"))) return DLOG_MODE_JOURNAL;
+	if (!fscanf (config, "TYPE=%s", buffer)) return DLOG_MODE_JOURNAL;
+	fclose (config);
+
+	if (!strcmp ("kmsg", buffer)) return DLOG_MODE_KMSG;
+	else if (!strcmp ("logger", buffer)) return DLOG_MODE_LOGGER;
+	else return DLOG_MODE_JOURNAL;
 }
