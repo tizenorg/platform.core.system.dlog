@@ -367,7 +367,7 @@ static void do_logger(struct log_device *dev)
 					malloc(sizeof(struct queued_entry));
 				if (entry == NULL) {
 					_E("failed to malloc queued_entry\n");
-					goto exit;//exit(EXIT_FAILURE);
+					goto exit; /* exit(EXIT_FAILURE); */
 				}
 				entry->next = NULL;
 				ret = read(pdev->fd, entry->buf,
@@ -382,7 +382,7 @@ static void do_logger(struct log_device *dev)
 						break;
 					}
 					_E("dlogutil read");
-					goto exit;//exit(EXIT_FAILURE);
+					goto exit;/* exit(EXIT_FAILURE); */
 				} else if (!ret) {
 					free(entry);
 					_E("read: Unexpected EOF!\n");
@@ -393,7 +393,7 @@ static void do_logger(struct log_device *dev)
 					_E("unexpected length. Expected %d, got %d\n",
 							entry->entry.len,
 							ret - (int)sizeof(struct logger_entry));
-					goto exit;//exit(EXIT_FAILURE);
+					goto exit;/* exit(EXIT_FAILURE); */
 				}
 
 				entry->entry.msg[entry->entry.len] = '\0';
@@ -886,8 +886,8 @@ static void sig_handler(int signo)
 	exit(EXIT_SUCCESS);
 }
 
-static int help(void) {
-
+static int help(void)
+{
 	printf("%s [OPTIONS...] \n\n"
 			"Logger, records log messages to files.\n\n"
 			"  -h      Show this help\n"
@@ -898,41 +898,42 @@ static int help(void) {
 	return 0;
 }
 
-static int parse_argv(int argc, char *argv[]) {
+static int parse_argv(int argc, char *argv[])
+{
 	int ret = 1, option;
 
 	while ((option = getopt(argc, argv, "hb:t:")) != -1) {
 		switch (option) {
-			case 't':
-				if (!isdigit(optarg[0])) {
-					ret = -EINVAL;
-					printf("Wrong argument!\n");
-					help();
-					goto exit;
-				}
-				min_interval = atoi(optarg);
-				if (min_interval < 0 || INTERVAL_MAX < min_interval)
-					min_interval = 0;
-				ret = 1;
-				break;
-			case 'b':
-				if (!isdigit(optarg[0])) {
-					ret = -EINVAL;
-					printf("Wrong argument!\n");
-					help();
-					goto exit;
-				}
-				buffer_size = atoi(optarg);
-				if (buffer_size < 0 || BUFFER_MAX < buffer_size)
-					buffer_size = 0;
-				ret = 1;
-				break;
-			case 'h':
-				help();
-				ret = 0;
-				goto exit;
-			default:
+		case 't':
+			if (!isdigit(optarg[0])) {
 				ret = -EINVAL;
+				printf("Wrong argument!\n");
+				help();
+				goto exit;
+			}
+			min_interval = atoi(optarg);
+			if (min_interval < 0 || INTERVAL_MAX < min_interval)
+				min_interval = 0;
+			ret = 1;
+			break;
+		case 'b':
+			if (!isdigit(optarg[0])) {
+				ret = -EINVAL;
+				printf("Wrong argument!\n");
+				help();
+				goto exit;
+			}
+			buffer_size = atoi(optarg);
+			if (buffer_size < 0 || BUFFER_MAX < buffer_size)
+				buffer_size = 0;
+			ret = 1;
+			break;
+		case 'h':
+			help();
+			ret = 0;
+			goto exit;
+		default:
+			ret = -EINVAL;
 		}
 	}
 exit:
@@ -1022,9 +1023,9 @@ int main(int argc, char **argv)
 		/* 5. attatch the work to device task for logging */
 		dev = devices;
 		while (dev) {
-			if (command_list[i].devices[dev->id] == true) {
+			if (command_list[i].devices[dev->id] == true)
 				work_add_to_device(dev, work);
-			}
+
 			dev = dev->next;
 		}
 	}

@@ -43,10 +43,10 @@ void utc_ApplicationFW_dlog_vprint_func_01(void)
 
 	/*	va_start(ap, fmt);*/
 
-	r = dlog_vprint(DLOG_DEBUG, "DLOG_TEST", buf, ap );
+	r = dlog_vprint(DLOG_DEBUG, "DLOG_TEST", buf, ap);
 	/*	va_end(ap);*/
 
-	if (r<0) {
+	if (r < 0) {
 		tet_printf("dlog_vprint() failed in positive test case");
 		tet_result(TET_FAIL);
 		return;
@@ -62,12 +62,12 @@ void utc_ApplicationFW_dlog_vprint_func_02(void)
 	int r = 0;
 	char buf[LOG_BUF_SIZE];
 	va_list ap;
-//	va_start(ap, fmt);
+/*	va_start(ap, fmt); */
 
-	r = dlog_vprint(DLOG_UNKNOWN, "DLOG_TEST", fmt, ap );
-//	va_end(ap);
+	r = dlog_vprint(DLOG_UNKNOWN, "DLOG_TEST", fmt, ap);
+/*	va_end(ap); */
 
-	if (r>=0) {
+	if (r >= 0) {
 		tet_printf("dlog_vprint() failed in negative test case");
 		tet_result(TET_FAIL);
 		return;

@@ -42,9 +42,9 @@
 
 #define TIME_FRAME                60
 
-struct rule{
+struct rule {
 	/* TODO: List element handle, the list could be embedded
-	         into structure some day, like kernel lists */
+		into structure some day, like kernel lists */
 	struct rule* prev;
 
 	unsigned hash;
@@ -77,9 +77,8 @@ static void rules_destroy(struct rule* rlist)
 {
 	struct rule* r;
 
-	if (NULL == rlist) {
+	if (NULL == rlist)
 		return;
-	}
 
 	while ((r = rlist)) {
 		rlist = rlist->prev;
@@ -96,11 +95,10 @@ void __log_limiter_rules_purge(void)
 static int rule_compare(struct rule* r1, struct rule* r2)
 {
 	if (r1->hash == r2->hash) {
-		if (r1->prio == r2->prio) {
+		if (r1->prio == r2->prio)
 			return strncmp(r1->tag, r2->tag, strlen(r2->tag));
-		} else {
+		else
 			return (r1->prio > r2->prio ? 1 : (-1));
-		}
 	}
 
 	return (r1->hash > r2->hash ? 1 : (-1));
@@ -109,11 +107,10 @@ static int rule_compare(struct rule* r1, struct rule* r2)
 static int rule_match(struct rule* r1, unsigned key, const char* s, int prio)
 {
 	if (r1->hash == key) {
-		if (r1->prio == prio) {
+		if (r1->prio == prio)
 			return strncmp(r1->tag, s, strlen(s));
-		} else {
+		else
 			return (r1->prio > prio ? 1 : (-1));
-		}
 	}
 
 	return (r1->hash > key ? 1 : (-1));
@@ -136,17 +133,17 @@ static int util_prio_to_char(int prio)
 		return pri_table[prio];
 	} else {
 		switch (prio) {
-			case 'V': case 'v': case '1':
-			case 'D': case 'd': case '2':
-			case 'I': case 'i': case '3':
-			case 'W': case 'w': case '4':
-			case 'E': case 'e': case '5':
-			case 'F': case 'f': case '6':
-			case 'S': case 's': case '7':
-			case '*':
-				return prio;
+		case 'V': case 'v': case '1':
+		case 'D': case 'd': case '2':
+		case 'I': case 'i': case '3':
+		case 'W': case 'w': case '4':
+		case 'E': case 'e': case '5':
+		case 'F': case 'f': case '6':
+		case 'S': case 's': case '7':
+		case '*':
+			return prio;
 
-			default:
+		default:
 				;;
 		}
 	}
@@ -162,13 +159,11 @@ static unsigned util_hash_key(const char* s, int c)
 
 	hash = ((hash << 5) + hash) + c;
 
-	if (!s || !s[0]) {
+	if (!s || !s[0])
 		goto finish;
-	}
 
-	while ('\0' != (c = *s++)) {
+	while ('\0' != (c = *s++))
 		hash = ((hash << 5) + hash) + c;
-	}
 
 finish:
 	/* Makes the hash more diverse */
@@ -185,9 +180,8 @@ static struct hashmap* hashmap_create(int size, hash_cmp_func_t cmp_func,
 	/* please keep hashmap fill ratio around 50% */
 	int internal_size = size << 1;
 
-	if (!cmp_func || !match_func || !size) {
+	if (!cmp_func || !match_func || !size)
 		return NULL;
-	}
 
 
 	/* Round up the lines counter to next power of two. */
@@ -200,9 +194,9 @@ static struct hashmap* hashmap_create(int size, hash_cmp_func_t cmp_func,
 	internal_size++;
 
 	hm = malloc(sizeof(struct hashmap) + internal_size * sizeof(void*));
-	if (!hm) {
+	if (!hm)
 		return NULL;
-	}
+
 	/* Initialize hash field to correct value */
 	memset((void*)hm, 0, sizeof(struct hashmap) + internal_size * sizeof(void*));
 
@@ -226,9 +220,8 @@ static void hashmap_add(struct hashmap* hm, struct rule* r)
 	unsigned b = (r->hash & HASHMAP_MASK(hm));
 
 	while (hm->bucket[b]) {
-		if (!hm->cmp(r, (struct rule*)hm->bucket[b])) {
+		if (!hm->cmp(r, (struct rule*)hm->bucket[b]))
 			break;
-		}
 		b = (b + 1) & HASHMAP_MASK(hm);
 	}
 
@@ -242,20 +235,17 @@ static struct rule* hashmap_search(struct hashmap* hm, unsigned key,
 	unsigned b0 = b;
 
 	while (hm->bucket[b]) {
-		if (!hm->match(hm->bucket[b], key, tag, prio)) {
+		if (!hm->match(hm->bucket[b], key, tag, prio))
 			break;
-		}
 
 		b = (b + 1) & HASHMAP_MASK(hm);
 
-		if (b0 == b) {
+		if (b0 == b)
 			return NULL;
-		}
 	}
 
-	if (!hm->bucket[b]) {
+	if (!hm->bucket[b])
 		return NULL;
-	}
 
 	return hm->bucket[b];
 }
@@ -267,9 +257,8 @@ int __log_limiter_initialize(void)
 	struct rule* rlist = NULL;
 
 	/* logconfig.c module had to initialize this correctly */
-	if (NULL == rules_table) {
+	if (NULL == rules_table)
 		return (-1);
-	}
 
 	/* Count rules in the table */
 	hm_size = 0;
@@ -281,11 +270,10 @@ int __log_limiter_initialize(void)
 
 	/* Allocate hashmap */
 	rules_hashmap = (struct hashmap*) hashmap_create(hm_size,
-	                                                 &rule_compare,
-	                                                 &rule_match);
-	if (NULL == rules_hashmap || !rules_hashmap->size) {
+							&rule_compare,
+							&rule_match);
+	if (NULL == rules_hashmap || !rules_hashmap->size)
 		goto bailout;
-	}
 
 	/* Add rule to hashmap */
 	rlist = rules_table;
@@ -317,14 +305,13 @@ int __log_limiter_add_rule(const char* tag, int prio, int limit)
 {
 	struct rule* r;
 
-	if (!tag) {
+	if (!tag)
 		return (-1);
-	}
 
 	r = (struct rule*) malloc(sizeof(struct rule));
-	if (NULL == r) {
+	if (NULL == r)
 		return (-1);
-	}
+
 	memset(r, 0, sizeof(struct rule));
 
 	snprintf(r->tag, TAG_REASONABLE_LEN, "%s", tag);
@@ -367,7 +354,7 @@ int __log_limiter_pass_log(const char* tag, int prio)
 			   let check general rule *:priority */
 			key = util_hash_key("*", util_prio_to_char(prio));
 			r = hashmap_search(rules_hashmap, key, "*",
-			                               util_prio_to_char(prio));
+							util_prio_to_char(prio));
 			if (!r) {
 				/* All known paths were exhausted,
 				   use global rule *:* */
@@ -375,25 +362,22 @@ int __log_limiter_pass_log(const char* tag, int prio)
 				r = hashmap_search(rules_hashmap, key, "*", '*');
 
 				/* *:* is not defined, so pass message through */
-				if (!r) {
+				if (!r)
 					return 1;
-				}
 			}
 		}
 	}
 
-	if (!r->limit) {
+	if (!r->limit)
 		return 0;
-	} else if (__LOG_LIMITER_LIMIT_MAX < r->limit) {
+	else if (__LOG_LIMITER_LIMIT_MAX < r->limit)
 		return 1;
-	}
 
 	/* Decide, if it should go through or stop */
 	now = time(NULL);
 
-	if (0 > now) {
+	if (0 > now)
 		return 1;
-	}
 
 	if (now - r->start <= TIME_FRAME) {
 		if (r->hit >= 0) {

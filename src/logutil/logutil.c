@@ -50,8 +50,8 @@ static bool g_nonblock = false;
 static int g_tail_lines = 0;
 
 static const char * g_output_filename = NULL;
-static int g_log_rotate_size_kbytes = 0;                   // 0 means "no log rotation"
-static int g_max_rotated_logs = DEFAULT_MAX_ROTATED_LOGS; // 0 means "unbounded"
+static int g_log_rotate_size_kbytes = 0;                   /* 0 means "no log rotation" */
+static int g_max_rotated_logs = DEFAULT_MAX_ROTATED_LOGS; /* 0 means "unbounded" */
 static int g_outfd = -1;
 static off_t g_out_byte_count = 0;
 static int g_dev_count = 0;
@@ -67,9 +67,9 @@ struct queued_entry_t {
 static int cmp(struct queued_entry_t* a, struct queued_entry_t* b)
 {
 	int n = a->entry.sec - b->entry.sec;
-	if (n != 0) {
+	if (n != 0)
 		return n;
-	}
+
 	return a->entry.nsec - b->entry.nsec;
 }
 
@@ -88,15 +88,15 @@ static void enqueue(struct log_device_t* device, struct queued_entry_t* entry)
 		device->queue = entry;
 	} else {
 		struct queued_entry_t** e = &device->queue;
-		while (*e && cmp(entry, *e) >= 0 ) {
+		while (*e && cmp(entry, *e) >= 0)
 			e = &((*e)->next);
-		}
+
 		entry->next = *e;
 		*e = entry;
 	}
 }
 
-static int open_logfile (const char *pathname)
+static int open_logfile(const char *pathname)
 {
 	return open(pathname, O_WRONLY | O_APPEND | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH);
 }
@@ -105,36 +105,33 @@ static void rotate_logs()
 {
 	int err;
 	int i;
-	char file0[256]={0};
-	char file1[256]={0};
+	char file0[256] = {0};
+	char file1[256] = {0};
 
-	// Can't rotate logs if we're not outputting to a file
-	if (g_output_filename == NULL) {
+	/* Can't rotate logs if we're not outputting to a file */
+	if (g_output_filename == NULL)
 		return;
-	}
 
 	close(g_outfd);
 
 	for (i = g_max_rotated_logs ; i > 0 ; i--) {
 		snprintf(file1, 255, "%s.%d", g_output_filename, i);
 
-		if (i - 1 == 0) {
+		if (i - 1 == 0)
 			snprintf(file0, 255, "%s", g_output_filename);
-		} else {
+		else
 			snprintf(file0, 255, "%s.%d", g_output_filename, i - 1);
-		}
 
-		err = rename (file0, file1);
+		err = rename(file0, file1);
 
-		if (err < 0 && errno != ENOENT) {
+		if (err < 0 && errno != ENOENT)
 			perror("while rotating log files");
-		}
 	}
 
-	g_outfd = open_logfile (g_output_filename);
+	g_outfd = open_logfile(g_output_filename);
 
 	if (g_outfd < 0) {
-		perror ("couldn't open output file");
+		perror("couldn't open output file");
 		exit(-1);
 	}
 
@@ -152,9 +149,8 @@ static void processBuffer(struct log_device_t* dev, struct logger_entry *buf)
 
 	err = log_process_log_buffer(buf, &entry);
 
-	if (err < 0) {
+	if (err < 0)
 		goto error;
-	}
 
 	if (log_should_print_line(g_logformat, entry.tag, entry.priority)) {
 		if (false && g_dev_count > 1) {
@@ -178,11 +174,10 @@ static void processBuffer(struct log_device_t* dev, struct logger_entry *buf)
 	g_out_byte_count += bytes_written;
 
 	if (g_log_rotate_size_kbytes > 0 && (g_out_byte_count / 1024) >= g_log_rotate_size_kbytes) {
-		if (g_nonblock) {
+		if (g_nonblock)
 			exit(0);
-		} else {
+		else
 			rotate_logs();
-		}
 	}
 
 error:
@@ -193,16 +188,17 @@ static void chooseFirst(struct log_device_t* dev, struct log_device_t** firstdev
 {
 	for (*firstdev = NULL; dev != NULL; dev = dev->next) {
 		if (dev->queue != NULL && (*firstdev == NULL ||
-				   	cmp(dev->queue, (*firstdev)->queue) < 0)) {
+						cmp(dev->queue, (*firstdev)->queue) < 0)) {
 			*firstdev = dev;
 		}
 	}
 }
 
-static void maybePrintStart(struct log_device_t* dev) {
+static void maybePrintStart(struct log_device_t* dev)
+{
 	if (!dev->printed) {
 		dev->printed = true;
-		if (g_dev_count > 1 ) {
+		if (g_dev_count > 1) {
 			char buf[1024];
 			snprintf(buf, sizeof(buf), "--------- beginning of %s\n", dev->device);
 			if (write(g_outfd, buf, strlen(buf)) < 0) {
@@ -213,7 +209,8 @@ static void maybePrintStart(struct log_device_t* dev) {
 	}
 }
 
-static void skipNextEntry(struct log_device_t* dev) {
+static void skipNextEntry(struct log_device_t* dev)
+{
 	maybePrintStart(dev);
 	struct queued_entry_t* entry = dev->queue;
 	dev->queue = entry->next;
@@ -234,33 +231,32 @@ static void read_log_lines(struct log_device_t* devices)
 	int max = 0;
 	int ret;
 	int queued_lines = 0;
-	bool sleep = false; // for exit immediately when log buffer is empty and g_nonblock value is true.
+	bool sleep = false; /* for exit immediately when log buffer is empty and g_nonblock value is true. */
 
 	int result;
 	fd_set readset;
 
-	for (dev=devices; dev; dev = dev->next) {
-		if (dev->fd > max) {
+	for (dev = devices; dev; dev = dev->next) {
+		if (dev->fd > max)
 			max = dev->fd;
-		}
 	}
 
 	while (1) {
 		do {
-			struct timeval timeout = { 0, 5000 /* 5ms */ }; // If we oversleep it's ok, i.e. ignore EINTR.
+			struct timeval timeout = { 0, 5000 /* 5ms */ }; /* If we oversleep it's ok, i.e. ignore EINTR. */
 			FD_ZERO(&readset);
-			for (dev=devices; dev; dev = dev->next) {
+			for (dev = devices; dev; dev = dev->next)
 				FD_SET(dev->fd, &readset);
-			}
+
 			result = select(max + 1, &readset, NULL, NULL, sleep ? NULL : &timeout);
 		} while (result == -1 && errno == EINTR);
 
 		if (result >= 0) {
-			for (dev=devices; dev; dev = dev->next) {
+			for (dev = devices; dev; dev = dev->next) {
 				if (FD_ISSET(dev->fd, &readset)) {
-					struct queued_entry_t* entry = (struct queued_entry_t *)malloc(sizeof( struct queued_entry_t));
+					struct queued_entry_t* entry = (struct queued_entry_t *)malloc(sizeof(struct queued_entry_t));
 					if (entry == NULL) {
-						fprintf(stderr,"Can't malloc queued_entry\n");
+						fprintf(stderr, "Can't malloc queued_entry\n");
 						exit(-1);
 					}
 					entry->next = NULL;
@@ -278,13 +274,11 @@ static void read_log_lines(struct log_device_t* devices)
 						}
 						perror("dlogutil read");
 						exit(EXIT_FAILURE);
-					}
-					else if (!ret) {
+					} else if (!ret) {
 						free(entry);
 						fprintf(stderr, "read: Unexpected EOF!\n");
 						exit(EXIT_FAILURE);
-					}
-					else if (entry->entry.len != ret - sizeof(struct logger_entry)) {
+					} else if (entry->entry.len != ret - sizeof(struct logger_entry)) {
 						fprintf(stderr, "read: unexpected length. Expected %d, got %d\n",
 								entry->entry.len, ret - (int)sizeof(struct logger_entry));
 						free(entry);
@@ -314,34 +308,33 @@ static void read_log_lines(struct log_device_t* devices)
 				sleep = true;
 				while (true) {
 					chooseFirst(devices, &dev);
-					if (dev == NULL) {
+					if (dev == NULL)
 						break;
-					}
-					if (g_tail_lines == 0 || queued_lines <= g_tail_lines) {
+
+					if (g_tail_lines == 0 || queued_lines <= g_tail_lines)
 						printNextEntry(dev);
-					} else {
+					else
 						skipNextEntry(dev);
-					}
+
 					--queued_lines;
 				}
 
 				/* the caller requested to just dump the log and exit */
-				if (g_nonblock) {
+				if (g_nonblock)
 					exit(0);
-				}
 			} else {
 				/* print all that aren't the last in their list */
 				sleep = false;
 				while (g_tail_lines == 0 || queued_lines > g_tail_lines) {
 					chooseFirst(devices, &dev);
-					if (dev == NULL || dev->queue->next == NULL) {
+					if (dev == NULL || dev->queue->next == NULL)
 						break;
-					}
-					if (g_tail_lines == 0) {
+
+					if (g_tail_lines == 0)
 						printNextEntry(dev);
-					} else {
+					else
 						skipNextEntry(dev);
-					}
+
 					--queued_lines;
 				}
 			}
@@ -378,10 +371,10 @@ static void setup_output()
 	} else {
 		struct stat statbuf;
 
-		g_outfd = open_logfile (g_output_filename);
+		g_outfd = open_logfile(g_output_filename);
 
 		if (g_outfd < 0) {
-			perror ("couldn't open output file");
+			perror("couldn't open output file");
 			exit(-1);
 		}
 		if (fstat(g_outfd, &statbuf) == -1)
@@ -409,7 +402,7 @@ static int set_log_format(const char * formatString)
 
 static void show_help(const char *cmd)
 {
-	fprintf(stderr,"Usage: %s [options] [filterspecs]\n", cmd);
+	fprintf(stderr, "Usage: %s [options] [filterspecs]\n", cmd);
 
 	fprintf(stderr, "options include:\n"
 			"  -s              Set default filter to silent.\n"
@@ -427,7 +420,7 @@ static void show_help(const char *cmd)
 			"                  ('main' (default), 'radio', 'system')");
 
 
-	fprintf(stderr,"\nfilterspecs are a series of \n"
+	fprintf(stderr, "\nfilterspecs are a series of \n"
 			"  <tag>[:priority]\n\n"
 			"where <tag> is a log component tag (or * for all) and priority is:\n"
 			"  V    Verbose\n"
@@ -563,24 +556,20 @@ int main(int argc, char **argv)
 		size_t l;
 
 		r = sd_journal_get_data(j, "PRIORITY", (const void **)&priority, &l);
-		if (r < 0) {
+		if (r < 0)
 			continue;
-		}
 
 		r = sd_journal_get_data(j, "LOG_TAG", (const void **)&log_tag, &l);
-		if (r < 0) {
+		if (r < 0)
 			continue;
-		}
 
 		r = sd_journal_get_data(j, "TID", (const void **)&tid, &l);
-		if (r < 0) {
+		if (r < 0)
 			continue;
-		}
 
 		r = sd_journal_get_data(j, "MESSAGE", (const void **)&message, &l);
-		if (r < 0) {
+		if (r < 0)
 			continue;
-		}
 
 		fprintf(stdout, "%c/%s(%5d): %s\n", pri_table[atoi(priority+9)], log_tag+8, atoi(tid+4), message+8);
 	}
@@ -594,24 +583,20 @@ int main(int argc, char **argv)
 			fprintf(stderr, "Couldn't find journal");
 		} else if (sd_journal_previous(j) > 0) {
 			r = sd_journal_get_data(j, "PRIORITY", (const void **)&priority, &l);
-			if (r < 0) {
+			if (r < 0)
 				continue;
-			}
 
 			r = sd_journal_get_data(j, "LOG_TAG", (const void **)&log_tag, &l);
-			if (r < 0) {
+			if (r < 0)
 				continue;
-			}
 
 			r = sd_journal_get_data(j, "TID", (const void **)&tid, &l);
-			if (r < 0) {
+			if (r < 0)
 				continue;
-			}
 
 			r = sd_journal_get_data(j, "MESSAGE", (const void **)&message, &l);
-			if (r < 0) {
+			if (r < 0)
 				continue;
-			}
 
 			fprintf(stdout, "%c/%s(%5d): %s\n", pri_table[atoi(priority+9)], log_tag+8, atoi(tid+4), message+8);
 
@@ -654,100 +639,97 @@ int main(int argc, char **argv)
 
 		ret = getopt(argc, argv, "cdt:gsf:r:n:v:b:D");
 
-		if (ret < 0) {
+		if (ret < 0)
 			break;
-		}
 
-		switch(ret) {
-			case 's':
-				/* default to all silent */
-				log_add_filter_rule(g_logformat, "*:s");
-				break;
+		switch (ret) {
+		case 's':
+			/* default to all silent */
+			log_add_filter_rule(g_logformat, "*:s");
+			break;
 
-			case 'c':
-				is_clear_log = 1;
-				mode = O_WRONLY;
-				break;
+		case 'c':
+			is_clear_log = 1;
+			mode = O_WRONLY;
+			break;
 
-			case 'd':
-				g_nonblock = true;
-				break;
+		case 'd':
+			g_nonblock = true;
+			break;
 
-			case 't':
-				g_nonblock = true;
-				g_tail_lines = atoi(optarg);
-				break;
+		case 't':
+			g_nonblock = true;
+			g_tail_lines = atoi(optarg);
+			break;
 
+		case 'g':
+			getLogSize = 1;
+			break;
 
-			case 'g':
-				getLogSize = 1;
-				break;
-
-			case 'b': {
-						  char *buf;
-						  if (asprintf(&buf, LOG_FILE_DIR "%s", optarg) == -1) {
-							  fprintf(stderr,"Can't malloc LOG_FILE_DIR\n");
-							  exit(-1);
-						  }
-
-						  dev = log_devices_new(buf);
-						  if (dev == NULL) {
-							  fprintf(stderr,"Can't add log device: %s\n", buf);
-							  exit(-1);
-						  }
-						  if (devices) {
-							  if (log_devices_add_to_tail(devices, dev)) {
-								  fprintf(stderr, "Open log device %s failed\n", buf);
-								  exit(-1);
-							  }
-						  } else {
-							  devices = dev;
-							  g_dev_count = 1;
-						  }
-					  }
-					  break;
-
-			case 'f':
-					  /* redirect output to a file */
-					  g_output_filename = optarg;
-
-					  break;
-
-			case 'r':
-					  if (!isdigit(optarg[0])) {
-						  fprintf(stderr,"Invalid parameter to -r\n");
-						  show_help(argv[0]);
-						  exit(-1);
-					  }
-					  g_log_rotate_size_kbytes = atoi(optarg);
-					  break;
-
-			case 'n':
-					  if (!isdigit(optarg[0])) {
-						  fprintf(stderr,"Invalid parameter to -r\n");
-						  show_help(argv[0]);
-						  exit(-1);
-					  }
-
-					  g_max_rotated_logs = atoi(optarg);
-					  break;
-
-			case 'v':
-					  err = set_log_format (optarg);
-					  if (err < 0) {
-						  fprintf(stderr,"Invalid parameter to -v\n");
-						  show_help(argv[0]);
-						  exit(-1);
-					  }
-
-					  has_set_log_format = 1;
-					  break;
-
-			default:
-					  fprintf(stderr,"Unrecognized Option\n");
-					  show_help(argv[0]);
+		case 'b': {
+				  char *buf;
+				  if (asprintf(&buf, LOG_FILE_DIR "%s", optarg) == -1) {
+					  fprintf(stderr, "Can't malloc LOG_FILE_DIR\n");
 					  exit(-1);
-					  break;
+				  }
+
+				  dev = log_devices_new(buf);
+				  if (dev == NULL) {
+					  fprintf(stderr, "Can't add log device: %s\n", buf);
+					  exit(-1);
+				  }
+				  if (devices) {
+					  if (log_devices_add_to_tail(devices, dev)) {
+						  fprintf(stderr, "Open log device %s failed\n", buf);
+						  exit(-1);
+					  }
+				  } else {
+					  devices = dev;
+					  g_dev_count = 1;
+				  }
+			  }
+			  break;
+
+		case 'f':
+			  /* redirect output to a file */
+			  g_output_filename = optarg;
+			  break;
+
+		case 'r':
+			  if (!isdigit(optarg[0])) {
+				  fprintf(stderr, "Invalid parameter to -r\n");
+				  show_help(argv[0]);
+				  exit(-1);
+			  }
+			  g_log_rotate_size_kbytes = atoi(optarg);
+			  break;
+
+		case 'n':
+			  if (!isdigit(optarg[0])) {
+				  fprintf(stderr, "Invalid parameter to -r\n");
+				  show_help(argv[0]);
+				  exit(-1);
+			  }
+
+			  g_max_rotated_logs = atoi(optarg);
+			  break;
+
+		case 'v':
+			  err = set_log_format (optarg);
+			  if (err < 0) {
+				  fprintf(stderr, "Invalid parameter to -v\n");
+				  show_help(argv[0]);
+				  exit(-1);
+			  }
+
+			  has_set_log_format = 1;
+			  break;
+
+		default:
+			  fprintf(stderr, "Unrecognized Option\n");
+			  show_help(argv[0]);
+			  exit(-1);
+			  break;
 		}
 	}
 
@@ -760,7 +742,7 @@ int main(int argc, char **argv)
 	if (!devices) {
 		devices = log_devices_new("/dev/"LOGGER_LOG_MAIN);
 		if (devices == NULL) {
-			fprintf(stderr,"Can't add log device: %s\n", LOGGER_LOG_MAIN);
+			fprintf(stderr, "Can't add log device: %s\n", LOGGER_LOG_MAIN);
 			exit(-1);
 		}
 		g_dev_count = 1;
@@ -771,22 +753,21 @@ int main(int argc, char **argv)
 		/* only add this if it's available */
 		if (0 == access("/dev/"LOGGER_LOG_SYSTEM, accessmode)) {
 			if (log_devices_add_to_tail(devices, log_devices_new("/dev/"LOGGER_LOG_SYSTEM))) {
-				fprintf(stderr,"Can't add log device: %s\n", LOGGER_LOG_SYSTEM);
+				fprintf(stderr, "Can't add log device: %s\n", LOGGER_LOG_SYSTEM);
 				exit(-1);
 			}
 		}
 		if (0 == access("/dev/"LOGGER_LOG_APPS, accessmode)) {
 			if (log_devices_add_to_tail(devices, log_devices_new("/dev/"LOGGER_LOG_APPS))) {
-				fprintf(stderr,"Can't add log device: %s\n", LOGGER_LOG_APPS);
+				fprintf(stderr, "Can't add log device: %s\n", LOGGER_LOG_APPS);
 				exit(-1);
 			}
 		}
 
 	}
 
-	if (g_log_rotate_size_kbytes != 0 && g_output_filename == NULL)
-	{
-		fprintf(stderr,"-r requires -f as well\n");
+	if (g_log_rotate_size_kbytes != 0 && g_output_filename == NULL) {
+		fprintf(stderr, "-r requires -f as well\n");
 		show_help(argv[0]);
 		exit(-1);
 	}
@@ -794,12 +775,12 @@ int main(int argc, char **argv)
 	setup_output();
 
 
-	if (has_set_log_format == 0) {
+	if (has_set_log_format == 0)
 		err = set_log_format("brief");
-	}
-	fprintf(stderr,"arc = %d, optind = %d ,Kb %d, rotate %d\n", argc, optind,g_log_rotate_size_kbytes,g_max_rotated_logs);
 
-	if(argc == optind ) {
+	fprintf(stderr, "arc = %d, optind = %d ,Kb %d, rotate %d\n", argc, optind, g_log_rotate_size_kbytes, g_max_rotated_logs);
+
+	if (argc == optind) {
 		/* Add from environment variable
 		char *env_tags_orig = getenv("DLOG_TAGS");*/
 		log_add_filter_string(g_logformat, "*:d");
@@ -809,7 +790,7 @@ int main(int argc, char **argv)
 			err = log_add_filter_string(g_logformat, argv[i]);
 
 			if (err < 0) {
-				fprintf (stderr, "Invalid filter expression '%s'\n", argv[i]);
+				fprintf(stderr, "Invalid filter expression '%s'\n", argv[i]);
 				show_help(argv[0]);
 				exit(-1);
 			}
@@ -857,13 +838,11 @@ int main(int argc, char **argv)
 		dev = dev->next;
 	}
 
-	if (getLogSize) {
+	if (getLogSize)
 		return 0;
-	}
 
-	if (is_clear_log) {
+	if (is_clear_log)
 		return 0;
-	}
 
 	read_log_lines(devices);
 
