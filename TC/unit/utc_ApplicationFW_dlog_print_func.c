@@ -21,7 +21,7 @@ struct tet_testlist tet_testlist[] = {
 	{ NULL, 0 }
 };
 
-//static int pid;
+/* static int pid; */
 
 static void startup(void)
 {
@@ -40,7 +40,7 @@ static void utc_ApplicationFW_dlog_print_func_01(void)
 
 	r = dlog_print(DLOG_DEBUG, "DLOG_TEST", "dlog test message for tetware\n");
 
-	if (r<0) {
+	if (r < 0) {
 		tet_printf("dlog_print() failed in positive test case");
 		tet_result(TET_FAIL);
 		return;
@@ -57,7 +57,7 @@ static void utc_ApplicationFW_dlog_print_func_02(void)
 
 	r = dlog_print(DLOG_UNKNOWN, "DLOG_TEST", "dlog test message for tetware\n");
 
-	if (r>=0) {
+	if (r >= 0) {
 		tet_printf("dlog_print() failed in negative test case");
 		tet_result(TET_FAIL);
 		return;

@@ -98,16 +98,16 @@ static int __write_to_log_sd_journal(log_id_t log_id, log_priority prio, const c
 
 	pid_t tid = (pid_t)syscall(SYS_gettid);
 
-	if(!msg)
+	if (!msg)
 		return DLOG_ERROR_INVALID_PARAMETER;
 
-	if(strncmp(lid_str, "UNKNOWN", 7) == 0)
+	if (strncmp(lid_str, "UNKNOWN", 7) == 0)
 		return DLOG_ERROR_INVALID_PARAMETER;
 
-	if(prio < DLOG_VERBOSE || prio >= DLOG_PRIO_MAX)
+	if (prio < DLOG_VERBOSE || prio >= DLOG_PRIO_MAX)
 		return DLOG_ERROR_INVALID_PARAMETER;
 
-	if(!tag)
+	if (!tag)
 		tag = "";
 
 	struct iovec vec[5];
@@ -189,9 +189,8 @@ static void __configure(void)
 	}
 
 	if (config.lc_limiter) {
-		if (0 > __log_limiter_initialize()) {
+		if (0 > __log_limiter_initialize())
 			config.lc_limiter = 0;
-		}
 	}
 }
 
@@ -208,11 +207,11 @@ static void __dlog_init(void)
 	log_fds[LOG_ID_SYSTEM] = open("/dev/"LOG_SYSTEM, O_WRONLY);
 	log_fds[LOG_ID_RADIO] = open("/dev/"LOG_RADIO, O_WRONLY);
 	log_fds[LOG_ID_APPS] = open("/dev/"LOG_APPS, O_WRONLY);
-	if (log_fds[LOG_ID_MAIN] < 0) {
+	if (log_fds[LOG_ID_MAIN] < 0)
 		write_to_log = __write_to_log_null;
-	} else {
+	else
 		write_to_log = __write_to_log_kernel;
-	}
+
 	if (log_fds[LOG_ID_RADIO] < 0)
 		log_fds[LOG_ID_RADIO] = log_fds[LOG_ID_MAIN];
 	if (log_fds[LOG_ID_SYSTEM] < 0)
@@ -254,7 +253,7 @@ static int dlog_should_log(log_id_t log_id, const char* tag, int prio)
 			return DLOG_ERROR_NOT_PERMITTED;
 		} else if (should_log < 0) {
 			write_to_log(log_id, prio, tag,
-			             "Your log has been blocked due to limit of log lines per minute.");
+					"Your log has been blocked due to limit of log lines per minute.");
 			return DLOG_ERROR_NOT_PERMITTED;
 		}
 	}
