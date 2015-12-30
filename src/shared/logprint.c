@@ -438,7 +438,7 @@ char *log_format_log_line(
 	case FORMAT_TAG:
 		prefixLen = snprintf(prefixBuf, sizeof(prefixBuf),
 				"%c/%-8s: ", priChar, entry->tag);
-		strcpy(suffixBuf, "\n"); suffixLen = 1;
+		strncpy(suffixBuf, "\n", 2); suffixLen = 1;
 		break;
 	case FORMAT_PROCESS:
 		prefixLen = snprintf(prefixBuf, sizeof(prefixBuf),
@@ -449,27 +449,27 @@ char *log_format_log_line(
 	case FORMAT_THREAD:
 		prefixLen = snprintf(prefixBuf, sizeof(prefixBuf),
 				"%c(%5d:%5d) ", priChar, (int)entry->pid, (int)entry->tid);
-		strcpy(suffixBuf, "\n");
+		strncpy(suffixBuf, "\n", 2);
 		suffixLen = 1;
 		break;
 	case FORMAT_RAW:
 		prefixBuf[0] = 0;
 		prefixLen = 0;
-		strcpy(suffixBuf, "\n");
+		strncpy(suffixBuf, "\n", 2);
 		suffixLen = 1;
 		break;
 	case FORMAT_TIME:
 		prefixLen = snprintf(prefixBuf, sizeof(prefixBuf),
 				"%s.%03ld%s %c/%-8s(%5d): ", timeBuf, entry->tv_nsec / 1000000,
 				tzBuf, priChar, entry->tag, (int)entry->pid);
-		strcpy(suffixBuf, "\n");
+		strncpy(suffixBuf, "\n", 2);
 		suffixLen = 1;
 		break;
 	case FORMAT_THREADTIME:
 		prefixLen = snprintf(prefixBuf, sizeof(prefixBuf),
 				"%s.%03ld%s %5d %5d %c %-8s: ", timeBuf, entry->tv_nsec / 1000000,
 				tzBuf, (int)entry->pid, (int)entry->tid, priChar, entry->tag);
-		strcpy(suffixBuf, "\n");
+		strncpy(suffixBuf, "\n", 2);
 		suffixLen = 1;
 		break;
 	case FORMAT_DUMP:
@@ -477,7 +477,7 @@ char *log_format_log_line(
 				"%s.%03ld%s %5d %5d %c %-8s: ", timeBuf,
 				entry->tv_nsec / 1000000, tzBuf, (int)entry->pid,
 				(int)entry->tid, priChar, entry->tag);
-		strcpy(suffixBuf, "\n");
+		strncpy(suffixBuf, "\n", 2);
 		suffixLen = 1;
 		break;
 	case FORMAT_LONG:
@@ -485,7 +485,7 @@ char *log_format_log_line(
 				"[ %s.%03ld %5d:%5d %c/%-8s ]\n",
 				timeBuf, entry->tv_nsec / 1000000, (int)entry->pid,
 				(int)entry->tid, priChar, entry->tag);
-		strcpy(suffixBuf, "\n\n");
+		strncpy(suffixBuf, "\n\n", 3);
 		suffixLen = 2;
 		prefixSuffixIsHeaderFooter = 1;
 		break;
@@ -493,7 +493,7 @@ char *log_format_log_line(
 	default:
 		prefixLen = snprintf(prefixBuf, sizeof(prefixBuf),
 				"%c/%-8s(%5d): ", priChar, entry->tag, (int)entry->pid);
-		strcpy(suffixBuf, "\n");
+		strncpy(suffixBuf, "\n", 2);
 		suffixLen = 1;
 		break;
 	}
@@ -552,11 +552,11 @@ char *log_format_log_line(
 	pm = entry->message;
 
 	if (prefixSuffixIsHeaderFooter) {
-		strcat(p, prefixBuf);
+		strncat(p, prefixBuf, strlen(prefixBuf));
 		p += prefixLen;
 		strncat(p, entry->message, entry->messageLen);
 		p += entry->messageLen;
-		strcat(p, suffixBuf);
+		strncat(p, suffixBuf, strlen(suffixBuf));
 		p += suffixLen;
 	} else {
 		while (pm < (entry->message + entry->messageLen)) {
@@ -570,11 +570,11 @@ char *log_format_log_line(
 					&& *pm != '\n') pm++;
 			lineLen = pm - lineStart;
 
-			strcat(p, prefixBuf);
+			strncat(p, prefixBuf, strlen(prefixBuf));
 			p += prefixLen;
 			strncat(p, lineStart, lineLen);
 			p += lineLen;
-			strcat(p, suffixBuf);
+			strncat(p, suffixBuf, strlen(suffixBuf));
 			p += suffixLen;
 
 			if (*pm == '\n')
