@@ -14,7 +14,12 @@ Source204:  packaging/dlog_logger.conf-debug.in
 Source301:  packaging/dlog_logger.service
 Source302:  packaging/dlog_logger.path
 
-%define systemd_journal ON
+%if "%{?tizen_target_name}" == "TM1"
+	%define systemd_journal OFF
+%else
+	%define systemd_journal ON
+%endif
+
 
 BuildRequires: autoconf
 BuildRequires: automake
