@@ -121,6 +121,7 @@ mkdir -p %{buildroot}%{_sysconfdir}
 
 %post -n dlogutil
 systemctl daemon-reload
+chsmack -a System /var/log/dlog
 
 %postun -n dlogutil
 systemctl daemon-reload
