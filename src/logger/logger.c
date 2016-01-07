@@ -124,7 +124,7 @@ static int min_interval = 0;
  */
 static int get_device_id_by_name(const char *name)
 {
-	int i;
+	volatile int i;
 
 	if (name == NULL)
 		return -1;
