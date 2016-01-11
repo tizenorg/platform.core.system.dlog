@@ -48,7 +48,7 @@
 
 
 static int log_config_multiplex_opt(char* opt_str, char* val_str, int prio,
-					struct log_config* config)
+                                    struct log_config* config)
 {
 	int value = 0;
 
@@ -59,7 +59,7 @@ static int log_config_multiplex_opt(char* opt_str, char* val_str, int prio,
 		if (!strncasecmp(ALLOW_STRING, val_str, sizeof(ALLOW_STRING))) {
 			value = __LOG_LIMITER_LIMIT_MAX + 1;
 		} else if (!strncasecmp(DENY_STRING, val_str,
-						sizeof(DENY_STRING))) {
+		                                     sizeof(DENY_STRING))) {
 			value = 0;
 		} else {
 			char* endptr = NULL;
@@ -77,20 +77,20 @@ static int log_config_multiplex_opt(char* opt_str, char* val_str, int prio,
 		} else if (isNO(*val_str)) {
 			value = 0;
 		} else if (!strncasecmp(ON_STRING, val_str,
-					sizeof(ON_STRING))) {
+		                        sizeof(ON_STRING))) {
 			value = 1;
 		} else if (!strncasecmp(OFF_STRING, val_str,
-					sizeof(OFF_STRING))) {
+		                        sizeof(OFF_STRING))) {
 			value = 0;
 		} else {
 			return RET_ERROR;
 		}
 
 		if (!strncasecmp(LOG_PLATFORM_STRING, opt_str,
-				sizeof(LOG_PLATFORM_STRING))) {
+		                 sizeof(LOG_PLATFORM_STRING))) {
 			config->lc_plog = value;
 		} else if (!strncasecmp(LOG_LIMITER_STRING, opt_str,
-					sizeof(LOG_LIMITER_STRING))) {
+		                       sizeof(LOG_LIMITER_STRING))) {
 			config->lc_limiter = value;
 		} else {
 			return RET_ERROR;
@@ -111,24 +111,28 @@ int __log_config_read(const char* config_file, struct log_config* config)
 	int ret = 0;
 
 	/* Check input */
-	if (NULL == config_file || NULL == config)
+	if (NULL == config_file || NULL == config) {
 		return RET_ERROR;
+	}
 
-	if (NULL == (fconfig = fopen(config_file, "r")))
+	if (NULL == (fconfig = fopen(config_file, "r"))) {
 		return RET_ERROR;
+	}
 
 	while (1) {
 		memset(buf, 0, CONFIG_LINE_MAX_LEN);
 		errno = 0;
 		if (NULL == fgets(buf, CONFIG_LINE_MAX_LEN, fconfig)) {
-			if (!errno)
+			if (!errno) {
 				break;
+			}
 			goto bailout;
 		}
 
 		/* We ignore comments and blank lines */
-		if (isCOMMENT(*buf) || isNEWLINE(*buf))
+		if (isCOMMENT(*buf) || isNEWLINE(*buf)) {
 			continue;
+		}
 
 		memset(opt, 0, sizeof(opt));
 		memset(opt_value, 0, sizeof(opt_value));
@@ -136,20 +140,22 @@ int __log_config_read(const char* config_file, struct log_config* config)
 		/* Read configure line, sscanf() should return two tokens,
 		 * even for tag filtering rule */
 		ret = sscanf(buf, "%[A-z0-9-]\t%[A-z0-9]",
-				opt, opt_value);
+		                  opt, opt_value);
 		if (ret != 2) { /* The line is malformed ? */
 			char c = 0;
 			/* This could be rule with space inside TAG */
 			ret = sscanf(buf, "\"%[]A-z0-9*\x20_+:;/-]\"\t|\t%c\t%[A-z0-9]",
-					opt, &c, opt_value);
-			if (ret != 3)
+			                  opt, &c, opt_value);
+			if (ret != 3) {
 				goto bailout;
+			}
 			prio = (int)c;
 		}
 
 
-		if (0 > log_config_multiplex_opt(opt, opt_value, prio, config))
+		if (0 > log_config_multiplex_opt(opt, opt_value, prio, config)) {
 			goto bailout;
+		}
 	}
 
 	fclose(fconfig);
