@@ -1,0 +1,12 @@
+[Unit]
+Description=Dlog kmsg devices initializer
+After=systemd-udevd-control.socket systemd-udevd-kernel.socket
+DefaultDependencies=no
+
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/dloginit
+RemainAfterExit=yes
+
+[Install]
+WantedBy=sysinit.target

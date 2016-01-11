@@ -28,9 +28,10 @@
 #include <stdio.h>
 #include <errno.h>
 #include <dlog.h>
+#include <logcommon.h>
 #include "loglimiter.h"
 #include "logconfig.h"
-#ifdef HAVE_SYSTEMD_JOURNAL
+#ifdef DLOG_BACKEND_JOURNAL
 #define SD_JOURNAL_SUPPRESS_LOCATION 1
 #include <syslog.h>
 #include <systemd/sd-journal.h>
@@ -41,22 +42,18 @@
 
 #define LOG_BUF_SIZE	1024
 
-#define LOG_MAIN	"log_main"
-#define LOG_RADIO	"log_radio"
-#define LOG_SYSTEM	"log_system"
-#define LOG_APPS	"log_apps"
-
 #define VALUE_MAX 2
 #define LOG_CONFIG_FILE "/opt/etc/dlog.conf"
 
-#ifndef HAVE_SYSTEMD_JOURNAL
+#ifndef DLOG_BACKEND_JOURNAL
 static int log_fds[(int)LOG_ID_MAX] = { -1, -1, -1, -1 };
+static char log_devs[LOG_ID_MAX][PATH_MAX];
 #endif
 static int (*write_to_log)(log_id_t, log_priority, const char *tag, const char *msg) = NULL;
 static pthread_mutex_t log_init_lock = PTHREAD_MUTEX_INITIALIZER;
 static struct log_config config;
 
-#ifdef HAVE_SYSTEMD_JOURNAL
+#if DLOG_BACKEND_JOURNAL
 static inline int dlog_pri_to_journal_pri(log_priority prio)
 {
 	static int pri_table[DLOG_PRIO_MAX] = {
@@ -80,10 +77,10 @@ static inline int dlog_pri_to_journal_pri(log_priority prio)
 static inline const char* dlog_id_to_string(log_id_t log_id)
 {
 	static const char* id_table[LOG_ID_MAX] = {
-		[LOG_ID_MAIN]   = LOG_MAIN,
-		[LOG_ID_RADIO]  = LOG_RADIO,
-		[LOG_ID_SYSTEM] = LOG_SYSTEM,
-		[LOG_ID_APPS]   = LOG_APPS,
+		[LOG_ID_MAIN]   = "log_main",
+		[LOG_ID_RADIO]  = "log_radio",
+		[LOG_ID_SYSTEM] = "log_system",
+		[LOG_ID_APPS]   = "log_apps",
 	};
 
 	if (log_id < 0 || log_id >= LOG_ID_MAX || !id_table[log_id])
@@ -98,16 +95,16 @@ static int __write_to_log_sd_journal(log_id_t log_id, log_priority prio, const c
 
 	pid_t tid = (pid_t)syscall(SYS_gettid);
 
-	if (!msg)
+	if(!msg)
 		return DLOG_ERROR_INVALID_PARAMETER;
 
-	if (strncmp(lid_str, "UNKNOWN", 7) == 0)
+	if(strncmp(lid_str, "UNKNOWN", 7) == 0)
 		return DLOG_ERROR_INVALID_PARAMETER;
 
-	if (prio < DLOG_VERBOSE || prio >= DLOG_PRIO_MAX)
+	if(prio < DLOG_VERBOSE || prio >= DLOG_PRIO_MAX)
 		return DLOG_ERROR_INVALID_PARAMETER;
 
-	if (!tag)
+	if(!tag)
 		tag = "";
 
 	struct iovec vec[5];
@@ -146,7 +143,38 @@ static int __write_to_log_null(log_id_t log_id, log_priority prio, const char *t
 	return DLOG_ERROR_NOT_PERMITTED;
 }
 
-static int __write_to_log_kernel(log_id_t log_id, log_priority prio, const char *tag, const char *msg)
+#if DLOG_BACKEND_KMSG
+static int __write_to_log_kmsg(log_id_t log_id, log_priority prio, const char *tag, const char *msg)
+{
+	ssize_t ret;
+	int log_fd;
+	size_t len;
+	char buf[LOG_BUF_SIZE];
+
+	if (log_id < LOG_ID_MAX)
+		log_fd = log_fds[log_id];
+	else
+		return DLOG_ERROR_INVALID_PARAMETER;
+
+	if (prio < DLOG_VERBOSE || prio >= DLOG_PRIO_MAX)
+		return DLOG_ERROR_INVALID_PARAMETER;
+
+	if (!tag)
+		tag = "";
+
+	if (!msg)
+		return DLOG_ERROR_INVALID_PARAMETER;
+
+	len = snprintf(buf, LOG_BUF_SIZE, "%s;%d;%s", tag, prio, msg);
+
+	ret = write(log_fd, buf, len > LOG_BUF_SIZE ? LOG_BUF_SIZE : len);
+	if (ret < 0)
+	    ret = -errno;
+
+	return ret;
+}
+#elif DLOG_BACKEND_LOGGER
+static int __write_to_log_logger(log_id_t log_id, log_priority prio, const char *tag, const char *msg)
 {
 	ssize_t ret;
 	int log_fd;
@@ -179,6 +207,8 @@ static int __write_to_log_kernel(log_id_t log_id, log_priority prio, const char 
 
 	return ret;
 }
+
+#endif
 #endif
 
 static void __configure(void)
@@ -197,29 +227,34 @@ static void __configure(void)
 static void __dlog_init(void)
 {
 	pthread_mutex_lock(&log_init_lock);
-	/* configuration */
 	__configure();
-#ifdef HAVE_SYSTEMD_JOURNAL
+
+#ifdef DLOG_BACKEND_JOURNAL
 	write_to_log = __write_to_log_sd_journal;
 #else
-	/* open device */
-	log_fds[LOG_ID_MAIN] = open("/dev/"LOG_MAIN, O_WRONLY);
-	log_fds[LOG_ID_SYSTEM] = open("/dev/"LOG_SYSTEM, O_WRONLY);
-	log_fds[LOG_ID_RADIO] = open("/dev/"LOG_RADIO, O_WRONLY);
-	log_fds[LOG_ID_APPS] = open("/dev/"LOG_APPS, O_WRONLY);
-	if (log_fds[LOG_ID_MAIN] < 0)
-		write_to_log = __write_to_log_null;
-	else
-		write_to_log = __write_to_log_kernel;
-
-	if (log_fds[LOG_ID_RADIO] < 0)
-		log_fds[LOG_ID_RADIO] = log_fds[LOG_ID_MAIN];
-	if (log_fds[LOG_ID_SYSTEM] < 0)
-		log_fds[LOG_ID_SYSTEM] = log_fds[LOG_ID_MAIN];
-	if (log_fds[LOG_ID_APPS] < 0)
-		log_fds[LOG_ID_APPS] = log_fds[LOG_ID_MAIN];
+	if (0 == get_log_dev_names(log_devs)) {
+			log_fds[LOG_ID_MAIN] = open(log_devs[LOG_ID_MAIN], O_WRONLY);
+			log_fds[LOG_ID_SYSTEM] = open(log_devs[LOG_ID_SYSTEM], O_WRONLY);
+			log_fds[LOG_ID_RADIO] = open(log_devs[LOG_ID_RADIO], O_WRONLY);
+			log_fds[LOG_ID_APPS] = open(log_devs[LOG_ID_APPS], O_WRONLY);
+		}
+		if (log_fds[LOG_ID_MAIN] < 0) {
+			write_to_log = __write_to_log_null;
+		} else {
+#if DLOG_BACKEND_KMSG
+			write_to_log = __write_to_log_kmsg;
+#elif DLOG_BACKEND_LOGGER
+			write_to_log = __write_to_log_logger;
 #endif
-	pthread_mutex_unlock(&log_init_lock);
+		}
+		if (log_fds[LOG_ID_RADIO] < 0)
+			log_fds[LOG_ID_RADIO] = log_fds[LOG_ID_MAIN];
+		if (log_fds[LOG_ID_SYSTEM] < 0)
+			log_fds[LOG_ID_SYSTEM] = log_fds[LOG_ID_MAIN];
+		if (log_fds[LOG_ID_APPS] < 0)
+			log_fds[LOG_ID_APPS] = log_fds[LOG_ID_MAIN];
+#endif
+		pthread_mutex_unlock(&log_init_lock);
 }
 
 void __dlog_fatal_assert(int prio)
@@ -253,7 +288,7 @@ static int dlog_should_log(log_id_t log_id, const char* tag, int prio)
 			return DLOG_ERROR_NOT_PERMITTED;
 		} else if (should_log < 0) {
 			write_to_log(log_id, prio, tag,
-					"Your log has been blocked due to limit of log lines per minute.");
+			             "Your log has been blocked due to limit of log lines per minute.");
 			return DLOG_ERROR_NOT_PERMITTED;
 		}
 	}

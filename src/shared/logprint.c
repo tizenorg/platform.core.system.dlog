@@ -24,8 +24,8 @@
 #include <ctype.h>
 #include <unistd.h>
 
+#include <logcommon.h>
 #include <logprint.h>
-
 
 typedef struct FilterInfo_t {
 	char *mTag;
@@ -64,7 +64,7 @@ static void filterinfo_free(FilterInfo *p_info)
  * Note: also accepts 0-9 priorities
  * returns DLOG_UNKNOWN if the character is unrecognized
  */
-static log_priority filter_char_to_pri(char c)
+static log_priority filter_char_to_pri (char c)
 {
 	log_priority pri;
 
@@ -126,12 +126,15 @@ static log_priority filter_pri_for_tag(log_format *p_format, const char *tag)
 {
 	FilterInfo *p_curFilter;
 
-	for (p_curFilter = p_format->filters; p_curFilter != NULL; p_curFilter = p_curFilter->p_next) {
-		if (0 == strcmp(tag, p_curFilter->mTag)) {
-			if (p_curFilter->mPri == DLOG_DEFAULT)
+	for (p_curFilter = p_format->filters; p_curFilter != NULL; p_curFilter = p_curFilter->p_next )
+	{
+		if (0 == strcmp(tag, p_curFilter->mTag))
+		{
+			if (p_curFilter->mPri == DLOG_DEFAULT) {
 				return p_format->global_pri;
-			else
+			} else {
 				return p_curFilter->mPri;
+			}
 		}
 	}
 	return p_format->global_pri;
@@ -144,13 +147,13 @@ void dump_filters(log_format *p_format)
 
 	for (p_fi = p_format->filters ; p_fi != NULL ; p_fi = p_fi->p_next) {
 		char cPri = filter_pri_to_char(p_fi->mPri);
-		if (p_fi->mPri == DLOG_DEFAULT)
+		if (p_fi->mPri == DLOG_DEFAULT) {
 			cPri = filter_pri_to_char(p_format->global_pri);
-
-		fprintf(stderr, "%s:%c\n", p_fi->mTag, cPri);
+		}
+		_E("%s:%c\n", p_fi->mTag, cPri);
 	}
 
-	fprintf(stderr, "*:%c\n", filter_pri_to_char(p_format->global_pri));
+	_E("*:%c\n", filter_pri_to_char(p_format->global_pri));
 
 }
 
@@ -158,7 +161,7 @@ void dump_filters(log_format *p_format)
  * returns 1 if this log line should be printed based on its priority
  * and tag, and 0 if it should not
  */
-int log_should_print_line(log_format *p_format, const char *tag, log_priority pri)
+int log_should_print_line (log_format *p_format, const char *tag, log_priority pri)
 {
 	return pri >= filter_pri_for_tag(p_format, tag);
 }
@@ -192,9 +195,9 @@ void log_format_free(log_format *p_format)
 	free(p_format);
 }
 
-void log_set_print_format(log_format *p_format, log_print_format format)
+void log_set_print_format(log_format *p_format,log_print_format format)
 {
-	p_format->format = format;
+	p_format->format=format;
 }
 
 /**
@@ -243,31 +246,35 @@ int log_add_filter_rule(log_format *p_format,
 
 	tagNameLength = strcspn(filterExpression, ":");
 
-	if (tagNameLength == 0)
+	if (tagNameLength == 0) {
 		goto error;
-
-	if (filterExpression[tagNameLength] == ':') {
-		pri = filter_char_to_pri(filterExpression[tagNameLength+1]);
-
-		if (pri == DLOG_UNKNOWN)
-			goto error;
 	}
 
-	if (0 == strncmp("*", filterExpression, tagNameLength)) {
+	if(filterExpression[tagNameLength] == ':') {
+		pri = filter_char_to_pri(filterExpression[tagNameLength+1]);
+
+		if (pri == DLOG_UNKNOWN) {
+			goto error;
+		}
+	}
+
+	if(0 == strncmp("*", filterExpression, tagNameLength)) {
 		/* This filter expression refers to the global filter
 		 * The default level for this is DEBUG if the priority
 		 * is unspecified
 		 */
-		if (pri == DLOG_DEFAULT)
+		if (pri == DLOG_DEFAULT) {
 			pri = DLOG_DEBUG;
+		}
 
 		p_format->global_pri = pri;
 	} else {
 		/* for filter expressions that don't refer to the global
 		 * filter, the default is verbose if the priority is unspecified
 		 */
-		if (pri == DLOG_DEFAULT)
+		if (pri == DLOG_DEFAULT) {
 			pri = DLOG_VERBOSE;
+		}
 
 		char *tagName;
 		tagName = strndup(filterExpression, tagNameLength);
@@ -297,25 +304,26 @@ error:
 int log_add_filter_string(log_format *p_format,
 		const char *filterString)
 {
-	char *filterStringCopy = strdup(filterString);
+	char *filterStringCopy = strdup (filterString);
 	char *p_cur = filterStringCopy;
 	char *p_ret;
 	int err;
 
 	while (NULL != (p_ret = strsep(&p_cur, " \t,"))) {
 		/* ignore whitespace-only entries */
-		if (p_ret[0] != '\0') {
+		if(p_ret[0] != '\0') {
 			err = log_add_filter_rule(p_format, p_ret);
 
-			if (err < 0)
+			if (err < 0) {
 				goto error;
+			}
 		}
 	}
 
-	free(filterStringCopy);
+	free (filterStringCopy);
 	return 0;
 error:
-	free(filterStringCopy);
+	free (filterStringCopy);
 	return -1;
 }
 
@@ -335,34 +343,78 @@ static inline char * strip_end(char *str)
  * Returns 0 on success and -1 on invalid wire format (entry will be
  * in unspecified state)
  */
-int log_process_log_buffer(struct logger_entry *buf, log_entry *entry)
+#if DLOG_BACKEND_KMSG
+int log_process_log_buffer(struct logger_entry *entry_raw, log_entry *entry)
+{
+	entry->tv_sec = entry_raw->ts_usec/1000000;
+	entry->tv_nsec = 1000 * (entry_raw->ts_usec%1000000);
+
+	errno = 0;
+	entry->pid = strtol(entry_raw->pid_begin, NULL, 10);
+	if (errno) {
+		_E("Message pid out of bouds\n");
+		return -1;
+	}
+
+	entry->tid = strtol(entry_raw->tid_begin, NULL, 10);
+	if (errno) {
+		_E("Message tid out of bouds\n");
+		return -1;
+	}
+
+	if (entry_raw->pri_begin) {
+		entry->priority = strtol(entry_raw->pri_begin, NULL, 10);
+		if (errno) {
+			_E("Wrong message priority\n");
+			return -1;
+		}
+	}
+	if (!entry_raw->pri_begin ||
+	    entry->priority < 0 || entry->priority > DLOG_SILENT) {
+		_E("Wrong message priority\n");
+		return -1;
+	}
+
+	if (!entry_raw->tag_begin) {
+		_E("No tag message\n");
+		return -1;
+	}
+	entry->tag = entry_raw->tag_begin;
+
+	entry->messageLen = entry_raw->msg_end - entry_raw->msg_begin;
+	entry->message = entry_raw->msg_begin;
+
+	return 0;
+}
+#else
+int log_process_log_buffer(struct logger_entry *entry_raw, log_entry *entry)
 {
 	int i, start = -1, end = -1;
 
-	if (buf->len < 3) {
+	if (entry_raw->len < 3) {
 		fprintf(stderr, "Entry too small\n");
 		return -1;
 	}
 
-	entry->tv_sec = buf->sec;
-	entry->tv_nsec = buf->nsec;
-	entry->pid = buf->pid;
-	entry->tid = buf->tid;
+	entry->tv_sec = entry_raw->sec;
+	entry->tv_nsec = entry_raw->nsec;
+	entry->pid = entry_raw->pid;
+	entry->tid = entry_raw->tid;
 
-	entry->priority = buf->msg[0];
+	entry->priority = entry_raw->msg[0];
 	if (entry->priority < 0 || entry->priority > DLOG_SILENT) {
 		fprintf(stderr, "Wrong priority message\n");
 		return -1;
 	}
 
-	entry->tag = buf->msg + 1;
+	entry->tag = entry_raw->msg + 1;
 	if (!strlen(entry->tag)) {
 		fprintf(stderr, "No tag message\n");
 		return -1;
 	}
 
-	for (i = 0; i < buf->len; i++) {
-		if (buf->msg[i] == '\0') {
+	for (i = 0; i < entry_raw->len; i++) {
+		if (entry_raw->msg[i] == '\0') {
 			if (start == -1) {
 				start = i + 1;
 			} else {
@@ -376,15 +428,16 @@ int log_process_log_buffer(struct logger_entry *buf, log_entry *entry)
 		return -1;
 	}
 	if (end == -1) {
-		end = buf->len - 1;
-		buf->msg[end] = '\0';
+		end = entry_raw->len - 1;
+		entry_raw->msg[end] = '\0';
 	}
 
-	entry->message = buf->msg + start;
+	entry->message = entry_raw->msg + start;
 	entry->messageLen = end - start;
 
 	return 0;
 }
+#endif
 
 /**
  * Formats a log message into a buffer
@@ -393,7 +446,7 @@ int log_process_log_buffer(struct logger_entry *buf, log_entry *entry)
  * If return value != defaultBuffer, caller must call free()
  * Returns NULL on malloc error
  */
-char *log_format_log_line(
+char *log_format_log_line (
 		log_format *p_format,
 		char *defaultBuffer,
 		size_t defaultBufferSize,
@@ -476,7 +529,7 @@ char *log_format_log_line(
 		prefixLen = snprintf(prefixBuf, sizeof(prefixBuf),
 				"%s.%03ld%s %5d %5d %c %-8s: ", timeBuf,
 				entry->tv_nsec / 1000000, tzBuf, (int)entry->pid,
-				(int)entry->tid, priChar, entry->tag);
+			   	(int)entry->tid, priChar, entry->tag);
 		strncpy(suffixBuf, "\n", 2);
 		suffixLen = 1;
 		break;
@@ -503,9 +556,9 @@ char *log_format_log_line(
 	 * possibly causing heap corruption.  To avoid this we double check and
 	 * set the length at the maximum (size minus null byte)
 	 */
-	if (prefixLen >= sizeof(prefixBuf))
+	if(prefixLen >= sizeof(prefixBuf))
 		prefixLen = sizeof(prefixBuf) - 1;
-	if (suffixLen >= sizeof(suffixBuf))
+	if(suffixLen >= sizeof(suffixBuf))
 		suffixLen = sizeof(suffixBuf) - 1;
 
 	/* the following code is tragically unreadable */
@@ -542,8 +595,9 @@ char *log_format_log_line(
 	} else {
 		ret = (char *)malloc(bufferSize);
 
-		if (ret == NULL)
+		if (ret == NULL) {
 			return ret;
+		}
 	}
 
 	ret[0] = '\0';       /* to start strcat off */
@@ -582,8 +636,9 @@ char *log_format_log_line(
 		}
 	}
 
-	if (p_outLength != NULL)
+	if (p_outLength != NULL) {
 		*p_outLength = p - ret;
+	}
 
 	return ret;
 }
@@ -615,20 +670,21 @@ int log_print_log_line(
 	} while (ret < 0 && errno == EINTR);
 
 	if (ret < 0) {
-		fprintf(stderr, "+++ LOG: write failed (errno=%d)\n", errno);
+		_E("+++ LOG: write failed (errno=%d)\n", errno);
 		ret = 0;
 		goto done;
 	}
 
 	if (((size_t)ret) < totalLen) {
-		fprintf(stderr, "+++ LOG: write partial (%d of %d)\n", ret,
+		_E("+++ LOG: write partial (%d of %d)\n", ret,
 				(int)totalLen);
 		goto done;
 	}
 
 done:
-	if (outBuffer != defaultBuffer)
+	if (outBuffer != defaultBuffer) {
 		free(outBuffer);
+	}
 
 	return ret;
 }
@@ -643,45 +699,45 @@ void logprint_run_tests()
 
 	p_format = log_format_new();
 
-	fprintf(stderr, "running tests\n");
+	_E("running tests\n");
 
 	tag = "random";
 
-	log_add_filter_rule(p_format, "*:i");
+	log_add_filter_rule(p_format,"*:i");
 
-	assert(DLOG_INFO == filter_pri_for_tag(p_format, "random"));
+	assert (DLOG_INFO == filter_pri_for_tag(p_format, "random"));
 	assert(log_should_print_line(p_format, tag, DLOG_DEBUG) == 0);
 	log_add_filter_rule(p_format, "*");
-	assert(DLOG_DEBUG == filter_pri_for_tag(p_format, "random"));
+	assert (DLOG_DEBUG == filter_pri_for_tag(p_format, "random"));
 	assert(log_should_print_line(p_format, tag, DLOG_DEBUG) > 0);
 	log_add_filter_rule(p_format, "*:v");
-	assert(DLOG_VERBOSE == filter_pri_for_tag(p_format, "random"));
+	assert (DLOG_VERBOSE == filter_pri_for_tag(p_format, "random"));
 	assert(log_should_print_line(p_format, tag, DLOG_DEBUG) > 0);
 	log_add_filter_rule(p_format, "*:i");
-	assert(DLOG_INFO == filter_pri_for_tag(p_format, "random"));
+	assert (DLOG_INFO == filter_pri_for_tag(p_format, "random"));
 	assert(log_should_print_line(p_format, tag, DLOG_DEBUG) == 0);
 
 	log_add_filter_rule(p_format, "random");
-	assert(DLOG_VERBOSE == filter_pri_for_tag(p_format, "random"));
+	assert (DLOG_VERBOSE == filter_pri_for_tag(p_format, "random"));
 	assert(log_should_print_line(p_format, tag, DLOG_DEBUG) > 0);
 	log_add_filter_rule(p_format, "random:v");
-	assert(DLOG_VERBOSE == filter_pri_for_tag(p_format, "random"));
+	assert (DLOG_VERBOSE == filter_pri_for_tag(p_format, "random"));
 	assert(log_should_print_line(p_format, tag, DLOG_DEBUG) > 0);
 	log_add_filter_rule(p_format, "random:d");
-	assert(DLOG_DEBUG == filter_pri_for_tag(p_format, "random"));
+	assert (DLOG_DEBUG == filter_pri_for_tag(p_format, "random"));
 	assert(log_should_print_line(p_format, tag, DLOG_DEBUG) > 0);
 	log_add_filter_rule(p_format, "random:w");
-	assert(DLOG_WARN == filter_pri_for_tag(p_format, "random"));
+	assert (DLOG_WARN == filter_pri_for_tag(p_format, "random"));
 	assert(log_should_print_line(p_format, tag, DLOG_DEBUG) == 0);
 
 	log_add_filter_rule(p_format, "crap:*");
-	assert(DLOG_VERBOSE == filter_pri_for_tag(p_format, "crap"));
+	assert (DLOG_VERBOSE== filter_pri_for_tag(p_format, "crap"));
 	assert(log_should_print_line(p_format, "crap", DLOG_VERBOSE) > 0);
 
 	/* invalid expression */
 	err = log_add_filter_rule(p_format, "random:z");
-	assert(err < 0);
-	assert(DLOG_WARN == filter_pri_for_tag(p_format, "random"));
+	assert (err < 0);
+	assert (DLOG_WARN == filter_pri_for_tag(p_format, "random"));
 	assert(log_should_print_line(p_format, tag, DLOG_DEBUG) == 0);
 
 	/* Issue #550946 */
@@ -699,6 +755,6 @@ void logprint_run_tests()
 
 	log_format_free(p_format);
 
-	fprintf(stderr, "tests complete\n");
+	_E("tests complete\n");
 }
 
