@@ -1,0 +1,1 @@
+KERNEL=="kmsg[0-9]*", MODE="0662", OWNER="log", GROUP="log", SECLABEL{smack}="*"
