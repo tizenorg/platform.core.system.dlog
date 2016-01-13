@@ -119,6 +119,6 @@ int dlog_mode_detect (void)
 	fclose (config);
 
 	if (!strcmp ("kmsg", buffer)) return DLOG_MODE_KMSG;
-	else if (!strcmp ("logger", buffer)) return DLOG_MODE_LOGGER;
+	else if (!strcmp ("logger", buffer)) return DLOG_MODE_ANDROID_LOGGER;
 	else return DLOG_MODE_JOURNAL;
 }
