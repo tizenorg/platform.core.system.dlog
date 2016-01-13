@@ -191,7 +191,7 @@ static void __dlog_init(void)
 			write_to_log = __write_to_log_sd_journal;
 			break;
 		case DLOG_MODE_KMSG:
-		case DLOG_MODE_LOGGER:
+		case DLOG_MODE_ANDROID_LOGGER:
 			if (0 == get_log_dev_names(log_devs)) {
 				log_fds[LOG_ID_MAIN]   = open(log_devs[LOG_ID_MAIN],   O_WRONLY);
 				log_fds[LOG_ID_SYSTEM] = open(log_devs[LOG_ID_SYSTEM], O_WRONLY);

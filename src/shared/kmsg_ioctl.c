@@ -25,21 +25,28 @@
 #include <kmsg_ioctl.h>
 #include <logcommon.h>
 
-void clear_log(int fd)
+void clear_log(int fd, int mode)
 {
-	int ret = ioctl(fd, KMSG_CMD_CLEAR);
+	int ret = (mode == DLOG_MODE_ANDROID_LOGGER)
+		? ioctl(fd, ANDROID_LOGGER_CMD_CLEAR)
+		: ioctl(fd,           KMSG_CMD_CLEAR)
+	;
 	if (ret < 0) {
-		_E("ioctl KMSG_CMD_CLEAR failed. %s", strerror(errno));
+		_E("ioctl CMD_CLEAR failed. %s", strerror(errno));
 		exit(EXIT_FAILURE);
 	}
 }
 
-void get_log_size(int fd, uint32_t *size)
+void get_log_size(int fd, uint32_t *size, int mode)
 {
-	int ret = ioctl(fd, KMSG_CMD_GET_BUF_SIZE, size);
-	if (ret < 0) {
-		_E("ioctl KMSG_CMD_GET_BUF_SIZE failed. %s", strerror(errno));
-		exit(EXIT_FAILURE);
+	if (mode == DLOG_MODE_KMSG) {
+		int ret = ioctl(fd, KMSG_CMD_GET_BUF_SIZE, size);
+		if (ret < 0) {
+			_E("ioctl CMD_GET_BUF_SIZE failed. %s", strerror(errno));
+			exit(EXIT_FAILURE);
+		}
+	} else {
+		*size = ioctl(fd, ANDROID_LOGGER_CMD_GET_BUF_SIZE);
 	}
 }
 
@@ -50,4 +57,9 @@ void get_log_read_size_max(int fd, uint32_t *size)
 		_E("ioctl KMSG_CMD_GET_READ_SIZE_MAX failed. %s", strerror(errno));
 		exit(EXIT_FAILURE);
 	}
+}
+
+void get_android_logger_consumed_size (int fd, uint32_t *size)
+{
+	*size = ioctl(fd, ANDROID_LOGGER_CMD_GET_CONSUMED_SIZE);
 }

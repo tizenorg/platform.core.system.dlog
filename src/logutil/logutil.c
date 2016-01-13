@@ -714,9 +714,7 @@ int main_kmsg (int argc, char **argv, int dlog_mode)
 		}
 
 		if (is_clear_log)
-			clear_log(dev->fd);
-
-		get_log_read_size_max(dev->fd, &dev->log_read_size_max);
+			clear_log(dev->fd, dlog_mode);
 
 		if (mode != O_WRONLY) {
 			off_t off;
@@ -731,14 +729,25 @@ int main_kmsg (int argc, char **argv, int dlog_mode)
 
 		if (getLogSize || g_nonblock) {
 			uint32_t size;
-
-			get_log_size(dev->fd, &size);
-
+			get_log_size(dev->fd, &size, dlog_mode);
 			g_log_file.rotate_size_kbytes += size / 1024;
-			printf("%s: cyclic ring buffer is %uKb. "
-			       "Max read entry log payload size is %uKb\n",
-			       dev->device, size/1024,
-			       dev->log_read_size_max/1024);
+
+			if (dlog_mode == DLOG_MODE_KMSG) {
+				get_log_read_size_max(dev->fd, &dev->log_read_size_max);
+
+				printf("%s: cyclic ring buffer is %u Kb\n"
+				       "Max read entry log payload size is %u Kb\n",
+				       dev->device, size/1024,
+				       dev->log_read_size_max/1024);
+			} else if (dlog_mode == DLOG_MODE_ANDROID_LOGGER) {
+				uint32_t consumed;
+				get_android_logger_consumed_size (dev->fd, &consumed);
+
+				printf("%s: cyclic ring buffer is %u KB (%u KB consumed)\n"
+				       "Max entry is %u B, max payload is %u B\n",
+				       dev->device, size / 1024, consumed / 1024,
+				       ANDROID_LOGGER_ENTRY_MAX_LEN, ANDROID_LOGGER_ENTRY_MAX_PAYLOAD);
+			}
 		}
 
 		dev = dev->next;
@@ -766,7 +775,7 @@ int main(int argc, char **argv)
 		case DLOG_MODE_JOURNAL:
 			return main_journal (argc, argv);
 		case DLOG_MODE_KMSG:
-		case DLOG_MODE_LOGGER:
+		case DLOG_MODE_ANDROID_LOGGER:
 			return main_kmsg (argc, argv, mode);
 		default:
 			assert (0);

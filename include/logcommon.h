@@ -23,6 +23,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <dlog.h>
+#include <queued_entry.h>
 
 #ifdef DEBUG_ON
 #define _D(...) printf(__VA_ARGS__)
@@ -37,10 +38,13 @@
 #define LOG_APPS_CONF_PREFIX    "LOG_APPS="
 #define LOG_TYPE_CONF_PREFIX    "LOG_TYPE="
 
+#define ANDROID_LOGGER_ENTRY_MAX_LEN     (4*1024) // 4 KB
+#define ANDROID_LOGGER_ENTRY_MAX_PAYLOAD (ANDROID_LOGGER_ENTRY_MAX_LEN - sizeof(struct logger_entry))
+
 enum
 	{ DLOG_MODE_KMSG
 	, DLOG_MODE_JOURNAL
-	, DLOG_MODE_LOGGER
+	, DLOG_MODE_ANDROID_LOGGER
 };
 
 int get_log_dev_names(char devs[LOG_ID_MAX][PATH_MAX]);
