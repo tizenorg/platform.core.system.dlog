@@ -53,6 +53,28 @@ priority level indicates the urgency of log message
 </tr>
 </table>
 
+<h2 class="pg">Macro example for useful usage</h2>
+The dlog APIs can be used by defining own macros. The macros can be defined like below examples.
+Thus, developers can use appropriate method as a matter of convenience.
+
+@code
+#undef LOG_TAG
+#define LOG_TAG "APP_TAG"
+
+#define LOGI(fmt, arg...) \
+	({ do { \
+		dlog_print(DLOG_INFO, LOG_TAG, "%s: %s(%d) > " fmt, __MODULE__, __func__, __LINE__, ##arg); \
+	} while (0); })
+#define LOGW(fmt, arg...) \
+		({ do { \
+			dlog_print(DLOG_WARN, LOG_TAG, "%s: %s(%d) > " fmt, __MODULE__, __func__, __LINE__, ##arg); \
+		} while (0); })
+#define LOGE(fmt, arg...) \
+		({ do { \
+			dlog_print(DLOG_ERROR, LOG_TAG, "%s: %s(%d) > " fmt, __MODULE__, __func__, __LINE__, ##arg); \
+		} while (0); })
+@endcode
+
 <h1 class="pg">dlogutil</h1>
 <h2 class="pg">Introduction</h2>
 You can use dlogutil command to view and follow the contents of the log buffers. The general usage is :
