@@ -172,13 +172,6 @@ int read_queued_entry_from_dev(int fd, struct queued_entry_t *entry,
 	return RQER_SUCCESS;
 }
 
-struct queued_entry_t* pop_queued_entry(struct queued_entry_t** queue)
-{
-	struct queued_entry_t *entry = *queue;
-	*queue = (*queue)->next;
-	return entry;
-}
-
 int cmp(struct queued_entry_t* a, struct queued_entry_t* b)
 {
 	if (a->entry.ts_usec < b->entry.ts_usec)
@@ -186,20 +179,6 @@ int cmp(struct queued_entry_t* a, struct queued_entry_t* b)
 	else if (a->entry.ts_usec > b->entry.ts_usec)
 		return 1;
 	return 0;
-}
-
-void enqueue(struct queued_entry_t** queue, struct queued_entry_t* entry)
-{
-	if (*queue == NULL) {
-		*queue = entry;
-	} else {
-		struct queued_entry_t** e = queue;
-		while (*e && cmp(entry, *e) >= 0 ) {
-			e = &((*e)->next);
-		}
-		entry->next = *e;
-		*e = entry;
-	}
 }
 
 #else
@@ -257,13 +236,6 @@ int read_queued_entry_from_dev(int fd, struct queued_entry_t *entry, uint32_t fo
 	return 0;
 }
 
-struct queued_entry_t* pop_queued_entry(struct queued_entry_t** queue)
-{
-	struct queued_entry_t *entry = *queue;
-	*queue = (*queue)->next;
-	return entry;
-}
-
 int cmp(struct queued_entry_t* a, struct queued_entry_t* b)
 {
 	int n = a->entry.sec - b->entry.sec;
@@ -271,6 +243,15 @@ int cmp(struct queued_entry_t* a, struct queued_entry_t* b)
 		return n;
 	}
 	return a->entry.nsec - b->entry.nsec;
+}
+
+#endif
+
+struct queued_entry_t* pop_queued_entry(struct queued_entry_t** queue)
+{
+	struct queued_entry_t *entry = *queue;
+	*queue = (*queue)->next;
+	return entry;
 }
 
 void enqueue(struct queued_entry_t** queue, struct queued_entry_t* entry)
@@ -287,4 +268,3 @@ void enqueue(struct queued_entry_t** queue, struct queued_entry_t* entry)
 	}
 }
 
-#endif

@@ -46,11 +46,8 @@ struct queued_entry_t {
 struct queued_entry_t* new_queued_entry(uint32_t log_read_size_max);
 void free_queued_entry(struct queued_entry_t* entry);
 void free_queued_entry_list(struct queued_entry_t *queue);
-int read_queued_entry_from_dev(int fd, struct queued_entry_t *entry,
-			       uint32_t log_read_size_max);
-struct queued_entry_t* pop_queued_entry(struct queued_entry_t** queue);
+int read_queued_entry_from_dev(int fd, struct queued_entry_t *entry, uint32_t log_read_size_max);
 int cmp(struct queued_entry_t* a, struct queued_entry_t* b);
-void enqueue(struct queued_entry_t** queue, struct queued_entry_t* entry);
 
 #else
 
@@ -78,9 +75,7 @@ struct queued_entry_t* new_queued_entry(uint32_t for_compatibility);
 void free_queued_entry(struct queued_entry_t* entry);
 void free_queued_entry_list(struct queued_entry_t *queue);
 int read_queued_entry_from_dev(int fd, struct queued_entry_t *entry, uint32_t for_compatibility);
-struct queued_entry_t* pop_queued_entry(struct queued_entry_t** queue);
 int cmp(struct queued_entry_t* a, struct queued_entry_t* b);
-void enqueue(struct queued_entry_t** queue, struct queued_entry_t* entry);
 
 #endif
 
@@ -90,5 +85,8 @@ void enqueue(struct queued_entry_t** queue, struct queued_entry_t* entry);
 #define RQER_PARSE     3
 #define RQER_EPIPE     4
 //TODO: consider enum
+
+struct queued_entry_t* pop_queued_entry(struct queued_entry_t** queue);
+void enqueue(struct queued_entry_t** queue, struct queued_entry_t* entry);
 
 #endif /* _QUEUED_ENTRY_H */
