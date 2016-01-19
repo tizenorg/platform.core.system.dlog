@@ -197,12 +197,11 @@ static void read_log_lines(struct log_device_t* devices)
 						goto next;
 					else if (ret == RQER_EAGAIN)
 						break;
-					else if(ret == RQER_PARSE)
-					{
+					else if(ret == RQER_PARSE) {
 						printf("Wrong formatted message is written.\n");
 						continue;
 					}
-					// EPIPE is not an error: it signals the cyclic buffer having made a full turn and overwritten previous data
+					/* EPIPE is not an error: it signals the cyclic buffer having made a full turn and overwritten previous data */
 					else if(ret == RQER_EPIPE)
 						continue;
 
