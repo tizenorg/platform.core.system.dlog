@@ -263,8 +263,13 @@ static void do_logger(struct log_device *dev)
 					goto next;
 				else if (ret == RQER_EAGAIN)
 					break;
-				else if (ret == RQER_PARSE
-				      || ret == RQER_EPIPE) // EPIPE is not an error: it signals the cyclic buffer having made a full turn and overwritten previous data
+				else if (ret == RQER_PARSE)
+				{
+					printf("Wrong formatted message is written. \n");
+					continue;
+				}
+				/* EPIPE is not an error: it signals the cyclic buffer having made a full turn and overwritten previous data */
+				else if(ret == RQER_EPIPE)
 					continue;
 
 				enqueue(&pdev->queue, entry);
