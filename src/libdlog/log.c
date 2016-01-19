@@ -203,7 +203,7 @@ static int __write_to_log_logger(log_id_t log_id, log_priority prio, const char 
 
 	ret = writev(log_fd, vec, 3);
 	if (ret < 0)
-	    ret = errno;
+	    ret = -errno;
 
 	return ret;
 }
