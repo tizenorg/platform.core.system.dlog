@@ -821,6 +821,11 @@ exit:
 
 int main(int argc, char **argv)
 {
+	/* Nothing to do if the backend is journal */
+#if DLOG_BACKEND_JOURNAL
+	return 0;
+#endif
+
 	int i, r, ncmd;
 	struct stat statbuf;
 	struct log_device *dev;
