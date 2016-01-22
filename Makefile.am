@@ -1,5 +1,7 @@
 AUTOMAKE_OPTIONS = subdir-objects foreign
 
+BUILT_SOURCES = include/dlog.h
+
 AM_CFLAGS = -I$(srcdir)/include \
 	$(DEBUG_CFLAGS) \
 	-Werror \
