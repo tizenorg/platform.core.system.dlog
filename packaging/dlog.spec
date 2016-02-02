@@ -85,6 +85,9 @@ cp %{SOURCE102} .
 %autogen --disable-static
 %configure --disable-static \
 			--enable-fatal_on \
+		%if %{?backend_journal} == ON
+			--enable-journal \
+		%endif
 			--enable-engineer_mode
 make %{?jobs:-j%jobs} \
 	CFLAGS+=-DKMSG_DEV_CONFIG_FILE=\\\"/run/dloginit.conf\\\" \
@@ -110,6 +113,9 @@ mkdir -p %{buildroot}/opt/etc
 cp %SOURCE201 %{buildroot}/opt/etc/dlog.conf
 
 mkdir -p %{buildroot}%{_unitdir}/multi-user.target.wants/
+
+%if %{?backend_journal} == OFF
+
 install -m 0644 %SOURCE301 %{buildroot}%{_unitdir}
 
 %if %{?backend_kmsg} == ON
@@ -122,6 +128,8 @@ ln -s ../dlog_logger.path %{buildroot}%{_unitdir}/multi-user.target.wants/dlog_l
 
 # default set log output to external files
 cp %SOURCE202 %{buildroot}/opt/etc/dlog_logger.conf
+
+%endif
 
 mkdir -p %{buildroot}%{_unitdir}/sysinit.target.wants/
 install -m 0644 %SOURCE401 %{buildroot}%{_unitdir}
@@ -167,12 +175,14 @@ systemctl daemon-reload
 %attr(750,log,log) %{_bindir}/dlogutil
 %attr(755,log,log) %{_bindir}/dlogctrl
 %attr(755,log,log) /var/log/dlog
+%{_udevrulesdir}/01-dlog.rules
+%if %{?backend_journal} == OFF
 %attr(750,log,log) %{_bindir}/dlog_logger
 %attr(664,log,log) /opt/etc/dlog_logger.conf
 %{_unitdir}/dlog_logger.service
 %{_unitdir}/dlog_logger.path
 %{_unitdir}/multi-user.target.wants/dlog_logger.path
-%{_udevrulesdir}/01-dlog.rules
+%endif
 
 %files  -n libdlog
 %manifest libdlog.manifest

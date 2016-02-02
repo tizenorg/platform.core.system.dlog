@@ -54,23 +54,11 @@ dlogutil_SOURCES = \
 	include/log_file.h \
 	include/logprint.h
 
-bin_PROGRAMS += dlog_logger
 sbin_PROGRAMS = dloginit
 
-dloginit_CFLAGS =  \
-	$(AM_CFLAGS) \
-	$(LIBUDEV_CFLAGS) \
-	-fPIE
+if !WITH_SYSTEMD_JOURNAL
 
-dloginit_LDFLAGS = \
-	$(AM_LDFLAGS) \
-	$(LIBUDEV_LIBS) \
-	-pie
-
-dloginit_SOURCES = \
-	src/loginit/loginit.c \
-	include/logcommon.h \
-	include/dlog.h
+bin_PROGRAMS += dlog_logger
 
 dlog_logger_CFLAGS =  \
 	$(AM_CFLAGS) \
@@ -92,6 +80,23 @@ dlog_logger_SOURCES = \
 	include/queued_entry.h \
 	include/log_file.h \
 	include/logprint.h
+
+endif
+
+dloginit_CFLAGS =  \
+	$(AM_CFLAGS) \
+	$(LIBUDEV_CFLAGS) \
+	-fPIE
+
+dloginit_LDFLAGS = \
+	$(AM_LDFLAGS) \
+	$(LIBUDEV_LIBS) \
+	-pie
+
+dloginit_SOURCES = \
+	src/loginit/loginit.c \
+	include/logcommon.h \
+	include/dlog.h
 
 include/%: include/%.m4
 	m4 -P $(M4_DEFINES) < $< > $@

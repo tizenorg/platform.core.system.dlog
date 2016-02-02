@@ -34,6 +34,7 @@ if test "x$with_systemd_journal" != "xno"; then
 	fi
 fi
 AM_CONDITIONAL(HAVE_SYSTEMD_JOURNAL, [test "x$have_systemd_journal" = "xyes"])
+AM_CONDITIONAL(WITH_SYSTEMD_JOURNAL, [test "x$with_systemd_journal" = "xyes"])
 if test "x$have_systemd_journal" = "xyes" ; then
 	systemd_journal=systemd-journal
 fi
