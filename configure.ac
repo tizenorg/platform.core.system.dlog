@@ -37,13 +37,13 @@ if test "x$have_systemd_journal" = "xyes" ; then
 fi
 AC_SUBST(systemd_journal)
 
-# check binary type for tizen engineer mode
-AC_ARG_ENABLE([engineer_mode],
-	AS_HELP_STRING([--enable-engineer_mode Turn on engineer_mode]),
-		[engineer_mode=yes],
-		engineer_mode=no)
-if test "x$engineer_mode" = "xyes" ; then
-	DEBUG_CFLAGS+=" -DTIZEN_ENGINEER_MODE"
+# check binary type for dlog debug mode
+AC_ARG_ENABLE([dlog_debug_mode],
+	AS_HELP_STRING([--enable-debug_mode Turn on dlog_debug_mode]),
+		[dlog_debug_mode=yes],
+		dlog_debug_mode=no)
+if test "x$dlog_debug_mode" = "xyes" ; then
+	DEBUG_CFLAGS+=" -DDLOG_DEBUG_ENABLE"
 fi
 AC_ARG_ENABLE([debug_enable],
 	AS_HELP_STRING([--enable-debug_enable Turn on debug_enable]),

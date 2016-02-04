@@ -47,12 +47,6 @@ extern "C" {
 #define __MODULE__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
 #endif
 
-#ifdef TIZEN_ENGINEER_MODE
-#ifndef DLOG_DEBUG_ENABLE
-#define DLOG_DEBUG_ENABLE
-#endif
-#endif
-
 /**
  * @internal
  * @brief log id
