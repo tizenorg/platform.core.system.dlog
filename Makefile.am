@@ -11,7 +11,8 @@ AM_CFLAGS = -I$(srcdir)/include \
 dlog_includedir = $(includedir)/dlog
 
 dlog_include_HEADERS = \
-	include/dlog.h
+	include/dlog.h \
+	include/dlog-internal.h
 
 lib_LTLIBRARIES = libdlog.la
 
@@ -19,7 +20,7 @@ libdlog_la_SOURCES =  \
 	src/libdlog/log.c \
 	src/shared/logcommon.c \
 	include/dlog.h \
-	include/logcommon.h \
+	include/dlog-internal.h \
 	src/libdlog/logconfig.c \
 	include/logconfig.h \
 	src/libdlog/loglimiter.c \
@@ -97,9 +98,6 @@ dloginit_SOURCES = \
 	src/loginit/loginit.c \
 	include/logcommon.h \
 	include/dlog.h
-
-include/%: include/%.m4
-	m4 -P $(M4_DEFINES) < $< > $@
 
 # conf file
 pkgconfigdir = $(libdir)/pkgconfig
