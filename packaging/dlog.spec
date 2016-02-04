@@ -197,5 +197,6 @@ systemctl daemon-reload
 
 %files -n libdlog-devel
 %{_includedir}/dlog/dlog.h
+%{_includedir}/dlog/dlog-internal.h
 %{_libdir}/pkgconfig/dlog.pc
 %{_libdir}/libdlog.so
