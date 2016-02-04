@@ -88,7 +88,7 @@ cp %{SOURCE102} .
 		%if %{?backend_journal} == ON
 			--enable-journal \
 		%endif
-			--enable-engineer_mode
+			--enable-debug_mode
 make %{?jobs:-j%jobs} \
 	CFLAGS+=-DKMSG_DEV_CONFIG_FILE=\\\"/run/dloginit.conf\\\" \
 %if %{?backend_journal} == ON
