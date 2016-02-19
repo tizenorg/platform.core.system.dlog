@@ -24,6 +24,12 @@ M4_DEFINES=
 AC_ARG_ENABLE(journal, AS_HELP_STRING([--enable-journal], [enable systemd journal]),
     [with_systemd_journal=yes],
     with_systemd_journal=no)
+
+#check for pipe backend
+AC_ARG_ENABLE(pipe, AS_HELP_STRING([--enable-pipe], [enable pipe]),
+    [with_pipe=yes],
+    with_pipe=no)
+
 if test "x$with_systemd_journal" != "xno"; then
 	PKG_CHECK_MODULES(systemd_journal, [libsystemd-journal],
 		[AC_DEFINE(HAVE_SYSTEMD_JOURNAL, 1, [Define if systemd journal is available])
@@ -35,6 +41,8 @@ if test "x$with_systemd_journal" != "xno"; then
 fi
 AM_CONDITIONAL(HAVE_SYSTEMD_JOURNAL, [test "x$have_systemd_journal" = "xyes"])
 AM_CONDITIONAL(WITH_SYSTEMD_JOURNAL, [test "x$with_systemd_journal" = "xyes"])
+AM_CONDITIONAL(WITH_PIPE, [test "x$with_pipe" = "xyes"])
+
 if test "x$have_systemd_journal" = "xyes" ; then
 	systemd_journal=systemd-journal
 fi

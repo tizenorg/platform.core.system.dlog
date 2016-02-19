@@ -72,7 +72,6 @@ dlog_logger_SOURCES = \
 	src/shared/dlog_ioctl.c \
 	src/shared/logcommon.c \
 	src/shared/logprint.c \
-	src/logger/logger.c \
 	src/shared/queued_entry.c \
 	src/shared/log_file.c \
 	include/dlog_ioctl.h \
@@ -80,6 +79,12 @@ dlog_logger_SOURCES = \
 	include/queued_entry.h \
 	include/log_file.h \
 	include/logprint.h
+
+if WITH_PIPE
+dlog_logger_SOURCES += src/logger/logger_pipe.c
+else
+dlog_logger_SOURCES += src/logger/logger.c
+endif
 
 endif
 

@@ -22,10 +22,11 @@ Source502:	packaging/01-dlog.rules.logger
 
 
 # Choose dlog backend log device
-# Warning : MUST be only one "ON" in below three switches
+# Warning : MUST be only one "ON" in below four switches
 %define backend_journal	ON
 %define backend_kmsg	OFF
 %define backend_logger	OFF
+%define backend_pipe	OFF
 
 
 %else
@@ -33,6 +34,7 @@ Source502:	packaging/01-dlog.rules.logger
 %define backend_journal	OFF
 %define backend_kmsg	OFF
 %define backend_logger	ON
+%define backend_pipe	OFF
 %endif
 
 BuildRequires: autoconf
@@ -88,6 +90,9 @@ cp %{SOURCE102} .
 		%if %{?backend_journal} == ON
 			--enable-journal \
 		%endif
+		%if %{?backend_pipe} == ON
+			--enable-pipe \
+		%endif
 			--enable-engineer_mode
 make %{?jobs:-j%jobs} \
 	CFLAGS+=-DKMSG_DEV_CONFIG_FILE=\\\"/run/dloginit.conf\\\" \
@@ -99,6 +104,9 @@ make %{?jobs:-j%jobs} \
 %endif
 %if %{?backend_logger} == ON
 	CFLAGS+=-DDLOG_BACKEND_LOGGER
+%endif
+%if %{?backend_pipe} == ON
+	CFLAGS+=-DDLOG_BACKEND_PIPE
 %endif
 
 
@@ -114,7 +122,7 @@ cp %SOURCE201 %{buildroot}/opt/etc/dlog.conf
 
 mkdir -p %{buildroot}%{_unitdir}/multi-user.target.wants/
 
-%if %{?backend_journal} == OFF
+%if %{?backend_kmsg} == ON || %{?backend_logger} == ON
 
 install -m 0644 %SOURCE301 %{buildroot}%{_unitdir}
 
@@ -178,10 +186,12 @@ systemctl daemon-reload
 %{_udevrulesdir}/01-dlog.rules
 %if %{?backend_journal} == OFF
 %attr(750,log,log) %{_bindir}/dlog_logger
+%if %{?backend_pipe} == OFF
 %attr(664,log,log) /opt/etc/dlog_logger.conf
 %{_unitdir}/dlog_logger.service
 %{_unitdir}/dlog_logger.path
 %{_unitdir}/multi-user.target.wants/dlog_logger.path
+%endif
 %endif
 
 %files  -n libdlog

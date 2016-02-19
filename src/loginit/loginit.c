@@ -107,6 +107,25 @@ static void write_config_journal(FILE *config_file)
 			LOG_TYPE_CONF_PREFIX, "journal");
 }
 
+#elif DLOG_BACKEND_PIPE
+
+static void write_config_pipe(FILE *config_file)
+{
+	fprintf
+		( config_file
+		, "%s%s\n"
+		  "%s%s\n"
+		  "%s%s\n"
+		  "%s%s\n"
+		  "%s%s\n"
+		, LOG_TYPE_CONF_PREFIX,   "pipe"
+		, LOG_MAIN_CONF_PREFIX,   "/var/log/pipe/main"
+		, LOG_RADIO_CONF_PREFIX,  "/var/log/pipe/radio"
+		, LOG_SYSTEM_CONF_PREFIX, "/var/log/pipe/system"
+		, LOG_APPS_CONF_PREFIX,   "/var/log/pipe/apps"
+	);
+}
+
 #endif
 
 int main()
@@ -144,6 +163,10 @@ error:
 
 #elif DLOG_BACKEND_JOURNAL
 	write_config_journal(config_file);
+	return 0;
+
+#elif DLOG_BACKEND_PIPE
+	write_config_pipe(config_file);
 	return 0;
 
 #endif
