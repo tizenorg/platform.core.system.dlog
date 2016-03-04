@@ -38,11 +38,11 @@ fi
 AC_SUBST(systemd_journal)
 
 # check binary type for dlog debug mode
-AC_ARG_ENABLE([dlog_debug_mode],
-	AS_HELP_STRING([--enable-debug_mode Turn on dlog_debug_mode]),
-		[dlog_debug_mode=yes],
-		dlog_debug_mode=no)
-if test "x$dlog_debug_mode" = "xyes" ; then
+AC_ARG_ENABLE([debug_mode],
+	AS_HELP_STRING([--enable-debug_mode Turn on debug_mode]),
+		[debug_mode=yes],
+		debug_mode=no)
+if test "x$debug_mode" = "xyes" ; then
 	DEBUG_CFLAGS+=" -DDLOG_DEBUG_ENABLE"
 fi
 AC_ARG_ENABLE([debug_enable],
