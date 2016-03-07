@@ -92,6 +92,7 @@ static inline const char* dlog_id_to_string(log_id_t log_id)
 static int __write_to_log_sd_journal(log_id_t log_id, log_priority prio, const char *tag, const char *msg)
 {
 	const char *lid_str = dlog_id_to_string(log_id);
+	int ret;
 
 	pid_t tid = (pid_t)syscall(SYS_gettid);
 
@@ -134,7 +135,12 @@ static int __write_to_log_sd_journal(log_id_t log_id, log_priority prio, const c
 	vec[4].iov_base = (void *)_tid;
 	vec[4].iov_len = strlen(vec[4].iov_base);
 
-	return sd_journal_sendv(vec, 5);
+	ret = sd_journal_sendv(vec, 5);
+
+	if (ret == 0)
+		return (vec[0].iov_len + vec[1].iov_len + vec[2].iov_len + vec[3].iov_len + vec[4].iov_len);
+	else
+		return ret;
 }
 
 #else
