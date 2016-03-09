@@ -3,7 +3,7 @@
 MODE=none
 OBJ=none
 VAL=none
-CONFIG_PATH="/opt/etc"
+CONFIG_PATH=@TZ_SYS_ETC@
 
 function Usage()
 {

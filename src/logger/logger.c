@@ -46,7 +46,7 @@
 #define BUFFER_MAX 100
 #define INTERVAL_MAX 60*60
 
-#define CONFIG_FILE "/opt/etc/dlog_logger.conf"
+#define CONFIG_FILE TZ_SYS_ETC"/dlog_logger.conf"
 
 #define ARRAY_SIZE(name) (sizeof(name)/sizeof(name[0]))
 

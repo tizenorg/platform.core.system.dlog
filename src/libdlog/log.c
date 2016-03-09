@@ -43,7 +43,7 @@
 #define LOG_BUF_SIZE	1024
 
 #define VALUE_MAX 2
-#define LOG_CONFIG_FILE "/opt/etc/dlog.conf"
+#define LOG_CONFIG_FILE TZ_SYS_ETC"/dlog.conf"
 
 #ifndef DLOG_BACKEND_JOURNAL
 static int log_fds[(int)LOG_ID_MAX] = { -1, -1, -1, -1 };

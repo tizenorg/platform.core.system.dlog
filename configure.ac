@@ -81,6 +81,10 @@ AC_CHECK_FUNCS([memset])
 PKG_PROG_PKG_CONFIG
 PKG_CHECK_MODULES([CAPI_BASE_COMMON], [capi-base-common])
 
+AC_SUBST(TZ_SYS_ETC)
+
 # output files
-AC_CONFIG_FILES([Makefile dlog.pc])
+AC_CONFIG_FILES([Makefile dlog.pc]
+				scripts/dlogctrl
+				)
 AC_OUTPUT

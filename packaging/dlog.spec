@@ -41,6 +41,7 @@ BuildRequires: libtool
 BuildRequires: pkgconfig(libsystemd-journal)
 BuildRequires: pkgconfig(capi-base-common)
 BuildRequires: pkgconfig(libudev)
+BuildRequires: pkgconfig(libtzplatform-config)
 Requires(post): coreutils
 Requires(post): /usr/bin/systemctl
 Requires(postun): /usr/bin/systemctl
@@ -88,9 +89,11 @@ cp %{SOURCE102} .
 		%if %{?backend_journal} == ON
 			--enable-journal \
 		%endif
-			--enable-debug_mode
+			--enable-debug_mode \
+			TZ_SYS_ETC=%{TZ_SYS_ETC}
 make %{?jobs:-j%jobs} \
 	CFLAGS+=-DKMSG_DEV_CONFIG_FILE=\\\"/run/dloginit.conf\\\" \
+	CFLAGS+=-DTZ_SYS_ETC=\\\"%{TZ_SYS_ETC}\\\" \
 %if %{?backend_journal} == ON
 	CFLAGS+=-DDLOG_BACKEND_JOURNAL
 %endif
@@ -109,8 +112,8 @@ rm -rf %{buildroot}
 mkdir -p %{buildroot}/usr/bin/
 cp %{_builddir}/%{name}-%{version}/scripts/dlogctrl %{buildroot}/usr/bin/dlogctrl
 
-mkdir -p %{buildroot}/opt/etc
-cp %SOURCE201 %{buildroot}/opt/etc/dlog.conf
+mkdir -p %{buildroot}%{TZ_SYS_ETC}
+cp %SOURCE201 %{buildroot}%{TZ_SYS_ETC}/dlog.conf
 
 mkdir -p %{buildroot}%{_unitdir}/multi-user.target.wants/
 
@@ -127,7 +130,7 @@ install -m 0644 %SOURCE303 %{buildroot}%{_unitdir}/dlog_logger.path
 ln -s ../dlog_logger.path %{buildroot}%{_unitdir}/multi-user.target.wants/dlog_logger.path
 
 # default set log output to external files
-cp %SOURCE202 %{buildroot}/opt/etc/dlog_logger.conf
+cp %SOURCE202 %{buildroot}%{TZ_SYS_ETC}/dlog_logger.conf
 
 %endif
 
@@ -178,7 +181,7 @@ systemctl daemon-reload
 %{_udevrulesdir}/01-dlog.rules
 %if %{?backend_journal} == OFF
 %attr(750,log,log) %{_bindir}/dlog_logger
-%attr(664,log,log) /opt/etc/dlog_logger.conf
+%attr(664,log,log) %{TZ_SYS_ETC}/dlog_logger.conf
 %{_unitdir}/dlog_logger.service
 %{_unitdir}/dlog_logger.path
 %{_unitdir}/multi-user.target.wants/dlog_logger.path
@@ -189,7 +192,7 @@ systemctl daemon-reload
 /usr/share/license/libdlog
 %{_libdir}/libdlog.so.0
 %{_libdir}/libdlog.so.0.0.0
-%attr(664,log,log) /opt/etc/dlog.conf
+%attr(664,log,log) %{TZ_SYS_ETC}/dlog.conf
 /usr/share/license/%{name}
 %attr(700,log,log) %{_sbindir}/dloginit
 %attr(-,log,log) %{_unitdir}/dloginit.service
