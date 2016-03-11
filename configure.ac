@@ -6,13 +6,11 @@ AC_INIT([dlog], [1.0], yk.yun@samsung.com)
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 AC_CONFIG_HEADERS([config.h:config.hin])
 
-AC_CONFIG_MACRO_DIR([m4])
 # Init XO
 PLATFORM_INIT
 
 # Checks for programs.
 dnl AC_PROG_CXX
-m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 AC_PROG_CC
 AC_PROG_GCC_TRADITIONAL
 AC_PROG_LIBTOOL
@@ -58,7 +56,6 @@ if test "x$fatal_on" = "xyes" ; then
 	DEBUG_CFLAGS+=" -DFATAL_ON"
 fi
 AC_SUBST(DEBUG_CFLAGS)
-dnl AC_SUBST(ACLOCAL_AMFLAGS, "-I m4")
 # Checks for libraries.
 # Checks for header files.
 AC_HEADER_STDC
