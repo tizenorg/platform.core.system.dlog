@@ -18,9 +18,6 @@ Source401:  packaging/dloginit.service
 Source501:  packaging/01-dlog.rules.kmsg
 Source502:	packaging/01-dlog.rules.logger
 
-%if "%{?tizen_target_name}" != "TM1"
-
-
 # Choose dlog backend log device
 # Warning : MUST be only one "ON" in below three switches
 %define backend_journal	ON
@@ -28,8 +25,14 @@ Source502:	packaging/01-dlog.rules.logger
 %define backend_logger	OFF
 
 
-%else
-# Don't touch these switches
+# Do NOT touch switches below
+%if "%{?tizen_target_name}" == "TM1"
+%define backend_journal	OFF
+%define backend_kmsg	OFF
+%define backend_logger	ON
+%endif
+
+%if "%{?profile}" == "wearable"
 %define backend_journal	OFF
 %define backend_kmsg	OFF
 %define backend_logger	ON
