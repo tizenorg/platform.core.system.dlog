@@ -36,8 +36,8 @@ void open_logfile(struct log_file *file)
 			S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
 
 	if (file->fd < 0) {
-		_E("could not open log file %s. Error: %s",
-		   file->path, strerror(errno));
+		_E("could not open log file %s (%d)",
+		   file->path, errno);
 		exit(EXIT_FAILURE);
 	}
 }

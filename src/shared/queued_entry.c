@@ -221,7 +221,7 @@ int read_queued_entry_from_dev(int fd, struct queued_entry_t *entry, uint32_t fo
 		case EAGAIN:
 			return RQER_EAGAIN;
 		default:
-			_E("read: %s", strerror(errno));
+			_E("read: error is occurred (%d)", errno);
 			exit(EXIT_FAILURE);
 		}
 	} else if (!ret) {

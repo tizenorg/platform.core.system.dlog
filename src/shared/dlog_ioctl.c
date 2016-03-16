@@ -31,7 +31,7 @@ void clear_log(int fd)
 {
 	int ret = ioctl(fd, KMSG_CMD_CLEAR);
 	if (ret < 0) {
-		_E("ioctl KMSG_CMD_CLEAR failed. %s", strerror(errno));
+		_E("ioctl KMSG_CMD_CLEAR failed (%d)", errno);
 		exit(EXIT_FAILURE);
 	}
 }
@@ -40,7 +40,7 @@ void get_log_size(int fd, uint32_t *size)
 {
 	int ret = ioctl(fd, KMSG_CMD_GET_BUF_SIZE, size);
 	if (ret < 0) {
-		_E("ioctl KMSG_CMD_GET_BUF_SIZE failed. %s", strerror(errno));
+		_E("ioctl KMSG_CMD_GET_BUF_SIZE failed (%d)", errno);
 		exit(EXIT_FAILURE);
 	}
 }
@@ -49,7 +49,7 @@ void get_log_read_size_max(int fd, uint32_t *size)
 {
 	int ret = ioctl(fd, KMSG_CMD_GET_READ_SIZE_MAX, size);
 	if (ret < 0) {
-		_E("ioctl KMSG_CMD_GET_READ_SIZE_MAX failed. %s", strerror(errno));
+		_E("ioctl KMSG_CMD_GET_READ_SIZE_MAX failed (%d)", errno);
 		exit(EXIT_FAILURE);
 	}
 }
@@ -60,7 +60,7 @@ void clear_log(int fd)
 {
 	int ret = ioctl(fd, LOGGER_FLUSH_LOG);
 	if (ret < 0) {
-		_E("ioctl LOGGER_FLUSH_LOG failed. %s", strerror(errno));
+		_E("ioctl LOGGER_FLUSH_LOG failed (%d)", errno);
 		exit(EXIT_FAILURE);
 	}
 }
@@ -69,7 +69,7 @@ void get_log_size(int fd, uint32_t *size)
 {
 	*size = ioctl(fd, LOGGER_GET_LOG_BUF_SIZE);
 	if (size < 0) {
-		_E("ioctl LOGGER_GET_LOG_BUF_SIZE failed. %s", strerror(errno));
+		_E("ioctl LOGGER_GET_LOG_BUF_SIZE failed (%d)", errno);
 		exit(EXIT_FAILURE);
 	}
 }
