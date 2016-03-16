@@ -708,8 +708,9 @@ int main_others(int argc, char **argv)
 	while (dev) {
 		dev->fd = open(dev->device, mode);
 		if (dev->fd < 0) {
+			char buf[256];
 			_E("Unable to open log device '%s': %s\n",
-					dev->device, strerror(errno));
+					dev->device, strerror_r(errno, buf, 256));
 			exit(EXIT_FAILURE);
 		}
 
