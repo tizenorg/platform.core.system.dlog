@@ -465,9 +465,9 @@ static struct log_device *device_new(int id)
 	dev->id = id;
 	dev->fd = open(device_path_table[id], O_RDONLY);
 	if (dev->fd < 0) {
-		_E("Unable to open log device '%s': %s\n",
+		_E("Unable to open log device %s (%d)",
 				device_path_table[id],
-				strerror(errno));
+				errno);
 		free(dev);
 		return NULL;
 	}
@@ -586,13 +586,13 @@ static int parse_command_line(char *linebuffer, struct log_command *cmd)
 {
 	int i, ret, id, argc;
 	char *argv[MAX_ARGS];
-	char *tok, *cmdline;
+	char *tok, *saveptr, *cmdline;
 
 	if (linebuffer == NULL || cmd == NULL)
 		return -1;
 	/* copy command line */
 	cmdline = strdup(linebuffer);
-	tok = strtok(cmdline, DELIMITER);
+	tok = strtok_r(cmdline, DELIMITER, &saveptr);
 	/* check the availability of command line
 	   by comparing first word with dlogutil*/
 	if (!tok || strcmp(tok, "dlogutil")) {
