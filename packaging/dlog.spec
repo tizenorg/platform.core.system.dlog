@@ -24,15 +24,14 @@ Source502:	packaging/01-dlog.rules.logger
 %define backend_kmsg	OFF
 %define backend_logger	OFF
 
-
 # Do NOT touch switches below
-%if "%{?tizen_target_name}" == "TM1"
+%if "%{?tizen_target_name}" == "TM1" || "%{?tizen_target_name}" == "hawkp"
 %define backend_journal	OFF
-%define backend_kmsg	OFF
-%define backend_logger	ON
+%define backend_kmsg	ON
+%define backend_logger	OFF
 %endif
 
-%if "%{?profile}" == "wearable"
+%if "%{?profile}" == "wearable" || "%{?_with_emulator}" == "1"
 %define backend_journal	OFF
 %define backend_kmsg	OFF
 %define backend_logger	ON
@@ -80,10 +79,12 @@ Requires(preun): /usr/bin/systemctl
 %description -n dlogutil
 Utilities for print log data
 
+
 %prep
 %setup -q
 
 %build
+
 cp %{SOURCE101} .
 cp %{SOURCE102} .
 %autogen --disable-static
