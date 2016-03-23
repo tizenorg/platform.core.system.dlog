@@ -427,7 +427,6 @@ int main_journal(int argc, char **argv)
 	sd_journal *j;
 
 	static const char pri_table[DLOG_PRIO_MAX] = {
-		[DLOG_VERBOSE] = 'V',
 		[LOG_DEBUG] = 'D',
 		[LOG_INFO] = 'I',
 		[LOG_WARNING] = 'W',
@@ -437,7 +436,7 @@ int main_journal(int argc, char **argv)
 
 	r = sd_journal_open(&j, SD_JOURNAL_LOCAL_ONLY);
 	if (r < 0) {
-		fprintf(stderr, "Failed to open journal: %s\n", strerror(-r));
+		fprintf(stderr, "Failed to open journal (%d)\n", -r);
 
 		return 1;
 	}
@@ -446,10 +445,17 @@ int main_journal(int argc, char **argv)
 	SD_JOURNAL_FOREACH(j) {
 		const char *priority, *log_tag, *tid,  *message;
 		size_t l;
+		int prio_idx;
 
 		r = sd_journal_get_data(j, "PRIORITY", (const void **)&priority, &l);
 		if (r < 0)
 			continue;
+
+		prio_idx = atoi(priority+9);
+		if (prio_idx < LOG_CRIT || prio_idx > LOG_DEBUG) {
+			fprintf(stdout, "Wrong priority");
+			continue;
+		}
 
 		r = sd_journal_get_data(j, "LOG_TAG", (const void **)&log_tag, &l);
 		if (r < 0)
@@ -463,13 +469,14 @@ int main_journal(int argc, char **argv)
 		if (r < 0)
 			continue;
 
-		fprintf(stdout, "%c/%s(%5d): %s\n", pri_table[atoi(priority+9)], log_tag+8, atoi(tid+4), message+8);
+		fprintf(stdout, "%c/%s(%5d): %s\n", pri_table[prio_idx], log_tag+8, atoi(tid+4), message+8);
 	}
 
 	fprintf(stderr, "wait\n");
 	for (;;) {
 		const char *log_tag, *priority, *tid, *message;
 		size_t l;
+		int prio_idx;
 
 		if (sd_journal_seek_tail(j) < 0) {
 			fprintf(stderr, "Couldn't find journal");
@@ -477,6 +484,12 @@ int main_journal(int argc, char **argv)
 			r = sd_journal_get_data(j, "PRIORITY", (const void **)&priority, &l);
 			if (r < 0)
 				continue;
+
+			prio_idx = atoi(priority+9);
+			if (prio_idx < LOG_CRIT || prio_idx > LOG_DEBUG) {
+				fprintf(stdout, "Wrong priority");
+				continue;
+			}
 
 			r = sd_journal_get_data(j, "LOG_TAG", (const void **)&log_tag, &l);
 			if (r < 0)
@@ -490,7 +503,7 @@ int main_journal(int argc, char **argv)
 			if (r < 0)
 				continue;
 
-			fprintf(stdout, "%c/%s(%5d): %s", pri_table[atoi(priority+9)], log_tag+8, atoi(tid+4), message+8);
+			fprintf(stdout, "%c/%s(%5d): %s", pri_table[prio_idx], log_tag+8, atoi(tid+4), message+8);
 			fprintf(stdout, "\n");
 
 			r = sd_journal_wait(j, (uint64_t) -1);
