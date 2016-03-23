@@ -87,6 +87,7 @@ int get_log_dev_names(char devs[LOG_ID_MAX][PATH_MAX])
 			goto error;
 	}
 
+	fclose(config_file);
 	return 0;
 
 error:
