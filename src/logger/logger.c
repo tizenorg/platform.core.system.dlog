@@ -606,7 +606,7 @@ static int parse_command_line(char *linebuffer, struct log_command *cmd)
 	argc = 0;
 	while (tok && (argc < MAX_ARGS)) {
 		argv[argc] = strdup(tok);
-		tok = strtok(NULL, DELIMITER);
+		tok = strtok_r(NULL, DELIMITER, &saveptr);
 		argc++;
 	}
 	free(cmdline);
