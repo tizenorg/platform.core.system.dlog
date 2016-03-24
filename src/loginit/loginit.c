@@ -46,8 +46,7 @@ static int create_kmsg_devs(int fd)
 
 	for (i=0; i<LOG_ID_MAX; i++) {
 		if (0 > ioctl(fd, KMSG_CMD_BUFFER_ADD, &cmd)) {
-			_E("ioctl KMSG_CMD_BUFFER_ADD failed. %s\n",
-			   strerror(errno));
+			_E("ioctl KMSG_CMD_BUFFER_ADD failed. (%d)\n", errno);
 			return -1;
 		}
 		g_minors[i] = cmd.minor;
@@ -63,7 +62,7 @@ static void remove_kmsg_devs(int fd)
 		if (g_minors[i]<0)
 			continue;
 		if (0 > ioctl(fd, KMSG_CMD_BUFFER_DEL, &g_minors[i]))
-			_E("ioctl KMSG_CMD_BUFFER_DEL failed. %s\n", strerror(errno));
+			_E("ioctl KMSG_CMD_BUFFER_DEL failed. (%d)\n", errno);
 	}
 }
 
@@ -122,7 +121,7 @@ int main()
 
 	kmsg_fd = open(DEV_KMSG, O_RDWR);
 	if (kmsg_fd < 0) {
-		_E("Unable to open kmsg device. %s\n", strerror(errno));
+		_E("Unable to open kmsg device. %d\n", errno);
 		exit(EXIT_FAILURE);
 	}
 

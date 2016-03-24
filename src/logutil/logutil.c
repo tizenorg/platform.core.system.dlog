@@ -736,8 +736,7 @@ int main_others(int argc, char **argv)
 			off_t off;
 			off = lseek(dev->fd, 0, SEEK_DATA);
 			if (off == -1) {
-				_E("Unable to lseek device %s. %s\n",
-						dev->device, strerror(errno));
+				_E("Unable to lseek device %s. (%d)\n", dev->device, errno);
 				exit(EXIT_FAILURE);
 			}
 		}

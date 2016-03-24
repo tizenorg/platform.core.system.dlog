@@ -485,8 +485,8 @@ static struct log_device *device_new(int id)
 
 	off = lseek(dev->fd, 0, SEEK_DATA);
 	if (off == -1) {
-		_E("Unable to lseek device %s. %s\n",
-		   device_path_table[id], strerror(errno));
+		_E("Unable to lseek device %s. %d\n",
+		   device_path_table[id], errno);
 		exit(EXIT_FAILURE);
 	}
 #endif
