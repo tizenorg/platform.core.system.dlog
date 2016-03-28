@@ -89,7 +89,6 @@ cp %{SOURCE101} .
 cp %{SOURCE102} .
 %autogen --disable-static
 %configure --disable-static \
-			--enable-fatal_on \
 		%if %{?backend_journal} == ON
 			--enable-journal \
 		%endif
