@@ -9,8 +9,6 @@ Source101:  packaging/dlogutil.manifest
 Source102:  packaging/libdlog.manifest
 Source201:  packaging/dlog.conf.in
 Source202:  packaging/dlog_logger.conf.in
-Source203:  packaging/dlog_logger.conf-micro.in
-Source204:  packaging/dlog_logger.conf-debug.in
 Source301:  packaging/dlog_logger.service
 Source302:  packaging/dlog_logger.path.kmsg
 Source303:	packaging/dlog_logger.path.logger
@@ -156,9 +154,6 @@ cp LICENSE.Apache-2.0 %{buildroot}/usr/share/license/libdlog
 cp LICENSE.Apache-2.0 %{buildroot}/usr/share/license/dlogutil
 
 mkdir -p %{buildroot}/var/log/dlog
-
-# Workaround: replace with dlogutil script due to scheduling issue
-#cp %{_builddir}/%{name}-%{version}/scripts/dlogutil.sh %{buildroot}/usr/bin/dlogutil
 
 %post
 systemctl daemon-reload
