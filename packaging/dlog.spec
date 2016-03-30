@@ -25,8 +25,8 @@ Source502:	packaging/01-dlog.rules.logger
 # Do NOT touch switches below
 %if "%{?tizen_target_name}" == "TM1" || "%{?tizen_target_name}" == "hawkp"
 %define backend_journal	OFF
-%define backend_kmsg	ON
-%define backend_logger	OFF
+%define backend_kmsg	OFF
+%define backend_logger	ON
 %endif
 
 %if "%{?profile}" == "wearable" || "%{?_with_emulator}" == "1"
