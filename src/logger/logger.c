@@ -269,7 +269,7 @@ static void do_logger(struct log_device *dev)
 				}
 				/* EPIPE is not an error: it signals the cyclic buffer 
 				 * having made a full turn and overwritten previous data */
-				else if(ret == RQER_EPIPE)
+				else if (ret == RQER_EPIPE)
 					continue;
 
 				enqueue(&pdev->queue, entry);
@@ -767,7 +767,8 @@ static void sig_handler(int signo)
 	exit(EXIT_SUCCESS);
 }
 
-static int help(void) {
+static int help(void)
+{
 
 	printf("%s [OPTIONS...] \n\n"
 			"Logger, records log messages to files.\n\n"
@@ -779,7 +780,8 @@ static int help(void) {
 	return 0;
 }
 
-static int parse_argv(int argc, char *argv[]) {
+static int parse_argv(int argc, char *argv[])
+{
 	int ret = 1, option;
 
 	while ((option = getopt(argc, argv, "hb:t:")) != -1) {

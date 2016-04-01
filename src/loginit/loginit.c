@@ -44,7 +44,7 @@ static int create_kmsg_devs(int fd)
 		.mode = 0662,
 	};
 
-	for (i=0; i<LOG_ID_MAX; i++) {
+	for (i = 0; i < LOG_ID_MAX; i++) {
 		if (0 > ioctl(fd, KMSG_CMD_BUFFER_ADD, &cmd)) {
 			_E("ioctl KMSG_CMD_BUFFER_ADD failed. (%d)\n", errno);
 			return -1;
@@ -58,8 +58,8 @@ static void remove_kmsg_devs(int fd)
 {
 	int i;
 
-	for (i=0; i<LOG_ID_MAX; i++) {
-		if (g_minors[i]<0)
+	for (i = 0; i < LOG_ID_MAX; i++) {
+		if (g_minors[i] < 0)
 			continue;
 		if (0 > ioctl(fd, KMSG_CMD_BUFFER_DEL, &g_minors[i]))
 			_E("ioctl KMSG_CMD_BUFFER_DEL failed. (%d)\n", errno);
@@ -111,7 +111,7 @@ static void write_config_journal(FILE *config_file)
 int main()
 {
 	FILE *config_file = fopen(KMSG_DEV_CONFIG_FILE, "w");
-	if(!config_file) {
+	if (!config_file) {
 		_E("Unable to open %s config file\n", KMSG_DEV_CONFIG_FILE);
 		exit(EXIT_FAILURE);
 	}

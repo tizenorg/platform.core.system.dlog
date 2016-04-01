@@ -22,7 +22,7 @@ struct kmsg_cmd_buffer_add {
  * KMSG_CMD_BUFFER_DEL: Removes additional kmsg device based on its minor
  */
 #define KMSG_CMD_BUFFER_ADD         _IOWR(KMSG_IOCTL_MAGIC, 0x00, struct kmsg_cmd_buffer_add)
-#define KMSG_CMD_BUFFER_DEL         _IOW (KMSG_IOCTL_MAGIC, 0x01, int)
+#define KMSG_CMD_BUFFER_DEL         _IOW(KMSG_IOCTL_MAGIC, 0x01, int)
 
 /*
  * A ioctl interface for kmsg* devices.
@@ -37,7 +37,7 @@ struct kmsg_cmd_buffer_add {
  */
 #define KMSG_CMD_GET_BUF_SIZE       _IOR(KMSG_IOCTL_MAGIC, 0x80, uint32_t)
 #define KMSG_CMD_GET_READ_SIZE_MAX  _IOR(KMSG_IOCTL_MAGIC, 0x81, uint32_t)
-#define KMSG_CMD_CLEAR              _IO (KMSG_IOCTL_MAGIC, 0x82)
+#define KMSG_CMD_CLEAR              _IO(KMSG_IOCTL_MAGIC, 0x82)
 
 #else
 

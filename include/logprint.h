@@ -100,7 +100,7 @@ int log_add_filter_string(log_format *p_format,
  * returns 1 if this log line should be printed based on its priority
  * and tag, and 0 if it should not
  */
-int log_should_print_line (
+int log_should_print_line(
         log_format *p_format, const char *tag, log_priority pri);
 
 
@@ -122,7 +122,7 @@ int log_process_log_buffer(struct logger_entry *entry_raw,
  * Returns NULL on malloc error
  */
 
-char *log_format_log_line (    
+char *log_format_log_line(
     log_format *p_format,
     char *defaultBuffer,
     size_t defaultBufferSize,

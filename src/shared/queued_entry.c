@@ -185,7 +185,7 @@ int cmp(struct queued_entry_t* a, struct queued_entry_t* b)
 
 struct queued_entry_t* new_queued_entry(uint32_t for_compatibility)
 {
-	struct queued_entry_t* entry = (struct queued_entry_t *)malloc(sizeof( struct queued_entry_t));
+	struct queued_entry_t* entry = (struct queued_entry_t *)malloc(sizeof(struct queued_entry_t));
 	if (entry == NULL) {
 		_E("Can't malloc queued_entry_t\n");
 		exit(EXIT_FAILURE);
@@ -210,12 +210,13 @@ void free_queued_entry_list(struct queued_entry_t *queue)
 	free_queued_entry(queue);
 }
 
-int read_queued_entry_from_dev(int fd, struct queued_entry_t *entry, uint32_t for_compatibility) {
+int read_queued_entry_from_dev(int fd, struct queued_entry_t *entry, uint32_t for_compatibility)
+{
 	int ret = read(fd, entry->buf, LOGGER_ENTRY_MAX_LEN);
 	if (ret < 0) {
 		int err = errno;
 		free_queued_entry(entry);
-		switch(err) {
+		switch (err) {
 		case EINTR:
 			return RQER_EINTR;
 		case EAGAIN:
@@ -256,13 +257,14 @@ struct queued_entry_t* pop_queued_entry(struct queued_entry_t** queue)
 
 void enqueue(struct queued_entry_t** queue, struct queued_entry_t* entry)
 {
-	if (*queue == NULL) {
+	if (*queue == NULL)
 		*queue = entry;
-	} else {
+	else {
 		struct queued_entry_t** e = queue;
-		while (*e && cmp(entry, *e) >= 0 ) {
+
+		while (*e && cmp(entry, *e) >= 0)
 			e = &((*e)->next);
-		}
+
 		entry->next = *e;
 		*e = entry;
 	}
