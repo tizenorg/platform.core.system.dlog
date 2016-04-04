@@ -29,21 +29,25 @@
 #include <sys/types.h>
 #include <sys/un.h>
 
+#if 0
+#include <logcommon.h>
+#endif
+
 #define READ_BUFFER_SIZE  	512          	// Maximum message size. Truncation is inflicted upon longer messages
 #define MAX_ANTISPAM_FDS  	1024         	// How many streams are handled at once. No connections are accepted above this limit
 #define ANTISPAM_MAX_LINES	10           	// How many log lines are read per iteration. Higher values increase speed, but also starvation.
-#define LOG_FILE_PATH     	"/dev/null"  	// Filename into which to write
 #define SOCK_PATH         	"./seqp.pipe"	// Filename of the socket
 #define LOG_TIME_STORE_MS 	50           	// Maximum age of a log in ms. Received elder logs are immediately flushed to file without sorting
 #define LOG_STORE_SIZE    	2048         	// How many logs are stored for sorting. Adding more flushes the eldest
 
 #define OPTIMIZED 0
 // 0 = malloc for each entry, 1 = one large storage malloc'd, 2 = large storage on the stack
-// measurements suggest 0 > 1
+// measurements suggest 2 > 0 > 1
 
 typedef struct {
 	int timestamp;
 	int len;
+	int destination;
 #if OPTIMIZED == 0
 	char * buf;
 #else
@@ -62,12 +66,17 @@ int main ()
 	int wolne_sloty[LOG_STORE_SIZE];
 	int wolne_sloty_end = LOG_STORE_SIZE;
 #endif
+	char * tempPtr;
 	int r;
 	int i, j, k;
+	int destination;
 	int timestamp, timestamp_msg;
-	int epoll_fd, log_fd, sock_fd;
+	int epoll_fd, sock_fd;
+	int log_fd [4];
 	log_entry log_storage [LOG_STORE_SIZE];
 	char read_buffer [READ_BUFFER_SIZE];
+	//char log_dev_names [LOG_ID_MAX][PATH_MAX];
+	char log_dev_names [4][50];
 	int storage_start = 0, storage_end = 0;
 	int fd_list [MAX_ANTISPAM_FDS];
 	int fd_list_end = 0;
@@ -83,7 +92,7 @@ int main ()
 #if OPTIMIZED == 1
 	sloty = malloc (LOG_STORE_SIZE * READ_BUFFER_SIZE);
 	if (!sloty) {
-		printf("PIPE: sloty malloc failed\n");
+		printf("dlog_logger.PIPE: sloty malloc failed\n");
 		exit (EXIT_FAILURE);
 	}
 #endif
@@ -94,11 +103,26 @@ int main ()
 	}
 #endif
 
-	log_fd = open
-		( LOG_FILE_PATH
-		, O_WRONLY | O_CREAT | O_APPEND
-		, 0640
-	);
+
+#if 0
+	if (get_log_dev_names (log_dev_names)) {
+		printf ("dlog_logger.PIPE: couldn't get log names\n");
+		exit (EXIT_FAILURE);
+	}
+#else
+	strcpy (log_dev_names[0], "/dev/null");
+	strcpy (log_dev_names[1], "./log1");
+	strcpy (log_dev_names[2], "./log2");
+	strcpy (log_dev_names[3], "./log3");
+#endif
+
+	for (i = 0; i < 4; ++i) {
+		log_fd [i] = open
+			( log_dev_names [i]
+			, O_WRONLY | O_CREAT | O_APPEND
+			, 0640
+		);
+	}
 
 	epoll_fd = epoll_create1 (EPOLL_CLOEXEC);
 
@@ -123,16 +147,19 @@ int main ()
 
 	listen (sock_fd, SOMAXCONN);
 
-	if ((sock_fd < 0) || (epoll_fd < 0) || (log_fd < 0)) {
+	if ((sock_fd < 0)
+	|| (epoll_fd < 0)
+	|| (log_fd [0] < 0) || (log_fd [1] < 0) || (log_fd [2] < 0) || (log_fd [3] < 0)
+	) {
 		fprintf
 			( stderr
 			, "PIPE: initialisation failure! FD:\n"
 			  "\tSocket  %d\n"
 			  "\tePoll   %d\n"
-			  "\tLogFile %d\n"
+			  "\tLogFile %d, %d, %d, %d\n"
 			, sock_fd
 			, epoll_fd
-			, log_fd
+			, log_fd[0], log_fd[1], log_fd[2], log_fd[3]
 		);
 		exit (EXIT_FAILURE);
 	}
@@ -225,18 +252,39 @@ int main ()
 						= time_stamp.tv_sec  * 1000
 						+ time_stamp.tv_nsec / 1000000
 					;
-					timestamp_msg = atoi(read_buffer);
+
+					tempPtr = NULL;
+					timestamp_msg = strtol
+						( read_buffer
+						, & tempPtr
+						, 10
+					);
+
+					if (tempPtr != (read_buffer + r)) {
+						destination = strtol
+							( tempPtr+1
+							, NULL
+							, 10
+						);
+						if (destination < 0
+						||  destination > 4
+						) {
+							destination = 0;
+						}
+					} else {
+						destination = 0;
+					}
 
 					if (timestamp > timestamp_msg + LOG_TIME_STORE_MS) {
 						write
-							( log_fd
+							( log_fd [destination]
 							, read_buffer
 							, r
 						);
 					} else {
 						if (storage_start ? ((storage_end + 1) == storage_start) : (storage_end == (LOG_STORE_SIZE - 1))) {
 							write
-								( log_fd
+								( log_fd [destination]
 #if OPTIMIZED == 0
 								, log_storage[storage_start].buf
 #else
@@ -263,6 +311,7 @@ int main ()
 									log_storage[k].buf = wolne_sloty[--wolne_sloty_end];
 									strncpy (sloty + (log_storage[k].buf * READ_BUFFER_SIZE), read_buffer, r);
 #endif
+								log_storage[k].destination = destination;
 								log_storage[k].len = r;
 								log_storage[k].timestamp = timestamp_msg;
 								break;
@@ -313,7 +362,7 @@ int main ()
 
 		while ((storage_start != storage_end) && (timestamp > log_storage[storage_start].timestamp)) {
 			write
-				( log_fd
+				( log_fd [log_storage[storage_start].destination]
 #if OPTIMIZED == 0
 				, log_storage[storage_start].buf
 #else
