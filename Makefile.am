@@ -25,6 +25,11 @@ libdlog_la_SOURCES =  \
 	src/libdlog/loglimiter.c \
 	include/loglimiter.h
 
+if WITH_PIPE
+libdlog_la_SOURCES += \
+    src/libdlog/log_pipe.c
+endif
+
 libdlog_la_LIBADD = -lpthread \
 	-lsystemd-journal \
 	$(systemd_journal_LIBS) \

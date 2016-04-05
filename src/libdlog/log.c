@@ -65,9 +65,11 @@
 static int log_fds[(int)LOG_ID_MAX] = { -1, -1, -1, -1 };
 static char log_devs[LOG_ID_MAX][PATH_MAX];
 #endif
-static int (*write_to_log)(log_id_t, log_priority, const char *tag, const char *msg) = NULL;
+extern int (*write_to_log)(log_id_t, log_priority, const char *tag, const char *msg) __attribute__((visibility ("hidden")));
 static pthread_mutex_t log_init_lock = PTHREAD_MUTEX_INITIALIZER;
 static struct log_config config;
+
+void __dlog_init_backend(void) __attribute__((visibility ("hidden")));
 
 #if DLOG_BACKEND_JOURNAL
 static inline int dlog_pri_to_journal_pri(log_priority prio)
@@ -223,38 +225,6 @@ static int __write_to_log_logger(log_id_t log_id, log_priority prio, const char 
 
 	return ret;
 }
-#elif DLOG_BACKEND_PIPE
-static int __write_to_log_pipe(log_id_t log_id, log_priority prio, const char *tag, const char *msg)
-{
-	ssize_t ret;
-	char buf [LOG_BUF_SIZE];
-	struct timespec ts;
-	int timestamp;
-
-	if (log_id >= LOG_ID_MAX
-	|| prio < DLOG_VERBOSE
-	|| prio >= DLOG_PRIO_MAX
-	|| !msg)
-		return DLOG_ERROR_INVALID_PARAMETER;
-
-	if (!tag)
-		tag = "";
-
-	clock_gettime (CLOCK_MONOTONIC, &ts);
-	timestamp = ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
-
-	snprintf
-		( buf
-		, LOG_BUF_SIZE
-		, "%d;%d;%s;%s\n"
-		, timestamp
-		, prio
-		, tag
-		, msg
-	);
-	ret = write (log_fds[log_id], buf, strlen(buf));
-	return ret;
-}
 #endif
 
 #endif
@@ -272,49 +242,20 @@ static void __configure(void)
 	}
 }
 
-#ifdef DLOG_BACKEND_PIPE
-static int open_socket(int type, const char * path)
-{
-	int r;
-	int fd;
-	struct sockaddr_un sa = { .sun_family = AF_UNIX };
-
-	fd = socket(AF_UNIX, type | SOCK_CLOEXEC, 0);
-
-	if (fd < 0)
-		return -errno;
-
-	strncpy(sa.sun_path, path, sizeof (sa.sun_path));
-
-	r = connect(fd, (struct sockaddr *) &sa, sizeof(sa));
-	if (r < 0) {
-		close (fd);
-		return -errno;
-	}
-
-	return fd;
-}
-#endif
-
-#ifdef DLOG_BACKEND_PIPE
-#define OPEN(id) log_fds[id] = open_socket(SOCK_SEQPACKET, log_devs[id])
-#elif defined(DLOG_BACKEND_KMSG) || defined(DLOG_BACKEND_LOGGER)
-#define OPEN(id) log_fds[id] = open(log_devs[id], O_WRONLY)
-#endif
-
 static void __dlog_init(void)
 {
 	pthread_mutex_lock(&log_init_lock);
 	__configure();
-
+	/* in the model solution there is no ifdef firectives only init nad mutex */
+	__dlog_init_backend();
 #ifdef DLOG_BACKEND_JOURNAL
 	write_to_log = __write_to_log_sd_journal;
 #else
 	if (0 == get_log_dev_names(log_devs)) {
-			OPEN(LOG_ID_MAIN);
-			OPEN(LOG_ID_SYSTEM);
-			OPEN(LOG_ID_RADIO);
-			OPEN(LOG_ID_APPS);
+			log_fds[LOG_ID_MAIN] = open(log_devs[LOG_ID_MAIN], O_WRONLY);
+			log_fds[LOG_ID_SYSTEM] = open(log_devs[LOG_ID_SYSTEM], O_WRONLY);
+			log_fds[LOG_ID_RADIO] = open(log_devs[LOG_ID_RADIO], O_WRONLY);
+			log_fds[LOG_ID_APPS] = open(log_devs[LOG_ID_APPS], O_WRONLY);
 		}
 		if (log_fds[LOG_ID_MAIN] < 0) {
 			write_to_log = __write_to_log_null;
@@ -323,8 +264,6 @@ static void __dlog_init(void)
 			write_to_log = __write_to_log_kmsg;
 #elif DLOG_BACKEND_LOGGER
 			write_to_log = __write_to_log_logger;
-#elif DLOG_BACKEND_PIPE
-			write_to_log = __write_to_log_pipe;
 #endif
 		}
 		if (log_fds[LOG_ID_RADIO] < 0)

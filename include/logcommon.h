@@ -37,6 +37,22 @@
 #define LOG_APPS_CONF_PREFIX    "LOG_APPS="
 #define LOG_TYPE_CONF_PREFIX	"LOG_TYPE="
 
+#define LOG_PIPE_PATH			"/var/log/dlog-control"
+#define DLOG_CTRL_REQ_PIPE {sizeof(struct dlog_control_msg), DLOG_REQ_PIPE, 0}
+
+enum {
+	DLOG_REQ_PIPE=1,
+};
+
+struct dlog_control_msg {
+	char length;
+	char request;
+	char flags;
+	char data[0];
+};
+
+
+
 int get_log_dev_names(char devs[LOG_ID_MAX][PATH_MAX]);
 
 log_id_t log_id_by_name(const char *name);
