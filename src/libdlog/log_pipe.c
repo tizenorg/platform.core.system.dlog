@@ -27,11 +27,8 @@
 #include <errno.h>
 #include <dlog.h>
 #include <logcommon.h>
-#include "loglimiter.h"
-#include "logconfig.h"
 
-
-int (*write_to_log)(log_id_t, log_priority, const char *tag, const char *msg) __attribute__((visibility ("hidden"))) = NULL;
+extern int (*write_to_log)(log_id_t, log_priority, const char *tag, const char *msg) __attribute__((visibility ("hidden")));
 int pipe_fd;
 
 static int recv_file_descriptor(int socket) /* Socket from which the file descriptor is read */

@@ -40,6 +40,9 @@
 #define LOG_PIPE_PATH			"/var/log/dlog-control"
 #define DLOG_CTRL_REQ_PIPE {sizeof(struct dlog_control_msg), DLOG_REQ_PIPE, 0}
 
+#define LOG_BUF_SIZE    1024
+#define LOG_CONFIG_FILE "/opt/etc/dlog.conf"
+
 enum {
 	DLOG_REQ_PIPE=1,
 };
