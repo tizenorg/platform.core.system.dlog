@@ -67,7 +67,7 @@ static int __write_to_log_android(log_id_t log_id, log_priority prio, const char
 	return ret;
 }
 
-void __dlog_init_backend() __attribute__((visibility ("hidden")))
+void __attribute__((visibility ("hidden"))) __dlog_init_backend()
 {
 	if (0 == get_log_dev_names(log_devs)) {
 		log_fds[LOG_ID_MAIN]   = open(log_devs[LOG_ID_MAIN],   O_WRONLY);

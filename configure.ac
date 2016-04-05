@@ -25,10 +25,18 @@ AC_ARG_ENABLE(journal, AS_HELP_STRING([--enable-journal], [enable systemd journa
     [with_systemd_journal=yes],
     with_systemd_journal=no)
 
-#check for pipe backend
+#check for backends
 AC_ARG_ENABLE(pipe, AS_HELP_STRING([--enable-pipe], [enable pipe]),
     [with_pipe=yes],
     with_pipe=no)
+
+AC_ARG_ENABLE(kmsg, AS_HELP_STRING([--enable-kmsg], [enable kmsg]),
+    [with_kmsg=yes],
+    with_kmsg=no)
+
+AC_ARG_ENABLE(android_logger, AS_HELP_STRING([--enable-android-logger], [enable android logger]),
+    [with_android_logger=yes],
+    with_android_logger=no)
 
 if test "x$with_systemd_journal" != "xno"; then
 	PKG_CHECK_MODULES(systemd_journal, [libsystemd-journal],
@@ -42,6 +50,8 @@ fi
 AM_CONDITIONAL(HAVE_SYSTEMD_JOURNAL, [test "x$have_systemd_journal" = "xyes"])
 AM_CONDITIONAL(WITH_SYSTEMD_JOURNAL, [test "x$with_systemd_journal" = "xyes"])
 AM_CONDITIONAL(WITH_PIPE, [test "x$with_pipe" = "xyes"])
+AM_CONDITIONAL(WITH_ANDROID_LOGGER, [test "x$with_android_logger" = "xyes"])
+AM_CONDITIONAL(WITH_KMSG, [test "x$with_kmsg" = "xyes"])
 
 if test "x$have_systemd_journal" = "xyes" ; then
 	systemd_journal=systemd-journal

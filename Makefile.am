@@ -30,6 +30,21 @@ libdlog_la_SOURCES += \
     src/libdlog/log_pipe.c
 endif
 
+if WITH_ANDROID_LOGGER
+libdlog_la_SOURCES += \
+    src/libdlog/log_android.c
+endif
+
+if WITH_KMSG
+libdlog_la_SOURCES += \
+    src/libdlog/log_kmsg.c
+endif
+
+if WITH_SYSTEMD_JOURNAL
+libdlog_la_SOURCES += \
+    src/libdlog/log_journal.c
+endif
+
 libdlog_la_LIBADD = -lpthread \
 	-lsystemd-journal \
 	$(systemd_journal_LIBS) \

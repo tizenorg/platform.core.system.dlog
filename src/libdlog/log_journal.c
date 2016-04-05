@@ -118,7 +118,8 @@ static int __write_to_log_journal(log_id_t log_id, log_priority prio, const char
 	return sd_journal_sendv(vec, 5);
 }
 
-void __dlog_init_backend() __attribute__((visibility ("hidden"))) {
+void  __attribute__((visibility ("hidden"))) __dlog_init_backend()
+{
 	write_to_log = __write_to_log_journal;
 }
 
