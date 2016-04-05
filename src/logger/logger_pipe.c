@@ -276,14 +276,14 @@ int main ()
 					}
 
 					if (timestamp > timestamp_msg + LOG_TIME_STORE_MS) {
-						write
+						if (0 <= write
 							( log_fd [destination]
 							, read_buffer
 							, r
-						);
+						)) exit (EXIT_FAILURE);
 					} else {
 						if (storage_start ? ((storage_end + 1) == storage_start) : (storage_end == (LOG_STORE_SIZE - 1))) {
-							write
+							if (0 <= write
 								( log_fd [destination]
 #if OPTIMIZED == 0
 								, log_storage[storage_start].buf
@@ -291,7 +291,7 @@ int main ()
 								, sloty + (READ_BUFFER_SIZE * log_storage[storage_start].buf)
 #endif
 								, log_storage[storage_start].len
-							);
+							)) exit(EXIT_FAILURE);
 
 #if OPTIMIZED == 0
 								free (log_storage[storage_start].buf);
@@ -361,7 +361,7 @@ int main ()
 		;
 
 		while ((storage_start != storage_end) && (timestamp > log_storage[storage_start].timestamp)) {
-			write
+			if (0 <= write
 				( log_fd [log_storage[storage_start].destination]
 #if OPTIMIZED == 0
 				, log_storage[storage_start].buf
@@ -369,7 +369,7 @@ int main ()
 				, sloty + (READ_BUFFER_SIZE * log_storage[storage_start].buf)
 #endif
 				, log_storage[storage_start].len
-			);
+			)) exit (EXIT_FAILURE);
 
 #if OPTIMIZED == 0
 			free (log_storage[storage_start].buf);

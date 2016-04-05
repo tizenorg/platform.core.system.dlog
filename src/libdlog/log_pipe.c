@@ -33,7 +33,7 @@ int pipe_fd;
 
 static int recv_file_descriptor(int socket) /* Socket from which the file descriptor is read */
 {
-	int sent_fd;
+	//int sent_fd; //error: unused variable
 	struct msghdr message;
 	struct iovec iov[1];
 	struct cmsghdr *control_message = NULL;
@@ -61,7 +61,7 @@ static int recv_file_descriptor(int socket) /* Socket from which the file descri
 	/* Iterate through header to find if there is a file descriptor */
 	for(control_message = CMSG_FIRSTHDR(&message); control_message != NULL; control_message = CMSG_NXTHDR(&message, control_message)) {
 		if( (control_message->cmsg_level == SOL_SOCKET) && (control_message->cmsg_type == SCM_RIGHTS) )
-			return *((int *) CMSG_DATA(control_message));
+			return *(CMSG_DATA(control_message));
 	}
 	return -1;
 }
@@ -72,7 +72,7 @@ static int connect_pipe(const char * path)
 	int fd;
 	struct sockaddr_un sa = { .sun_family = AF_UNIX };
 	struct dlog_control_msg ctrl_msg = DLOG_CTRL_REQ_PIPE;
-	fd = socket(AF_UNIX, type | SOCK_CLOEXEC, 0);
+	fd = socket(AF_UNIX, SOCK_SEQPACKET | SOCK_CLOEXEC, 0);
 
 	if (fd < 0)
 		return -errno;
@@ -101,6 +101,7 @@ static int __write_to_log_pipe(log_id_t log_id, log_priority prio, const char *t
 	char buf [LOG_BUF_SIZE];
 	struct timespec ts;
 	int timestamp;
+	int len;
 
 	if (log_id >= LOG_ID_MAX
 	|| prio < DLOG_VERBOSE
@@ -114,7 +115,7 @@ static int __write_to_log_pipe(log_id_t log_id, log_priority prio, const char *t
 	clock_gettime (CLOCK_MONOTONIC, &ts);
 	timestamp = ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
 
-	snprintf
+	len = snprintf
 		( buf
 		, LOG_BUF_SIZE
 		, "%d;%d;%s;%s\n"
@@ -126,14 +127,14 @@ static int __write_to_log_pipe(log_id_t log_id, log_priority prio, const char *t
 	ret = write (pipe_fd, buf, len);
 	if (ret < 0 && errno == EPIPE) {
 		pipe_fd = connect_pipe(LOG_PIPE_PATH);
+		ret = write (pipe_fd, buf, len);
 	}
-	ret = write (pipe_fd, buf, len);
 	return ret;
 }
 
-void __dlog_init_backend() __attribute__((visibility ("hidden"))) {
+void __attribute__((visibility ("hidden")))  __dlog_init_backend()  {
 	signal(SIGPIPE, SIG_IGN);
-	pipe_fd = connect_pipe();
+	pipe_fd = connect_pipe(LOG_PIPE_PATH);
 	write_to_log = __write_to_log_pipe;
 }
 
