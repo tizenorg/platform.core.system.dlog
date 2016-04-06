@@ -67,7 +67,7 @@ static void remove_kmsg_devs(int fd)
 	}
 }
 
-static int write_config_kmsg(FILE *config_file)
+static int write_config(FILE *config_file)
 {
 	return fprintf(config_file,
 			"%s%s\n"
@@ -84,7 +84,7 @@ static int write_config_kmsg(FILE *config_file)
 
 #elif DLOG_BACKEND_LOGGER
 
-static void write_config_logger(FILE *config_file)
+static void write_config(FILE *config_file)
 {
 	fprintf(config_file,
 			"%s%s\n"
@@ -101,7 +101,7 @@ static void write_config_logger(FILE *config_file)
 
 #elif DLOG_BACKEND_JOURNAL
 
-static void write_config_journal(FILE *config_file)
+static void write_config(FILE *config_file)
 {
 	fprintf(config_file, "%s%s",
 			LOG_TYPE_CONF_PREFIX, "journal");
@@ -109,7 +109,7 @@ static void write_config_journal(FILE *config_file)
 
 #elif DLOG_BACKEND_PIPE
 
-static void write_config_pipe(FILE *config_file)
+static void write_config(FILE *config_file)
 {
 	fprintf
 		( config_file
@@ -148,7 +148,7 @@ int main()
 	if (0 > create_kmsg_devs(kmsg_fd))
 		goto error;
 
-	if (0 > write_config_kmsg(config_file))
+	if (0 > write_config(config_file))
 		goto error;
 
 	return 0;
@@ -157,17 +157,8 @@ error:
 	remove_kmsg_devs(kmsg_fd);
 	exit(EXIT_FAILURE);
 
-#elif DLOG_BACKEND_LOGGER
-	write_config_logger(config_file);
+#else
+	write_config(config_file);
 	return 0;
-
-#elif DLOG_BACKEND_JOURNAL
-	write_config_journal(config_file);
-	return 0;
-
-#elif DLOG_BACKEND_PIPE
-	write_config_pipe(config_file);
-	return 0;
-
 #endif
 }
