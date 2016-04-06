@@ -32,13 +32,6 @@
 
 #include "dlog.h"
 
-#if DLOG_BACKEND_JOURNAL
-
-#include <syslog.h>
-#include <systemd/sd-journal.h>
-
-#elif (DLOG_BACKEND_KMSG) || (DLOG_BACKEND_LOGGER)
-
 #include <logcommon.h>
 #include <queued_entry.h>
 #include <log_file.h>
@@ -417,98 +410,7 @@ static int log_devices_add_to_tail(struct log_device_t *devices, struct log_devi
 	return 0;
 }
 
-#endif
-
-#if DLOG_BACKEND_JOURNAL
-
-int main_journal(int argc, char **argv)
-{
-	int r;
-	sd_journal *j;
-
-	static const char pri_table[DLOG_PRIO_MAX] = {
-		[DLOG_VERBOSE] = 'V',
-		[LOG_DEBUG] = 'D',
-		[LOG_INFO] = 'I',
-		[LOG_WARNING] = 'W',
-		[LOG_ERR] = 'E',
-		[LOG_CRIT] = 'F',
-	};
-
-	r = sd_journal_open(&j, SD_JOURNAL_LOCAL_ONLY);
-	if (r < 0) {
-		fprintf(stderr, "Failed to open journal: %s\n", strerror(-r));
-
-		return 1;
-	}
-
-	fprintf(stderr, "read\n");
-	SD_JOURNAL_FOREACH(j) {
-		const char *priority, *log_tag, *tid,  *message;
-		size_t l;
-
-		r = sd_journal_get_data(j, "PRIORITY", (const void **)&priority, &l);
-		if (r < 0)
-			continue;
-
-		r = sd_journal_get_data(j, "LOG_TAG", (const void **)&log_tag, &l);
-		if (r < 0)
-			continue;
-
-		r = sd_journal_get_data(j, "TID", (const void **)&tid, &l);
-		if (r < 0)
-			continue;
-
-		r = sd_journal_get_data(j, "MESSAGE", (const void **)&message, &l);
-		if (r < 0)
-			continue;
-
-		fprintf(stdout, "%c/%s(%5d): %s\n", pri_table[atoi(priority+9)], log_tag+8, atoi(tid+4), message+8);
-	}
-
-	fprintf(stderr, "wait\n");
-	for (;;) {
-		const char *log_tag, *priority, *tid, *message;
-		size_t l;
-
-		if (sd_journal_seek_tail(j) < 0) {
-			fprintf(stderr, "Couldn't find journal");
-		} else if (sd_journal_previous(j) > 0) {
-			r = sd_journal_get_data(j, "PRIORITY", (const void **)&priority, &l);
-			if (r < 0)
-				continue;
-
-			r = sd_journal_get_data(j, "LOG_TAG", (const void **)&log_tag, &l);
-			if (r < 0)
-				continue;
-
-			r = sd_journal_get_data(j, "TID", (const void **)&tid, &l);
-			if (r < 0)
-				continue;
-
-			r = sd_journal_get_data(j, "MESSAGE", (const void **)&message, &l);
-			if (r < 0)
-				continue;
-
-			fprintf(stdout, "%c/%s(%5d): %s", pri_table[atoi(priority+9)], log_tag+8, atoi(tid+4), message+8);
-			fprintf(stdout, "\n");
-
-			r = sd_journal_wait(j, (uint64_t) -1);
-			if (r < 0) {
-				fprintf(stderr, "Couldn't wait for journal event");
-				break;
-			}
-		}
-	}
-
-	sd_journal_close(j);
-
-	return 0;
-}
-
-#elif (DLOG_BACKEND_KMSG) || (DLOG_BACKEND_LOGGER)
-
-int main_others(int argc, char **argv)
+int main(int argc, char **argv)
 {
 	int err;
 	int has_set_log_format = 0;
@@ -758,16 +660,3 @@ int main_others(int argc, char **argv)
 	return 0;
 }
 
-#endif
-
-int main(int argc, char **argv)
-{
-#if DLOG_BACKEND_JOURNAL
-	return main_journal(argc, argv);
-#elif (DLOG_BACKEND_KMSG) || (DLOG_BACKEND_LOGGER)
-	return main_others(argc, argv);
-#else
-	printf("Backend isn't set at the build time.\n");
-	return 1;
-#endif
-}

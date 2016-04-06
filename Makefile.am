@@ -65,7 +65,6 @@ dlogutil_SOURCES = \
 	src/shared/dlog_ioctl.c \
 	src/shared/logcommon.c \
 	src/shared/logprint.c \
-	src/logutil/logutil.c \
 	src/shared/queued_entry.c \
 	src/shared/log_file.c \
 	include/dlog_ioctl.h \
@@ -73,6 +72,22 @@ dlogutil_SOURCES = \
 	include/queued_entry.h \
 	include/log_file.h \
 	include/logprint.h
+
+if WITH_ANDROID_LOGGER
+dlogutil_SOURCES += src/logutil/logutil_kmsg_logger.c
+endif
+
+if WITH_KMSG
+dlogutil_SOURCES += src/logutil/logutil_kmsg_logger.c
+endif
+
+if WITH_SYSTEMD_JOURNAL
+dlogutil_SOURCES += src/logutil/logutil_journal.c
+endif
+
+if WITH_PIPE
+dlogutil_SOURCES += src/logutil/logutil_pipe.c
+endif
 
 sbin_PROGRAMS = dloginit
 
