@@ -18,23 +18,20 @@ Source401:  packaging/dloginit.service
 Source501:  packaging/01-dlog.rules.kmsg
 Source502:	packaging/01-dlog.rules.logger
 
-%if "%{?tizen_target_name}" != "TM1"
+%if 0%{!?backend_kmsg:1}
+%define backend_kmsg 0
+%endif
 
+%if 0%{!?backend_journal:1}
+%define backend_journal 0
+%endif
 
-# Choose dlog backend log device
-# Warning : MUST be only one "ON" in below four switches
-%define backend_journal	OFF
-%define backend_kmsg	OFF
-%define backend_logger	OFF
-%define backend_pipe	ON
+%if 0%{!?backend_logger:1}
+%define backend_logger 0
+%endif
 
-
-%else
-# Don't touch these switches
-%define backend_journal	OFF
-%define backend_kmsg	OFF
-%define backend_logger	ON
-%define backend_pipe	OFF
+%if 0%{!?backend_pipe:1}
+%define backend_pipe 0
 %endif
 
 BuildRequires: autoconf
@@ -87,31 +84,31 @@ cp %{SOURCE102} .
 %autogen --disable-static
 %configure --disable-static \
 			--enable-fatal_on \
-		%if %{?backend_journal} == ON
+		%if %{?backend_journal} 
 			--enable-journal \
 		%endif
-		%if %{?backend_pipe} == ON
+		%if %{?backend_pipe}
 			--enable-pipe \
 		%endif
-                %if %{?backend_kmsg} == ON
+                %if %{?backend_kmsg}
                         --enable-kmsg \
                 %endif
-                %if %{?backend_logger} == ON
+                %if %{?backend_logger}
                         --enable-android-logger \
                 %endif
 			--enable-engineer_mode
 make %{?jobs:-j%jobs} \
 	CFLAGS+=-DKMSG_DEV_CONFIG_FILE=\\\"/run/dloginit.conf\\\" \
-%if %{?backend_journal} == ON
+%if %{backend_journal}
 	CFLAGS+=-DDLOG_BACKEND_JOURNAL
 %endif
-%if %{?backend_kmsg} == ON
+%if %{backend_kmsg}
 	CFLAGS+=-DDLOG_BACKEND_KMSG
 %endif
-%if %{?backend_logger} == ON
+%if %{backend_logger}
 	CFLAGS+=-DDLOG_BACKEND_LOGGER
 %endif
-%if %{?backend_pipe} == ON
+%if %{backend_pipe}
 	CFLAGS+=-DDLOG_BACKEND_PIPE
 %endif
 
@@ -128,11 +125,11 @@ cp %SOURCE201 %{buildroot}/opt/etc/dlog.conf
 
 mkdir -p %{buildroot}%{_unitdir}/multi-user.target.wants/
 
-%if %{?backend_kmsg} == ON || %{?backend_logger} == ON
+%if %{backend_kmsg} || %{backend_logger}
 
 install -m 0644 %SOURCE301 %{buildroot}%{_unitdir}
 
-%if %{?backend_kmsg} == ON
+%if %{backend_kmsg}
 install -m 0644 %SOURCE302 %{buildroot}%{_unitdir}/dlog_logger.path
 %else
 install -m 0644 %SOURCE303 %{buildroot}%{_unitdir}/dlog_logger.path
@@ -151,7 +148,7 @@ ln -s ../dloginit.service %{buildroot}%{_unitdir}/sysinit.target.wants/dloginit.
 
 mkdir -p %{buildroot}%{_udevrulesdir}
 
-%if %{?backend_kmsg} == ON
+%if %{backend_kmsg}
 install -m 0644 %SOURCE501 %{buildroot}%{_udevrulesdir}/01-dlog.rules
 %else
 install -m 0644 %SOURCE502 %{buildroot}%{_udevrulesdir}/01-dlog.rules
@@ -190,9 +187,9 @@ systemctl daemon-reload
 %attr(755,log,log) %{_bindir}/dlogctrl
 %attr(755,log,log) /var/log/dlog
 %{_udevrulesdir}/01-dlog.rules
-%if %{?backend_journal} == OFF
+%if %{backend_pipe} || %{backend_logger} || %{backend_kmsg}
 %attr(750,log,log) %{_bindir}/dlog_logger
-%if %{?backend_pipe} == OFF
+%if %{backend_logger} || %{backend_kmsg}
 %attr(664,log,log) /opt/etc/dlog_logger.conf
 %{_unitdir}/dlog_logger.service
 %{_unitdir}/dlog_logger.path
