@@ -50,7 +50,7 @@ extern "C" {
  */
 /**
  * @brief Enumeration for Dlog Error.
- * @since_tizen 2.3
+ * @since_tizen =@if MOBILE 2.3 @elseif WEARABLE 2.3.1 @elseif TV 3.0 @endif
  */
 typedef enum {
 	DLOG_ERROR_NONE = TIZEN_ERROR_NONE, /**< Successful */
@@ -68,7 +68,7 @@ typedef enum {
  */
 /**
  * @brief log priority values, in ascending priority order.
- * @since_tizen 2.3
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @elseif TV 3.0 @endif
  */
 typedef enum {
 	DLOG_UNKNOWN = 0, /**< Keep this always at the start */
@@ -93,7 +93,7 @@ typedef enum {
 /**
  * @brief     Send log with priority and tag.
  * @details   for application
- * @since_tizen 2.3
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @elseif TV 3.0 @endif
  * @param[in] prio log_priority
  * @param[in] tag tag
  * @param[in] fmt format string
@@ -122,7 +122,7 @@ int dlog_print(log_priority prio, const char *tag, const char *fmt, ...);
 /**
  * @brief     Send log with priority, tag and va_list.
  * @details   for application
- * @since_tizen 2.3
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @elseif TV 3.0 @endif
  * @param[in] prio log_priority
  * @param[in] tag tag
  * @param[in] fmt format string
