@@ -30,6 +30,7 @@
 
 extern int (*write_to_log)(log_id_t, log_priority, const char *tag, const char *msg) __attribute__((visibility ("hidden")));
 int pipe_fd;
+char pipe_path [PATH_MAX];
 
 static int recv_file_descriptor(int socket) /* Socket from which the file descriptor is read */
 {
@@ -126,15 +127,17 @@ static int __write_to_log_pipe(log_id_t log_id, log_priority prio, const char *t
 	);
 	ret = write (pipe_fd, buf, len);
 	if (ret < 0 && errno == EPIPE) {
-		pipe_fd = connect_pipe(LOG_PIPE_PATH);
+		pipe_fd = connect_pipe(pipe_path);
 		ret = write (pipe_fd, buf, len);
 	}
 	return ret;
 }
 
-void __attribute__((visibility ("hidden")))  __dlog_init_backend()  {
+void __attribute__((visibility ("hidden")))  __dlog_init_backend()
+{
+	get_log_dev_names (NULL, pipe_path);
 	signal(SIGPIPE, SIG_IGN);
-	pipe_fd = connect_pipe(LOG_PIPE_PATH);
+	pipe_fd = connect_pipe(pipe_path);
 	write_to_log = __write_to_log_pipe;
 }
 

@@ -436,7 +436,7 @@ int main(int argc, char **argv)
 		exit(0);
 	}
 
-	if (0 != get_log_dev_names(g_devs)) {
+	if (0 != get_log_dev_names(g_devs, NULL)) {
 		_E("Unable to read initial configuration\n");
 		exit(-1);
 	}

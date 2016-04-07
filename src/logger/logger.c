@@ -862,7 +862,7 @@ int main(int argc, char **argv)
 	if (!ncmd)
 		goto exit;
 
-	if (0 != get_log_dev_names(device_path_table))
+	if (0 != get_log_dev_names(device_path_table, NULL))
 		goto exit;
 
 	/* create log device */

@@ -31,14 +31,15 @@ static char* get_dev_from_line(char *line, char *prefix)
 	return line + len;
 }
 
-int get_log_dev_names(char devs[LOG_ID_MAX][PATH_MAX])
+int get_log_dev_names (char devs[LOG_ID_MAX][PATH_MAX], char * pipe)
 {
 	int i;
 	FILE *config_file;
 	char line[LINE_MAX];
 
-	for (i = 0; i < LOG_ID_MAX; i++)
-		devs[i][0] = '\0';
+	if (devs)
+		for (i = 0; i < LOG_ID_MAX; i++)
+			devs[i][0] = '\0';
 
 	config_file = fopen(KMSG_DEV_CONFIG_FILE, "r");
 	if (!config_file)
@@ -60,31 +61,37 @@ int get_log_dev_names(char devs[LOG_ID_MAX][PATH_MAX])
 
 		dev = get_dev_from_line(line, LOG_MAIN_CONF_PREFIX);
 		if (dev) {
-			strncpy(devs[LOG_ID_MAIN], dev, PATH_MAX);
+			if (devs) strncpy(devs[LOG_ID_MAIN], dev, PATH_MAX);
 			continue;
 		}
 		dev = get_dev_from_line(line, LOG_RADIO_CONF_PREFIX);
 		if (dev) {
-			strncpy(devs[LOG_ID_RADIO], dev, PATH_MAX);
+			if (devs) strncpy(devs[LOG_ID_RADIO], dev, PATH_MAX);
 			continue;
 		}
 		dev = get_dev_from_line(line, LOG_SYSTEM_CONF_PREFIX);
 		if (dev) {
-			strncpy(devs[LOG_ID_SYSTEM], dev, PATH_MAX);
+			if (devs) strncpy(devs[LOG_ID_SYSTEM], dev, PATH_MAX);
 			continue;
 		}
 		dev = get_dev_from_line(line, LOG_APPS_CONF_PREFIX);
 		if (dev) {
-			strncpy(devs[LOG_ID_APPS], dev, PATH_MAX);
+			if (devs) strncpy(devs[LOG_ID_APPS], dev, PATH_MAX);
 			continue;
 		}
 
+		dev = get_dev_from_line(line, LOG_PIPE_CONF_PREFIX);
+		if (dev) {
+			if (pipe) strncpy(pipe, dev, PATH_MAX);
+			continue;
+		}
 		goto error;
 	}
 
-	for (i = 0; i < LOG_ID_MAX; i++) {
-		if (devs[i][0] == '\0')
-			goto error;
+	if (devs)
+		for (i = 0; i < LOG_ID_MAX; i++) {
+			if (devs[i][0] == '\0')
+				goto error;
 	}
 
 	return 0;

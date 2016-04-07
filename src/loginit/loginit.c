@@ -118,11 +118,13 @@ static void write_config(FILE *config_file)
 		  "%s%s\n"
 		  "%s%s\n"
 		  "%s%s\n"
+		  "%s%s\n"
 		, LOG_TYPE_CONF_PREFIX,   "pipe"
-		, LOG_MAIN_CONF_PREFIX,   "/var/log/pipe/main"
-		, LOG_RADIO_CONF_PREFIX,  "/var/log/pipe/radio"
-		, LOG_SYSTEM_CONF_PREFIX, "/var/log/pipe/system"
-		, LOG_APPS_CONF_PREFIX,   "/var/log/pipe/apps"
+		, LOG_MAIN_CONF_PREFIX,   "/var/log/dlog-main"
+		, LOG_RADIO_CONF_PREFIX,  "/var/log/dlog-radio"
+		, LOG_SYSTEM_CONF_PREFIX, "/var/log/dlog-system"
+		, LOG_APPS_CONF_PREFIX,   "/var/log/dlog-apps"
+		, LOG_PIPE_CONF_PREFIX,   "/var/log/dlog-control"
 	);
 }
 

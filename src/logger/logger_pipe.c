@@ -22,7 +22,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <time.h>
-
+#include <linux/limits.h>
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
@@ -36,7 +36,6 @@
 #define READ_BUFFER_SIZE  	512          	// Maximum message size. Truncation is inflicted upon longer messages
 #define MAX_ANTISPAM_FDS  	1024         	// How many streams are handled at once. No connections are accepted above this limit
 #define ANTISPAM_MAX_LINES	10           	// How many log lines are read per iteration. Higher values increase speed, but also starvation.
-#define SOCK_PATH         	"./seqp.pipe"	// Filename of the socket
 #define LOG_TIME_STORE_MS 	50           	// Maximum age of a log in ms. Received elder logs are immediately flushed to file without sorting
 #define LOG_STORE_SIZE    	2048         	// How many logs are stored for sorting. Adding more flushes the eldest
 
@@ -76,7 +75,7 @@ int main ()
 	log_entry log_storage [LOG_STORE_SIZE];
 	char read_buffer [READ_BUFFER_SIZE];
 	//char log_dev_names [LOG_ID_MAX][PATH_MAX];
-	char log_dev_names [4][50];
+	char log_dev_names [4][PATH_MAX];
 	int storage_start = 0, storage_end = 0;
 	int fd_list [MAX_ANTISPAM_FDS];
 	int fd_list_end = 0;
@@ -103,9 +102,8 @@ int main ()
 	}
 #endif
 
-
 #if 0
-	if (get_log_dev_names (log_dev_names)) {
+	if (get_log_dev_names (log_dev_names, sa.sun_path)) {
 		printf ("dlog_logger.PIPE: couldn't get log names\n");
 		exit (EXIT_FAILURE);
 	}
@@ -114,6 +112,7 @@ int main ()
 	strcpy (log_dev_names[1], "./log1");
 	strcpy (log_dev_names[2], "./log2");
 	strcpy (log_dev_names[3], "./log3");
+	strcpy (sa.sun_path, "/var/log/dlog-control");
 #endif
 
 	for (i = 0; i < 4; ++i) {
@@ -131,13 +130,7 @@ int main ()
 		, SOCK_SEQPACKET | SOCK_NONBLOCK | SOCK_CLOEXEC
 		, 0
 	);
-	unlink (SOCK_PATH);
-
-	strncpy
-		( sa.sun_path
-		, SOCK_PATH
-		, sizeof (sa.sun_path)
-	);
+	unlink (sa.sun_path);
 
 	bind
 		( sock_fd

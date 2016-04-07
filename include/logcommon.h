@@ -31,13 +31,13 @@
 #endif
 #define _E(...) fprintf(stderr, __VA_ARGS__)
 
-#define	LOG_MAIN_CONF_PREFIX    "LOG_MAIN="
-#define LOG_RADIO_CONF_PREFIX   "LOG_RADIO="
-#define LOG_SYSTEM_CONF_PREFIX  "LOG_SYSTEM="
-#define LOG_APPS_CONF_PREFIX    "LOG_APPS="
-#define LOG_TYPE_CONF_PREFIX	"LOG_TYPE="
+#define LOG_MAIN_CONF_PREFIX  	"LOG_MAIN="
+#define LOG_RADIO_CONF_PREFIX 	"LOG_RADIO="
+#define LOG_SYSTEM_CONF_PREFIX	"LOG_SYSTEM="
+#define LOG_APPS_CONF_PREFIX  	"LOG_APPS="
+#define LOG_TYPE_CONF_PREFIX  	"LOG_TYPE="
+#define LOG_PIPE_CONF_PREFIX  	"LOG_PIPE="
 
-#define LOG_PIPE_PATH			"/var/log/dlog-control"
 #define DLOG_CTRL_REQ_PIPE {sizeof(struct dlog_control_msg), DLOG_REQ_PIPE, 0}
 
 #define LOG_BUF_SIZE    1024
@@ -54,9 +54,7 @@ struct dlog_control_msg {
 	char data[0];
 };
 
-
-
-int get_log_dev_names(char devs[LOG_ID_MAX][PATH_MAX]);
+int get_log_dev_names(char devs[LOG_ID_MAX][PATH_MAX], char * pipe);
 
 log_id_t log_id_by_name(const char *name);
 

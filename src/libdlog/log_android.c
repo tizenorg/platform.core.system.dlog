@@ -69,7 +69,7 @@ static int __write_to_log_android(log_id_t log_id, log_priority prio, const char
 
 void __attribute__((visibility ("hidden"))) __dlog_init_backend()
 {
-	if (0 == get_log_dev_names(log_devs)) {
+	if (0 == get_log_dev_names(log_devs, NULL)) {
 		log_fds[LOG_ID_MAIN]   = open(log_devs[LOG_ID_MAIN],   O_WRONLY);
 		log_fds[LOG_ID_SYSTEM] = open(log_devs[LOG_ID_SYSTEM], O_WRONLY);
 		log_fds[LOG_ID_RADIO]  = open(log_devs[LOG_ID_RADIO],  O_WRONLY);
