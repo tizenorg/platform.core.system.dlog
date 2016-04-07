@@ -48,7 +48,7 @@ extern "C" {
 /**
  * @internal
  * @brief log id
- * @since_tizen 2.3
+ * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @elseif TV 3.0 @endif
  */
 typedef enum {
     LOG_ID_MAIN = 0,
