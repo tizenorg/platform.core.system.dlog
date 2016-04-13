@@ -82,7 +82,7 @@ Utilities for print log data
 %setup -q
 
 %build
-
+export CFLAGS+=" -flto "
 cp %{SOURCE101} .
 cp %{SOURCE102} .
 %autogen --disable-static
