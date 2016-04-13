@@ -82,7 +82,7 @@ Utilities for print log data
 %setup -q
 
 %build
-export CFLAGS+=" -flto "
+export CFLAGS+=" -flto -fvisibility=hidden -DEXPORT_API=\"__attribute__((visibility(\\\"default\\\")))\" "
 cp %{SOURCE101} .
 cp %{SOURCE102} .
 %autogen --disable-static

@@ -50,6 +50,11 @@ extern "C" {
  * @brief log id
  * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @elseif TV 3.0 @endif
  */
+ 
+ #ifndef EXPORT_API
+ #define EXPORT_API
+ #endif // EXPORT_API
+ 
 typedef enum {
     LOG_ID_MAIN = 0,
 	LOG_ID_RADIO,
@@ -376,7 +381,7 @@ static inline int __dlog_no_print(const char *fmt __attribute__((unused)), ...) 
      __dlog_print(LOG_ID_MAIN, DLOG_INFO, USR_TAG, "you must not use this API directly");
  * @endcode
  */
-int __dlog_print(log_id_t log_id, int prio, const char *tag, const char *fmt, ...);
+EXPORT_API int __dlog_print(log_id_t log_id, int prio, const char *tag, const char *fmt, ...);
 
 /**
  * @internal
@@ -401,7 +406,7 @@ int __dlog_print(log_id_t log_id, int prio, const char *tag, const char *fmt, ..
      __dlog_vprint(LOG_ID_MAIN, DLOG_INFO, USR_TAG, "you must not use this API directly", ap);
  * @endcode
   */
-int __dlog_vprint(log_id_t log_id, int prio, const char *tag, const char *fmt, va_list ap);
+EXPORT_API int __dlog_vprint(log_id_t log_id, int prio, const char *tag, const char *fmt, va_list ap);
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */

@@ -46,6 +46,11 @@
 #define LOG_CONFIG_FILE TZ_SYS_ETC"/dlog.conf"
 
 #ifndef DLOG_BACKEND_JOURNAL
+
+#ifndef EXPORT_API
+#define EXPORT_API
+#endif /* EXPORT_API */
+
 static int log_fds[(int)LOG_ID_MAX] = { -1, -1, -1, -1 };
 static char log_devs[LOG_ID_MAX][PATH_MAX];
 #endif
@@ -302,7 +307,7 @@ static int dlog_should_log(log_id_t log_id, const char* tag, int prio)
 	return DLOG_ERROR_NONE;
 }
 
-int __dlog_vprint(log_id_t log_id, int prio, const char *tag, const char *fmt, va_list ap)
+EXPORT_API int __dlog_vprint(log_id_t log_id, int prio, const char *tag, const char *fmt, va_list ap)
 {
 	int ret;
 	char buf[LOG_BUF_SIZE];
@@ -323,7 +328,7 @@ int __dlog_vprint(log_id_t log_id, int prio, const char *tag, const char *fmt, v
 	return ret;
 }
 
-int __dlog_print(log_id_t log_id, int prio, const char *tag, const char *fmt, ...)
+EXPORT_API int __dlog_print(log_id_t log_id, int prio, const char *tag, const char *fmt, ...)
 {
 	int ret;
 	va_list ap;
@@ -348,7 +353,7 @@ int __dlog_print(log_id_t log_id, int prio, const char *tag, const char *fmt, ..
 	return ret;
 }
 
-int dlog_vprint(log_priority prio, const char *tag, const char *fmt, va_list ap)
+EXPORT_API int dlog_vprint(log_priority prio, const char *tag, const char *fmt, va_list ap)
 {
 	char buf[LOG_BUF_SIZE];
 
@@ -360,7 +365,7 @@ int dlog_vprint(log_priority prio, const char *tag, const char *fmt, va_list ap)
 	return write_to_log(LOG_ID_APPS, prio, tag, buf);
 }
 
-int dlog_print(log_priority prio, const char *tag, const char *fmt, ...)
+EXPORT_API int dlog_print(log_priority prio, const char *tag, const char *fmt, ...)
 {
 	va_list ap;
 	char buf[LOG_BUF_SIZE];

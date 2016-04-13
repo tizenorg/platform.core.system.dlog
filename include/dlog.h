@@ -52,6 +52,11 @@ extern "C" {
  * @brief Enumeration for Dlog Error.
  * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @elseif TV 3.0 @endif
  */
+ 
+ #ifndef EXPORT_API
+ #define EXPORT_API
+ #endif // EXPORT_API
+ 
 typedef enum {
 	DLOG_ERROR_NONE = TIZEN_ERROR_NONE, /**< Successful */
 	DLOG_ERROR_INVALID_PARAMETER = TIZEN_ERROR_INVALID_PARAMETER, /**< Invalid parameter */
@@ -117,7 +122,7 @@ int main(void)
 }
  * @endcode
  */
-int dlog_print(log_priority prio, const char *tag, const char *fmt, ...);
+EXPORT_API int dlog_print(log_priority prio, const char *tag, const char *fmt, ...);
 
 /**
  * @brief     Send log with priority, tag and va_list.
@@ -153,7 +158,7 @@ int main(void)
 }
  * @endcode
  */
-int dlog_vprint(log_priority prio, const char *tag, const char *fmt, va_list ap);
+EXPORT_API int dlog_vprint(log_priority prio, const char *tag, const char *fmt, va_list ap);
 /**
  * @}
  */
