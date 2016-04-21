@@ -11,12 +11,15 @@ Source201:  packaging/dlog.conf.in
 Source202:  packaging/dlog_logger.conf.in
 Source203:  packaging/dlog_logger.conf-micro.in
 Source204:  packaging/dlog_logger.conf-debug.in
+Source205:  packaging/dlog.conf.kmsg
+Source206:  packaging/dlog.conf.logger
+Source207:  packaging/dlog.conf.journal
 Source301:  packaging/dlog_logger.service
 Source302:  packaging/dlog_logger.path.kmsg
-Source303:	packaging/dlog_logger.path.logger
+Source303:  packaging/dlog_logger.path.logger
 Source401:  packaging/dloginit.service
 Source501:  packaging/01-dlog.rules.kmsg
-Source502:	packaging/01-dlog.rules.logger
+Source502:  packaging/01-dlog.rules.logger
 
 %if "%{?tizen_target_name}" != "TM1"
 
@@ -116,7 +119,15 @@ mkdir -p %{buildroot}/usr/bin/
 cp %{_builddir}/%{name}-%{version}/scripts/dlogctrl %{buildroot}/usr/bin/dlogctrl
 
 mkdir -p %{buildroot}/opt/etc
-cp %SOURCE201 %{buildroot}/opt/etc/dlog.conf
+%if %{?backend_kmsg} == ON
+cp %SOURCE205 %{buildroot}/opt/etc/dlog.conf
+%endif
+%if %{?backend_logger} == ON
+cp %SOURCE206 %{buildroot}/opt/etc/dlog.conf
+%endif
+%if %{?backend_journal} == ON
+cp %SOURCE207 %{buildroot}/opt/etc/dlog.conf
+%endif
 
 mkdir -p %{buildroot}%{_unitdir}/multi-user.target.wants/
 
@@ -132,14 +143,13 @@ install -m 0644 %SOURCE303 %{buildroot}%{_unitdir}/dlog_logger.path
 
 ln -s ../dlog_logger.path %{buildroot}%{_unitdir}/multi-user.target.wants/dlog_logger.path
 
-# default set log output to external files
-cp %SOURCE202 %{buildroot}/opt/etc/dlog_logger.conf
-
 %endif
 
 mkdir -p %{buildroot}%{_unitdir}/sysinit.target.wants/
+%if %{?backend_kmsg} == ON
 install -m 0644 %SOURCE401 %{buildroot}%{_unitdir}
 ln -s ../dloginit.service %{buildroot}%{_unitdir}/sysinit.target.wants/dloginit.service
+%endif
 
 mkdir -p %{buildroot}%{_udevrulesdir}
 
@@ -184,7 +194,6 @@ systemctl daemon-reload
 %if %{?backend_journal} == OFF
 %{_udevrulesdir}/01-dlog.rules
 %attr(750,log,log) %{_bindir}/dlog_logger
-%attr(664,log,log) /opt/etc/dlog_logger.conf
 %{_unitdir}/dlog_logger.service
 %{_unitdir}/dlog_logger.path
 %{_unitdir}/multi-user.target.wants/dlog_logger.path
@@ -197,9 +206,11 @@ systemctl daemon-reload
 %{_libdir}/libdlog.so.0.0.0
 %attr(664,log,log) /opt/etc/dlog.conf
 /usr/share/license/%{name}
+%if %{?backend_kmsg} == ON
 %attr(700,log,log) %{_sbindir}/dloginit
 %attr(-,log,log) %{_unitdir}/dloginit.service
 %{_unitdir}/sysinit.target.wants/dloginit.service
+%endif
 
 %files -n libdlog-devel
 %{_includedir}/dlog/dlog.h

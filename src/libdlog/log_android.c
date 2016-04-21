@@ -27,11 +27,11 @@
 #include <errno.h>
 #include <dlog.h>
 #include <logcommon.h>
+#include <logconfig.h>
 
 extern int (*write_to_log)(log_id_t, log_priority, const char *tag, const char *msg) __attribute__((visibility ("hidden")));
 
 static int log_fds[(int)LOG_ID_MAX] = { -1, -1, -1, -1 };
-static char log_devs[LOG_ID_MAX][PATH_MAX];
 
 static int __write_to_log_android(log_id_t log_id, log_priority prio, const char *tag, const char *msg)
 {
@@ -69,12 +69,15 @@ static int __write_to_log_android(log_id_t log_id, log_priority prio, const char
 
 void __attribute__((visibility ("hidden"))) __dlog_init_backend()
 {
-	if (0 == get_log_dev_names(log_devs)) {
-		log_fds[LOG_ID_MAIN]   = open(log_devs[LOG_ID_MAIN],   O_WRONLY);
-		log_fds[LOG_ID_SYSTEM] = open(log_devs[LOG_ID_SYSTEM], O_WRONLY);
-		log_fds[LOG_ID_RADIO]  = open(log_devs[LOG_ID_RADIO],  O_WRONLY);
-		log_fds[LOG_ID_APPS]   = open(log_devs[LOG_ID_APPS],   O_WRONLY);
+	struct log_config conf;
+	if (log_config_read (&conf)) {
+		log_fds[LOG_ID_MAIN]   = open(log_config_get(&conf, log_name_by_id(LOG_ID_MAIN)),   O_WRONLY);
+		log_fds[LOG_ID_SYSTEM] = open(log_config_get(&conf, log_name_by_id(LOG_ID_SYSTEM)), O_WRONLY);
+		log_fds[LOG_ID_RADIO]  = open(log_config_get(&conf, log_name_by_id(LOG_ID_RADIO)),  O_WRONLY);
+		log_fds[LOG_ID_APPS]   = open(log_config_get(&conf, log_name_by_id(LOG_ID_APPS)),   O_WRONLY);
 	}
+	log_config_free (&conf);
+
 	if (log_fds[LOG_ID_MAIN] >= 0)
 		write_to_log = __write_to_log_android;
 

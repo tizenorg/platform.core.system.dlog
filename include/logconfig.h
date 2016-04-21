@@ -18,11 +18,23 @@
 #ifndef _LOGCONFIG_H_
 #define _LOGCONFIG_H_
 
-struct log_config {
-	int lc_plog;        /* Platform logging enable/disable */
-	int lc_limiter;     /* Log limiter enable/disable */
+#define CONFIG_FILENAME "/opt/dlog/dlog.conf"
+
+struct log_conf_entry;
+struct log_conf_entry {
+	char key [32];
+	char value [256];
+	struct log_conf_entry * next;
 };
 
-int __log_config_read(const char* config_file, struct log_config* config);
+struct log_config {
+	struct log_conf_entry * begin;
+};
+
+void        log_config_set (struct log_config* config, const char* key, const char* value);
+const char* log_config_get (struct log_config* config, const char* key);
+int log_config_read (struct log_config* config);
+int log_config_write(struct log_config* config);
+void log_config_free (struct log_config* config);
 
 #endif /* _LOGCONFIG_H_ */

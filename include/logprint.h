@@ -63,6 +63,8 @@ void log_format_free(log_format *p_format);
 void log_set_print_format(log_format *p_format,
         log_print_format format);
 
+log_format *log_format_from_format(log_format *p_format);
+
 /**
  * Returns FORMAT_OFF on invalid string
  */
