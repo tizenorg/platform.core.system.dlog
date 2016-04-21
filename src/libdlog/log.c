@@ -16,7 +16,6 @@
  * limitations under the License.
  */
 
-#include "config.h"
 #include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
@@ -24,6 +23,22 @@
 #include <fcntl.h>
 #include <sys/uio.h>
 #include <sys/syscall.h>
+#include <sys/socket.h>
+#include <ctype.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <time.h>
+
+#include <sys/epoll.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/un.h>
+
 #include <unistd.h>
 #include <stdio.h>
 #include <errno.h>
@@ -36,8 +51,10 @@
 #endif
 
 int (*write_to_log)(log_id_t, log_priority, const char *tag, const char *msg) __attribute__((visibility ("hidden")));
-static pthread_mutex_t log_init_lock = PTHREAD_MUTEX_INITIALIZER;
-static struct log_config config;
+pthread_mutex_t log_init_lock __attribute__((visibility ("hidden"))) = PTHREAD_MUTEX_INITIALIZER;
+static int limiter;
+static int plog;
+
 extern void __dlog_init_backend(void) __attribute__((visibility ("hidden")));
 
 static int __write_to_log_null(log_id_t log_id, log_priority prio, const char *tag, const char *msg)
@@ -47,14 +64,45 @@ static int __write_to_log_null(log_id_t log_id, log_priority prio, const char *t
 
 static void __configure(void)
 {
-	if (0 > __log_config_read(LOG_CONFIG_FILE, &config)) {
-		config.lc_limiter = 0;
-		config.lc_plog = 0;
+	const char * temp;
+	const char * temp3;
+	struct log_config conf;
+	struct log_conf_entry * e;
+	char temp2 [32];
+	int prio;
+
+	limiter = 0;
+	plog = 0;
+
+	if (!log_config_read(&conf)) return;
+
+	temp = log_config_get (&conf, "plog");
+	plog = atoi (temp);
+
+	temp = log_config_get (&conf, "limiter");
+	limiter = atoi (temp);
+
+	e = conf.begin;
+	while (e) {
+		strncpy(temp2, e->key, 32);
+		if (!strncmp(temp2, "limiter|", 8) && strchr(strchr(temp2, '|')+1, '|')) {
+			temp = strtok(temp2, "|");
+			temp = strtok(NULL, "|");
+			temp3 = strtok(NULL, "\0");
+			prio
+			= !strcmp(e->value, "allow") ? __LOG_LIMITER_LIMIT_MAX+1
+			: !strcmp(e->value, "deny" ) ? 0
+			: atoi(e->value);
+			__log_limiter_add_rule(temp, temp3[0], prio);
+		}
+		e = e->next;
 	}
 
-	if (config.lc_limiter) {
+	log_config_free (&conf);
+
+	if (limiter) {
 		if (0 > __log_limiter_initialize())
-			config.lc_limiter = 0;
+			limiter = 0;
 	}
 }
 
@@ -78,6 +126,7 @@ static int dlog_should_log(log_id_t log_id, const char* tag, int prio)
 {
 	int should_log;
 
+	return DLOG_ERROR_NONE;
 #ifndef DLOG_DEBUG_ENABLE
 	if (prio <= DLOG_DEBUG)
 		return DLOG_ERROR_INVALID_PARAMETER;
@@ -88,10 +137,10 @@ static int dlog_should_log(log_id_t log_id, const char* tag, int prio)
 	if (log_id < 0 || LOG_ID_MAX <= log_id)
 		return DLOG_ERROR_INVALID_PARAMETER;
 
-	if (log_id != LOG_ID_APPS && !config.lc_plog)
+	if (log_id != LOG_ID_APPS && !plog)
 		return DLOG_ERROR_NOT_PERMITTED;
 
-	if (config.lc_limiter) {
+	if (limiter) {
 		should_log = __log_limiter_pass_log(tag, prio);
 
 		if (!should_log) {

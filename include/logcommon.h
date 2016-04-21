@@ -31,17 +31,9 @@
 #endif
 #define _E(...) fprintf(stderr, __VA_ARGS__)
 
-#define	LOG_MAIN_CONF_PREFIX    "LOG_MAIN="
-#define LOG_RADIO_CONF_PREFIX   "LOG_RADIO="
-#define LOG_SYSTEM_CONF_PREFIX  "LOG_SYSTEM="
-#define LOG_APPS_CONF_PREFIX    "LOG_APPS="
-#define LOG_TYPE_CONF_PREFIX	"LOG_TYPE="
-
 #define LOG_BUF_SIZE    1024
-#define LOG_CONFIG_FILE "/opt/etc/dlog.conf"
 
-int get_log_dev_names(char devs[LOG_ID_MAX][PATH_MAX]);
-
+char * log_name_by_id (int id);
 log_id_t log_id_by_name(const char *name);
 
 #endif /* _LOGCOMMON_H */
