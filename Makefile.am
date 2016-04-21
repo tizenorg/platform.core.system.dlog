@@ -25,6 +25,11 @@ libdlog_la_SOURCES =  \
 	src/libdlog/loglimiter.c \
 	include/loglimiter.h
 
+if WITH_PIPE
+libdlog_la_SOURCES += \
+	src/libdlog/log_pipe.c
+endif
+
 if WITH_ANDROID_LOGGER
 libdlog_la_SOURCES += \
 	src/libdlog/log_android.c
@@ -89,6 +94,10 @@ if WITH_SYSTEMD_JOURNAL
 dlogutil_SOURCES += src/logutil/logutil_journal.c
 endif
 
+if WITH_PIPE
+dlogutil_SOURCES += src/logutil/logutil_pipe.c
+endif
+
 if !WITH_SYSTEMD_JOURNAL
 
 bin_PROGRAMS += dlog_logger
@@ -106,7 +115,6 @@ dlog_logger_SOURCES = \
 	src/shared/logcommon.c \
 	src/shared/logconfig.c \
 	src/shared/logprint.c \
-	src/logger/logger.c \
 	src/shared/queued_entry.c \
 	src/shared/log_file.c \
 	include/dlog_ioctl.h \
@@ -115,7 +123,27 @@ dlog_logger_SOURCES = \
 	include/log_file.h \
 	include/logprint.h
 
+if WITH_PIPE
+dlog_logger_SOURCES += src/logger/logger_pipe.c
+else
+dlog_logger_SOURCES += src/logger/logger.c
 endif
+
+endif
+
+bin_PROGRAMS += dlogctrl
+dlogctrl_CFLAGS =  \
+        $(AM_CFLAGS) \
+        -fPIE
+
+dlogctrl_LDFLAGS = \
+        $(AM_LDFLAGS) \
+        -pie
+
+dlogctrl_SOURCES = \
+        src/shared/logconfig.c \
+        src/logctrl/logctrl.c \
+	include/logconfig.h
 
 if WITH_KMSG
 sbin_PROGRAMS = dloginit

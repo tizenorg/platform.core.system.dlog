@@ -3,8 +3,6 @@ Description=Dumps dlog logs onto disk
 
 [Service]
 Nice=19
-User=log
-Group=log
 Environment=TZ=:/etc/localtime
 ExecStart=/usr/bin/dlog_logger -b 99 -t 600
 Restart=always
