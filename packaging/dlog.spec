@@ -88,6 +88,12 @@ cp %{SOURCE102} .
 		%if %{?backend_journal} == ON
 			--enable-journal \
 		%endif
+		%if %{?backend_kmsg} == ON
+			--enable-kmsg \
+		%endif
+		%if %{?backend_logger} == ON
+			--enable-android-logger \
+		%endif
 			--enable-engineer_mode
 make %{?jobs:-j%jobs} \
 	CFLAGS+=-DKMSG_DEV_CONFIG_FILE=\\\"/run/dloginit.conf\\\" \
