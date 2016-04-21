@@ -40,7 +40,12 @@
 #include <assert.h>
 #endif
 
-#define LOG_BUF_SIZE	1024
+/* 
+ * LOG_ATOMIC_SIZE is calculated according to kernel value
+ * 976 = 1024(size of log line) - 48(size of max prefix length)
+ */
+#define LOG_ATOMIC_SIZE	976
+#define LOG_MAX_SIZE	4096
 
 #define VALUE_MAX 2
 #define LOG_CONFIG_FILE TZ_SYS_ETC"/dlog.conf"
@@ -154,8 +159,9 @@ static int __write_to_log_kmsg(log_id_t log_id, log_priority prio, const char *t
 {
 	ssize_t ret;
 	int log_fd;
-	size_t len;
-	char buf[LOG_BUF_SIZE];
+	ssize_t prefix_len, written_len, last_msg_len;
+	char buf[LOG_ATOMIC_SIZE];
+	const char *msg_ptr = msg;
 
 	if (log_id < LOG_ID_MAX)
 		log_fd = log_fds[log_id];
@@ -171,11 +177,23 @@ static int __write_to_log_kmsg(log_id_t log_id, log_priority prio, const char *t
 	if (!msg)
 		return DLOG_ERROR_INVALID_PARAMETER;
 
-	len = snprintf(buf, LOG_BUF_SIZE, "%s;%d;%s", tag, prio, msg);
+	ret = 0;
+	prefix_len = strlen(tag) + 3;
+	while (1) {
+		last_msg_len = snprintf(buf, LOG_ATOMIC_SIZE, "%s;%d;%s", tag, prio, msg_ptr);
+		written_len = write(log_fd, buf,
+				last_msg_len < LOG_ATOMIC_SIZE ? last_msg_len : LOG_ATOMIC_SIZE);
 
-	ret = write(log_fd, buf, len > LOG_BUF_SIZE ? LOG_BUF_SIZE : len);
-	if (ret < 0)
-	    ret = -errno;
+		if (written_len < 0)
+			return written_len;
+
+		ret += written_len;
+
+		if (last_msg_len == written_len)
+			break;
+
+		msg_ptr += (written_len - prefix_len - 1);
+	}
 
 	return ret;
 }
@@ -305,7 +323,7 @@ static int dlog_should_log(log_id_t log_id, const char* tag, int prio)
 int __dlog_vprint(log_id_t log_id, int prio, const char *tag, const char *fmt, va_list ap)
 {
 	int ret;
-	char buf[LOG_BUF_SIZE];
+	char buf[LOG_MAX_SIZE];
 
 	if (write_to_log == NULL)
 		__dlog_init();
@@ -315,7 +333,7 @@ int __dlog_vprint(log_id_t log_id, int prio, const char *tag, const char *fmt, v
 	if (ret < 0)
 		return ret;
 
-	vsnprintf(buf, LOG_BUF_SIZE, fmt, ap);
+	vsnprintf(buf, LOG_MAX_SIZE, fmt, ap);
 	ret = write_to_log(log_id, prio, tag, buf);
 #ifdef FATAL_ON
 	__dlog_fatal_assert(prio);
@@ -327,7 +345,7 @@ int __dlog_print(log_id_t log_id, int prio, const char *tag, const char *fmt, ..
 {
 	int ret;
 	va_list ap;
-	char buf[LOG_BUF_SIZE];
+	char buf[LOG_MAX_SIZE];
 
 	if (write_to_log == NULL)
 		__dlog_init();
@@ -338,7 +356,7 @@ int __dlog_print(log_id_t log_id, int prio, const char *tag, const char *fmt, ..
 		return ret;
 
 	va_start(ap, fmt);
-	vsnprintf(buf, LOG_BUF_SIZE, fmt, ap);
+	vsnprintf(buf, LOG_MAX_SIZE, fmt, ap);
 	va_end(ap);
 
 	ret = write_to_log(log_id, prio, tag, buf);
@@ -350,12 +368,12 @@ int __dlog_print(log_id_t log_id, int prio, const char *tag, const char *fmt, ..
 
 int dlog_vprint(log_priority prio, const char *tag, const char *fmt, va_list ap)
 {
-	char buf[LOG_BUF_SIZE];
+	char buf[LOG_MAX_SIZE];
 
 	if (write_to_log == NULL)
 		__dlog_init();
 
-	vsnprintf(buf, LOG_BUF_SIZE, fmt, ap);
+	vsnprintf(buf, LOG_MAX_SIZE, fmt, ap);
 
 	return write_to_log(LOG_ID_APPS, prio, tag, buf);
 }
@@ -363,13 +381,13 @@ int dlog_vprint(log_priority prio, const char *tag, const char *fmt, va_list ap)
 int dlog_print(log_priority prio, const char *tag, const char *fmt, ...)
 {
 	va_list ap;
-	char buf[LOG_BUF_SIZE];
+	char buf[LOG_MAX_SIZE];
 
 	if (write_to_log == NULL)
 		__dlog_init();
 
 	va_start(ap, fmt);
-	vsnprintf(buf, LOG_BUF_SIZE, fmt, ap);
+	vsnprintf(buf, LOG_MAX_SIZE, fmt, ap);
 	va_end(ap);
 
 	return write_to_log(LOG_ID_APPS, prio, tag, buf);
