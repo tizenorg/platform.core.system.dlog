@@ -18,7 +18,7 @@
 #ifndef _LOGCONFIG_H_
 #define _LOGCONFIG_H_
 
-#define CONFIG_FILENAME "/opt/dlog/dlog.conf"
+#define CONFIG_FILENAME "/opt/etc/dlog.conf"
 
 struct log_conf_entry;
 struct log_conf_entry {
