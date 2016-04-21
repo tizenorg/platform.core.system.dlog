@@ -175,8 +175,8 @@ systemctl daemon-reload
 %attr(750,log,log) %{_bindir}/dlogutil
 %attr(755,log,log) %{_bindir}/dlogctrl
 %attr(755,log,log) /var/log/dlog
-%{_udevrulesdir}/01-dlog.rules
 %if %{?backend_journal} == OFF
+%{_udevrulesdir}/01-dlog.rules
 %attr(750,log,log) %{_bindir}/dlog_logger
 %attr(664,log,log) /opt/etc/dlog_logger.conf
 %{_unitdir}/dlog_logger.service

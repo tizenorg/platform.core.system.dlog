@@ -26,9 +26,13 @@ libdlog_la_SOURCES =  \
 	include/loglimiter.h
 
 libdlog_la_LIBADD = -lpthread \
-	-lsystemd-journal \
 	$(systemd_journal_LIBS) \
 	$(CAPI_BASE_COMMON_LIBS)
+
+if WITH_SYSTEMD_JOURNAL
+libdlog_la_LIBADD += \
+	-lsystemd-journal
+endif
 
 bin_PROGRAMS = dlogutil
 
@@ -38,8 +42,12 @@ dlogutil_CFLAGS =  \
 
 dlogutil_LDFLAGS = \
 	$(AM_LDFLAGS) \
-	-lsystemd-journal \
 	-pie
+
+if WITH_SYSTEMD_JOURNAL
+dlogutil_LDFLAGS += \
+	-lsystemd-journal
+endif
 
 dlogutil_SOURCES = \
 	src/shared/dlog_ioctl.c \
