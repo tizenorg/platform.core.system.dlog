@@ -786,36 +786,36 @@ static int parse_argv(int argc, char *argv[])
 
 	while ((option = getopt(argc, argv, "hb:t:")) != -1) {
 		switch (option) {
-			case 't':
-				if (!isdigit(optarg[0])) {
-					ret = -EINVAL;
-					printf("Wrong argument!\n");
-					help();
-					goto exit;
-				}
-				min_interval = atoi(optarg);
-				if (min_interval < 0 || INTERVAL_MAX < min_interval)
-					min_interval = 0;
-				ret = 1;
-				break;
-			case 'b':
-				if (!isdigit(optarg[0])) {
-					ret = -EINVAL;
-					printf("Wrong argument!\n");
-					help();
-					goto exit;
-				}
-				buffer_size = atoi(optarg);
-				if (buffer_size < 0 || BUFFER_MAX < buffer_size)
-					buffer_size = 0;
-				ret = 1;
-				break;
-			case 'h':
-				help();
-				ret = 0;
-				goto exit;
-			default:
+		case 't':
+			if (!isdigit(optarg[0])) {
 				ret = -EINVAL;
+				printf("Wrong argument!\n");
+				help();
+				goto exit;
+			}
+			min_interval = atoi(optarg);
+			if (min_interval < 0 || INTERVAL_MAX < min_interval)
+				min_interval = 0;
+			ret = 1;
+			break;
+		case 'b':
+			if (!isdigit(optarg[0])) {
+				ret = -EINVAL;
+				printf("Wrong argument!\n");
+				help();
+				goto exit;
+			}
+			buffer_size = atoi(optarg);
+			if (buffer_size < 0 || BUFFER_MAX < buffer_size)
+				buffer_size = 0;
+			ret = 1;
+			break;
+		case 'h':
+			help();
+			ret = 0;
+			goto exit;
+		default:
+			ret = -EINVAL;
 		}
 	}
 exit:
