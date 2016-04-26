@@ -126,7 +126,7 @@ static log_priority filter_pri_for_tag(log_format *p_format, const char *tag)
 {
 	FilterInfo *p_curFilter;
 
-	for (p_curFilter = p_format->filters; p_curFilter != NULL; p_curFilter = p_curFilter->p_next ) {
+	for (p_curFilter = p_format->filters; p_curFilter != NULL; p_curFilter = p_curFilter->p_next) {
 		if (0 == strcmp(tag, p_curFilter->mTag)) {
 			if (p_curFilter->mPri == DLOG_DEFAULT)
 				return p_format->global_pri;
@@ -523,7 +523,7 @@ char *log_format_log_line(
 		prefixLen = snprintf(prefixBuf, sizeof(prefixBuf),
 				"%s.%03ld%s %5d %5d %c %-8s: ", timeBuf,
 				entry->tv_nsec / 1000000, tzBuf, (int)entry->pid,
-			   	(int)entry->tid, priChar, entry->tag);
+				(int)entry->tid, priChar, entry->tag);
 		strncpy(suffixBuf, "\n", 2);
 		suffixLen = 1;
 		break;
