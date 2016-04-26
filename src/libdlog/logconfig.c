@@ -48,7 +48,7 @@
 
 
 static int log_config_multiplex_opt(char* opt_str, char* val_str, int prio,
-                                    struct log_config* config)
+		struct log_config* config)
 {
 	int value = 0;
 
@@ -58,8 +58,7 @@ static int log_config_multiplex_opt(char* opt_str, char* val_str, int prio,
 
 		if (!strncasecmp(ALLOW_STRING, val_str, sizeof(ALLOW_STRING))) {
 			value = __LOG_LIMITER_LIMIT_MAX + 1;
-		} else if (!strncasecmp(DENY_STRING, val_str,
-		                                     sizeof(DENY_STRING))) {
+		} else if (!strncasecmp(DENY_STRING, val_str, sizeof(DENY_STRING))) {
 			value = 0;
 		} else {
 			char* endptr = NULL;
@@ -76,21 +75,19 @@ static int log_config_multiplex_opt(char* opt_str, char* val_str, int prio,
 			value = 1;
 		} else if (isNO(*val_str)) {
 			value = 0;
-		} else if (!strncasecmp(ON_STRING, val_str,
-		                        sizeof(ON_STRING))) {
+		} else if (!strncasecmp(ON_STRING, val_str, sizeof(ON_STRING))) {
 			value = 1;
-		} else if (!strncasecmp(OFF_STRING, val_str,
-		                        sizeof(OFF_STRING))) {
+		} else if (!strncasecmp(OFF_STRING, val_str, sizeof(OFF_STRING))) {
 			value = 0;
 		} else {
 			return RET_ERROR;
 		}
 
 		if (!strncasecmp(LOG_PLATFORM_STRING, opt_str,
-		                 sizeof(LOG_PLATFORM_STRING))) {
+					sizeof(LOG_PLATFORM_STRING))) {
 			config->lc_plog = value;
 		} else if (!strncasecmp(LOG_LIMITER_STRING, opt_str,
-		                       sizeof(LOG_LIMITER_STRING))) {
+					sizeof(LOG_LIMITER_STRING))) {
 			config->lc_limiter = value;
 		} else {
 			return RET_ERROR;
@@ -139,13 +136,12 @@ int __log_config_read(const char* config_file, struct log_config* config)
 		prio = (-1);
 		/* Read configure line, sscanf() should return two tokens,
 		 * even for tag filtering rule */
-		ret = sscanf(buf, "%[A-z0-9-]\t%[A-z0-9]",
-		                  opt, opt_value);
+		ret = sscanf(buf, "%[A-z0-9-]\t%[A-z0-9]", opt, opt_value);
 		if (ret != 2) { /* The line is malformed ? */
 			char c = 0;
 			/* This could be rule with space inside TAG */
 			ret = sscanf(buf, "\"%[]A-z0-9*\x20_+:;/-]\"\t|\t%c\t%[A-z0-9]",
-			                  opt, &c, opt_value);
+					opt, &c, opt_value);
 			if (ret != 3) {
 				goto bailout;
 			}
