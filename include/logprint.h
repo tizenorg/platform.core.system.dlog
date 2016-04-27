@@ -63,6 +63,9 @@ void log_format_free(log_format *p_format);
 void log_set_print_format(log_format *p_format,
         log_print_format format);
 
+/**
+ * Returns a deep copy of the passed object.
+ */
 log_format *log_format_from_format(log_format *p_format);
 
 /**

@@ -15,10 +15,6 @@
  * limitations under the License.
  */
 
-#ifndef DLOG_BACKEND_KMSG
-int main () { return 0; }
-#else
-
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
@@ -37,15 +33,30 @@ int main () { return 0; }
 
 int g_minors[LOG_ID_MAX] = {-1, -1, -1, -1};
 
-static int create_kmsg_devs(int fd)
+#define DEV_KMSG "/dev/kmsg"
+
+static int create_kmsg_devs(int fd, struct log_config *conf)
 {
 	int i;
 	struct kmsg_cmd_buffer_add cmd = {
-		.size = 1024*256,
 		.mode = 0662,
 	};
 
 	for (i=0; i<LOG_ID_MAX; i++) {
+		char key [MAX_CONF_KEY_LEN];
+		const char *size_str;
+		char *size_str_end;
+
+		snprintf (key, MAX_CONF_KEY_LEN, "%s_size", log_name_by_id(i));
+		size_str = log_config_get (conf, key);
+		if (!size_str)
+			return -1;
+
+		errno = 0;
+		cmd.size = strtol(size_str, &size_str_end, 10);
+		if (errno || (cmd.size <= 0) || (*size_str_end != '\0'))
+			return -1;
+
 		if (0 > ioctl(fd, KMSG_CMD_BUFFER_ADD, &cmd)) {
 			_E("ioctl KMSG_CMD_BUFFER_ADD failed. %s\n",
 			   strerror(errno));
@@ -75,19 +86,19 @@ int main()
 
 	log_config_read (&conf);
 
-	kmsg_fd = open(CONFIG_FILENAME, O_RDWR);
+	kmsg_fd = open(DEV_KMSG, O_RDWR);
 	if (kmsg_fd < 0) {
 		_E("Unable to open kmsg device. %s\n", strerror(errno));
 		exit(EXIT_FAILURE);
 	}
 
-	if (0 > create_kmsg_devs(kmsg_fd))
+	if (0 > create_kmsg_devs(kmsg_fd, &conf))
 		goto error;
 
 
 	for (i = 0; i < LOG_ID_MAX; ++i) {
-		char temp [512];
-		snprintf(temp, 512, "/dev/kmsg%d", g_minors[i]);
+		char temp [MAX_CONF_KEY_LEN];
+		snprintf(temp, MAX_CONF_KEY_LEN, "%s%d", DEV_KMSG, g_minors[i]);
 		log_config_set (&conf, log_name_by_id(i), temp);
 	}
 
@@ -99,4 +110,3 @@ error:
 	remove_kmsg_devs(kmsg_fd);
 	exit(EXIT_FAILURE);
 }
-#endif

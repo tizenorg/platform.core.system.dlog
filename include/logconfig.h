@@ -20,10 +20,14 @@
 
 #define CONFIG_FILENAME "/opt/etc/dlog.conf"
 
+#define MAX_CONF_KEY_LEN   32
+#define MAX_CONF_VAL_LEN   256
+#define MAX_CONF_ENTRY_LEN (MAX_CONF_KEY_LEN + MAX_CONF_VAL_LEN + 2) // +2 for the delimiter and newline
+
 struct log_conf_entry;
 struct log_conf_entry {
-	char key [32];
-	char value [256];
+	char key [MAX_CONF_KEY_LEN];
+	char value [MAX_CONF_VAL_LEN];
 	struct log_conf_entry * next;
 };
 

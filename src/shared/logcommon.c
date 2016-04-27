@@ -23,27 +23,34 @@
 #define MAX_PREFIX_SIZE 32
 #define LINE_MAX        (MAX_PREFIX_SIZE+PATH_MAX)
 
+static struct {
+	log_id_t id;
+	char * name;
+} logid_map [] = {
+	{ .id = LOG_ID_MAIN,   .name = "main" },
+	{ .id = LOG_ID_RADIO,  .name = "radio" },
+	{ .id = LOG_ID_SYSTEM, .name = "system" },
+	{ .id = LOG_ID_APPS,   .name = "apps" },
+};
+
 log_id_t log_id_by_name(const char *name)
 {
-	if (0 == strcmp(name, "main"))
-		return LOG_ID_MAIN;
-	else if (0 == strcmp(name, "radio"))
-		return LOG_ID_RADIO;
-	else if (0 == strcmp(name, "system"))
-		return LOG_ID_SYSTEM;
-	else if (0 == strcmp(name, "apps"))
-		return LOG_ID_APPS;
-	else
-		return -1;
+	log_id_t i;
+
+	for (i = 0; i < LOG_ID_MAX; ++i)
+		if (!strcmp (name, logid_map[i].name))
+			return logid_map[i].id;
+
+	return -1;
 }
 
-char * log_name_by_id (int id)
+char * log_name_by_id (log_id_t id)
 {
-	switch (id) {
-		case 0: return "main";
-		case 1: return "radio";
-		case 2: return "system";
-		case 3: return "apps";
-		default: return "";
-	}
+	log_id_t i;
+
+	for (i = 0; i < LOG_ID_MAX; ++i)
+		if (id == logid_map[i].id)
+			return logid_map[i].name;
+
+	return "";
 }
