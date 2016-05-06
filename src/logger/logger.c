@@ -37,6 +37,7 @@
 #include <log_file.h>
 #include <logprint.h>
 #include <dlog_ioctl.h>
+#include <logconfig.h>
 
 #define COMMAND_MAX 5
 #define DELIMITER " "
@@ -80,7 +81,7 @@ struct log_device {
 	struct log_device *next;
 };
 
-static char device_path_table[LOG_ID_MAX][PATH_MAX];
+static struct log_config conf;
 
 static struct log_work *works;
 static struct log_device *devices;
@@ -186,7 +187,7 @@ static void maybe_print_start(struct log_device *dev)
 			logwork->printed = true;
 			snprintf(buf, sizeof(buf),
 					"--------- beginning of %s\n",
-					device_path_table[dev->id]);
+					log_config_get(&conf, log_name_by_id(dev->id)));
 			if (write(logwork->file.fd, buf, strlen(buf)) < 0) {
 				_E("maybe work error");
 				exit(EXIT_FAILURE);
@@ -463,10 +464,10 @@ static struct log_device *device_new(int id)
 		return NULL;
 	}
 	dev->id = id;
-	dev->fd = open(device_path_table[id], O_RDONLY);
+	dev->fd = open(log_config_get(&conf, log_name_by_id(id)), O_RDONLY);
 	if (dev->fd < 0) {
 		_E("Unable to open log device %s (%d)",
-				device_path_table[id],
+				log_config_get(&conf, log_name_by_id(id)),
 				errno);
 		free(dev);
 		return NULL;
@@ -478,7 +479,7 @@ static struct log_device *device_new(int id)
 
 	get_log_read_size_max(dev->fd, &dev->log_read_size_max);
 	_D("device %s log read size max %u\n",
-	   device_path_table[id], dev->log_read_size_max);
+	   log_config_get(&conf, log_name_by_id(id)), dev->log_read_size_max);
 
 #if DLOG_BACKEND_KMSG
 	off_t off;
@@ -486,7 +487,7 @@ static struct log_device *device_new(int id)
 	off = lseek(dev->fd, 0, SEEK_DATA);
 	if (off == -1) {
 		_E("Unable to lseek device %s. %d\n",
-		   device_path_table[id], errno);
+		   log_config_get(&conf, log_name_by_id(id)), errno);
 		exit(EXIT_FAILURE);
 	}
 #endif
@@ -523,13 +524,13 @@ static void device_add(int id)
 			devices = device_new(id);
 			if (devices == NULL) {
 				_E("failed to device_new: %s\n",
-						device_path_table[id]);
+						log_config_get(&conf, log_name_by_id(id)));
 				exit(EXIT_FAILURE);
 			}
 	} else {
 		if (device_add_to_tail(devices, device_new(id)) < 0) {
 			_E("failed to device_add_to_tail: %s\n",
-					device_path_table[id]);
+					log_config_get(&conf, log_name_by_id(id)));
 			exit(EXIT_FAILURE);
 		}
 	}
@@ -864,7 +865,7 @@ int main(int argc, char **argv)
 	if (!ncmd)
 		goto exit;
 
-	if (0 != get_log_dev_names(device_path_table))
+	if (!log_config_read (&conf))
 		goto exit;
 
 	/* create log device */

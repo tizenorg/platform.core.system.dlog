@@ -55,12 +55,12 @@ int cmp(struct queued_entry_t* a, struct queued_entry_t* b);
 
 struct logger_entry {
     uint16_t    len;    /* length of the payload */
-    uint16_t    __pad;  /* no matter what, we get 2 bytes of padding */
+    uint16_t    buf_id; /* ID of the log buffer */
     int32_t     pid;    /* generating process's pid */
     int32_t     tid;    /* generating process's tid */
     int32_t     sec;    /* seconds since Epoch */
     int32_t     nsec;   /* nanoseconds */
-    char        msg[]; /* the entry's payload */
+    char        msg[];  /* the entry's payload */
 };
 
 struct queued_entry_t {
