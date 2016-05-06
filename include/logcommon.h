@@ -37,6 +37,9 @@
 #define LOG_APPS_CONF_PREFIX    "LOG_APPS="
 #define LOG_TYPE_CONF_PREFIX	"LOG_TYPE="
 
+#define LOG_BUF_SIZE    1024
+#define LOG_CONFIG_FILE TZ_SYS_ETC"/dlog.conf"
+
 int get_log_dev_names(char devs[LOG_ID_MAX][PATH_MAX]);
 
 log_id_t log_id_by_name(const char *name);
