@@ -26,6 +26,21 @@ libdlog_la_SOURCES =  \
 	src/libdlog/loglimiter.c \
 	include/loglimiter.h
 
+if WITH_ANDROID_LOGGER
+libdlog_la_SOURCES += \
+	src/libdlog/log_android.c
+endif
+
+if WITH_KMSG
+libdlog_la_SOURCES += \
+	src/libdlog/log_kmsg.c
+endif
+
+if WITH_SYSTEMD_JOURNAL
+libdlog_la_SOURCES += \
+	src/libdlog/log_journal.c
+endif
+
 libdlog_la_LIBADD = -lpthread \
 	$(CAPI_BASE_COMMON_LIBS)
 
@@ -53,7 +68,6 @@ dlogutil_SOURCES = \
 	src/shared/dlog_ioctl.c \
 	src/shared/logcommon.c \
 	src/shared/logprint.c \
-	src/logutil/logutil.c \
 	src/shared/queued_entry.c \
 	src/shared/log_file.c \
 	include/dlog_ioctl.h \
@@ -61,6 +75,18 @@ dlogutil_SOURCES = \
 	include/queued_entry.h \
 	include/log_file.h \
 	include/logprint.h
+
+if WITH_ANDROID_LOGGER
+dlogutil_SOURCES += src/logutil/logutil_kmsg_logger.c
+endif
+
+if WITH_KMSG
+dlogutil_SOURCES += src/logutil/logutil_kmsg_logger.c
+endif
+
+if WITH_SYSTEMD_JOURNAL
+dlogutil_SOURCES += src/logutil/logutil_journal.c
+endif
 
 sbin_PROGRAMS = dloginit
 
