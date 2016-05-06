@@ -91,6 +91,12 @@ cp %{SOURCE102} .
 		%if %{?backend_journal} == ON
 			--enable-journal \
 		%endif
+		%if %{?backend_kmsg} == ON
+			--enable-kmsg \
+		%endif
+		%if %{?backend_logger} == ON
+			--enable-android-logger \
+		%endif
 			--enable-debug_mode \
 			TZ_SYS_ETC=%{TZ_SYS_ETC}
 make %{?jobs:-j%jobs} \
