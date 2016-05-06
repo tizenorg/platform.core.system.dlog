@@ -19,25 +19,17 @@ Source401:  packaging/dloginit.service
 Source501:  packaging/01-dlog.rules.kmsg
 Source502:  packaging/01-dlog.rules.logger
 
-# Choose dlog backend log device
-# Warning : MUST be only one "ON" in below four switches
-%define backend_journal	ON
-%define backend_kmsg	OFF
-%define backend_logger	OFF
-%define backend_pipe	OFF
-
-# Do NOT touch switches below
-%if "%{?tizen_target_name}" == "TM1" || "%{?tizen_target_name}" == "hawkp"
-%define backend_journal	OFF
-%define backend_kmsg	ON
-%define backend_logger	OFF
+%if 0%{!?backend_kmsg:1}
+%define backend_kmsg 0
 %endif
-
-%if "%{?profile}" == "wearable" || "%{?_with_emulator}" == "1"
-%define backend_journal	OFF
-%define backend_kmsg	OFF
-%define backend_logger	ON
-%define backend_pipe	OFF
+%if 0%{!?backend_logger:1}
+%define backend_logger 0
+%endif
+%if 0%{!?backend_journal:1}
+%define backend_journal 0
+%endif
+%if 0%{!?backend_pipe:1}
+%define backend_pipe 0
 %endif
 
 BuildRequires: autoconf
@@ -84,6 +76,30 @@ Utilities for print log data
 
 
 %prep
+
+%if %{backend_kmsg} + %{backend_pipe} + %{backend_logger} + %{backend_journal} == 0
+# add some spacing around the message to make it stand out a bit lest it should blend too much
+%{error:
+
+
+No backend chosen! Use --define "backend_pipe 1", backends are pipe kmsg journal logger
+
+
+}
+exit 1
+%endif
+
+%if %{backend_kmsg} + %{backend_pipe} + %{backend_logger} + %{backend_journal} >= 2
+%{error:
+
+
+Can only choose one backend!
+
+
+}
+exit 1
+%endif
+
 %setup -q
 
 %build
@@ -93,32 +109,32 @@ cp %{SOURCE102} .
 %autogen --disable-static
 %configure --disable-static \
 			--enable-fatal_on \
-		%if %{?backend_journal} == ON
+		%if %{?backend_journal}
 			--enable-journal \
 		%endif
-		%if %{?backend_pipe} == ON
+		%if %{?backend_pipe}
 			--enable-pipe \
 		%endif
-		%if %{?backend_kmsg} == ON
+		%if %{?backend_kmsg}
 			--enable-kmsg \
 		%endif
-		%if %{?backend_logger} == ON
+		%if %{?backend_logger}
 			--enable-android-logger \
 		%endif
 			--enable-debug_mode \
 			TZ_SYS_ETC=%{TZ_SYS_ETC}
 make %{?jobs:-j%jobs} \
 	CFLAGS+=-DTZ_SYS_ETC=\\\"%{TZ_SYS_ETC}\\\" \
-%if %{?backend_journal} == ON
+%if %{?backend_journal}
 	CFLAGS+=-DDLOG_BACKEND_JOURNAL
 %endif
-%if %{?backend_kmsg} == ON
+%if %{?backend_kmsg}
 	CFLAGS+=-DDLOG_BACKEND_KMSG
 %endif
-%if %{?backend_logger} == ON
+%if %{?backend_logger}
 	CFLAGS+=-DDLOG_BACKEND_LOGGER
 %endif
-%if %{?backend_pipe} == ON
+%if %{?backend_pipe}
 	CFLAGS+=-DDLOG_BACKEND_PIPE
 %endif
 
@@ -130,40 +146,40 @@ rm -rf %{buildroot}
 mkdir -p %{buildroot}/usr/bin/
 
 mkdir -p %{buildroot}%{TZ_SYS_ETC}
-%if %{?backend_kmsg} == ON
+%if %{?backend_kmsg}
 cp %SOURCE201 %{buildroot}%{TZ_SYS_ETC}/dlog.conf
 %endif
-%if %{?backend_logger} == ON
+%if %{?backend_logger}
 cp %SOURCE202 %{buildroot}%{TZ_SYS_ETC}/dlog.conf
 %endif
-%if %{?backend_journal} == ON
+%if %{?backend_journal}
 cp %SOURCE203 %{buildroot}%{TZ_SYS_ETC}/dlog.conf
 %endif
-%if %{?backend_pipe} == ON
+%if %{?backend_pipe}
 cp %SOURCE204 %{buildroot}%{TZ_SYS_ETC}/dlog.conf
 %endif
 
-%if %{?backend_journal} == OFF
+%if %{?backend_pipe} || %{?backend_logger} || %{?backend_kmsg}
 
 mkdir -p %{buildroot}%{_unitdir}/multi-user.target.wants/
 install -m 0644 %SOURCE301 %{buildroot}%{_unitdir}
 
-%if %{?backend_kmsg} == ON
+%if %{?backend_kmsg}
 install -m 0644 %SOURCE302 %{buildroot}%{_unitdir}/dlog_logger.path
 ln -s ../dlog_logger.path %{buildroot}%{_unitdir}/multi-user.target.wants/dlog_logger.path
 %endif
-%if %{?backend_logger} == ON
+%if %{?backend_logger}
 install -m 0644 %SOURCE303 %{buildroot}%{_unitdir}/dlog_logger.path
 ln -s ../dlog_logger.path %{buildroot}%{_unitdir}/multi-user.target.wants/dlog_logger.path
 %endif
-%if %{?backend_pipe} == ON
+%if %{?backend_pipe}
 install -m 0644 %SOURCE304 %{buildroot}%{_unitdir}/dlog_logger.path
 ln -s ../dlog_logger.service %{buildroot}%{_unitdir}/multi-user.target.wants/dlog_logger.service
 %endif
 
 %endif
 
-%if %{?backend_kmsg} == ON
+%if %{?backend_kmsg}
 mkdir -p %{buildroot}%{_unitdir}/sysinit.target.wants/
 install -m 0644 %SOURCE401 %{buildroot}%{_unitdir}
 ln -s ../dloginit.service %{buildroot}%{_unitdir}/sysinit.target.wants/dloginit.service
@@ -171,10 +187,10 @@ ln -s ../dloginit.service %{buildroot}%{_unitdir}/sysinit.target.wants/dloginit.
 
 mkdir -p %{buildroot}%{_udevrulesdir}
 
-%if %{?backend_kmsg} == ON
+%if %{?backend_kmsg}
 install -m 0644 %SOURCE501 %{buildroot}%{_udevrulesdir}/01-dlog.rules
 %endif
-%if %{?backend_logger} == ON
+%if %{?backend_logger}
 install -m 0644 %SOURCE502 %{buildroot}%{_udevrulesdir}/01-dlog.rules
 %endif
 
@@ -207,17 +223,18 @@ systemctl daemon-reload
 %attr(750,log,log) %{_bindir}/dlogutil
 %attr(755,log,log) %{_bindir}/dlogctrl
 %attr(755,log,log) /var/log/dlog
-%if %{?backend_journal} == OFF
+%if %{?backend_kmsg} || %{?backend_logger} || %{?backend_pipe}
 %attr(750,log,log) %{_bindir}/dlog_logger
 %{_unitdir}/dlog_logger.service
 %{_unitdir}/dlog_logger.path
-%if  %{?backend_pipe} == OFF
+%endif
+
+%if %{?backend_kmsg} || %{?backend_logger}
 %{_udevrulesdir}/01-dlog.rules
 %{_unitdir}/multi-user.target.wants/dlog_logger.path
 %endif
-%endif
 
-%if %{?backend_pipe} == ON
+%if %{?backend_pipe}
 %{_unitdir}/multi-user.target.wants/dlog_logger.service
 %endif
 
@@ -229,7 +246,7 @@ systemctl daemon-reload
 %{_libdir}/libdlog.so.0.0.0
 %attr(664,log,log) %{TZ_SYS_ETC}/dlog.conf
 /usr/share/license/%{name}
-%if %{?backend_kmsg} == ON
+%if %{?backend_kmsg}
 %attr(700,log,log) %{_sbindir}/dloginit
 %attr(-,log,log) %{_unitdir}/dloginit.service
 %{_unitdir}/sysinit.target.wants/dloginit.service
