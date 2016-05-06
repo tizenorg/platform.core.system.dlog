@@ -10,18 +10,21 @@ Source102:  packaging/libdlog.manifest
 Source201:  packaging/dlog.conf.kmsg
 Source202:  packaging/dlog.conf.logger
 Source203:  packaging/dlog.conf.journal
+Source204:  packaging/dlog.conf.pipe
 Source301:  packaging/dlog_logger.service
 Source302:  packaging/dlog_logger.path.kmsg
 Source303:  packaging/dlog_logger.path.logger
+Source304:  packaging/dlog_logger.path.pipe
 Source401:  packaging/dloginit.service
 Source501:  packaging/01-dlog.rules.kmsg
 Source502:  packaging/01-dlog.rules.logger
 
 # Choose dlog backend log device
-# Warning : MUST be only one "ON" in below three switches
+# Warning : MUST be only one "ON" in below four switches
 %define backend_journal	ON
 %define backend_kmsg	OFF
 %define backend_logger	OFF
+%define backend_pipe	OFF
 
 # Do NOT touch switches below
 %if "%{?tizen_target_name}" == "TM1" || "%{?tizen_target_name}" == "hawkp"
@@ -34,6 +37,7 @@ Source502:  packaging/01-dlog.rules.logger
 %define backend_journal	OFF
 %define backend_kmsg	OFF
 %define backend_logger	ON
+%define backend_pipe	OFF
 %endif
 
 BuildRequires: autoconf
@@ -92,6 +96,9 @@ cp %{SOURCE102} .
 		%if %{?backend_journal} == ON
 			--enable-journal \
 		%endif
+		%if %{?backend_pipe} == ON
+			--enable-pipe \
+		%endif
 		%if %{?backend_kmsg} == ON
 			--enable-kmsg \
 		%endif
@@ -111,6 +118,9 @@ make %{?jobs:-j%jobs} \
 %if %{?backend_logger} == ON
 	CFLAGS+=-DDLOG_BACKEND_LOGGER
 %endif
+%if %{?backend_pipe} == ON
+	CFLAGS+=-DDLOG_BACKEND_PIPE
+%endif
 
 
 %install
@@ -129,6 +139,9 @@ cp %SOURCE202 %{buildroot}%{TZ_SYS_ETC}/dlog.conf
 %if %{?backend_journal} == ON
 cp %SOURCE203 %{buildroot}%{TZ_SYS_ETC}/dlog.conf
 %endif
+%if %{?backend_pipe} == ON
+cp %SOURCE204 %{buildroot}%{TZ_SYS_ETC}/dlog.conf
+%endif
 
 %if %{?backend_journal} == OFF
 
@@ -137,11 +150,16 @@ install -m 0644 %SOURCE301 %{buildroot}%{_unitdir}
 
 %if %{?backend_kmsg} == ON
 install -m 0644 %SOURCE302 %{buildroot}%{_unitdir}/dlog_logger.path
-%else
-install -m 0644 %SOURCE303 %{buildroot}%{_unitdir}/dlog_logger.path
-%endif
-
 ln -s ../dlog_logger.path %{buildroot}%{_unitdir}/multi-user.target.wants/dlog_logger.path
+%endif
+%if %{?backend_logger} == ON
+install -m 0644 %SOURCE303 %{buildroot}%{_unitdir}/dlog_logger.path
+ln -s ../dlog_logger.path %{buildroot}%{_unitdir}/multi-user.target.wants/dlog_logger.path
+%endif
+%if %{?backend_pipe} == ON
+install -m 0644 %SOURCE304 %{buildroot}%{_unitdir}/dlog_logger.path
+ln -s ../dlog_logger.service %{buildroot}%{_unitdir}/multi-user.target.wants/dlog_logger.service
+%endif
 
 %endif
 
@@ -190,12 +208,21 @@ systemctl daemon-reload
 %attr(755,log,log) %{_bindir}/dlogctrl
 %attr(755,log,log) /var/log/dlog
 %if %{?backend_journal} == OFF
+%if %{?backend_pipe} == OFF
 %{_udevrulesdir}/01-dlog.rules
+%endif
 %attr(750,log,log) %{_bindir}/dlog_logger
 %{_unitdir}/dlog_logger.service
 %{_unitdir}/dlog_logger.path
+%if  %{?backend_pipe} == OFF
 %{_unitdir}/multi-user.target.wants/dlog_logger.path
 %endif
+%endif
+
+%if %{?backend_pipe} == ON
+%{_unitdir}/multi-user.target.wants/dlog_logger.service
+%endif
+
 
 %files  -n libdlog
 %manifest libdlog.manifest
