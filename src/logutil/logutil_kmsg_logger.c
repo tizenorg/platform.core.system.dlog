@@ -15,29 +15,15 @@
  * limitations under the License.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <stdarg.h>
-#include <string.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <time.h>
-#include <sys/time.h>
 #include <ctype.h>
-#include <errno.h>
-#include <assert.h>
+#include <fcntl.h>
+#include <stdbool.h>
+#include <stdlib.h>
+#include <unistd.h>
+
 #include <sys/stat.h>
-#include <arpa/inet.h>
 
 #include "dlog.h"
-
-#if DLOG_BACKEND_JOURNAL
-
-#include <syslog.h>
-#include <systemd/sd-journal.h>
-
-#elif (DLOG_BACKEND_KMSG) || (DLOG_BACKEND_LOGGER)
 
 #include <logcommon.h>
 #include <queued_entry.h>
@@ -124,17 +110,16 @@ static void chooseFirst(struct log_device_t* dev, struct log_device_t** firstdev
 {
 	for (*firstdev = NULL; dev != NULL; dev = dev->next) {
 		if (dev->queue != NULL && (*firstdev == NULL ||
-					cmp(dev->queue, (*firstdev)->queue) < 0)) {
+				   	cmp(dev->queue, (*firstdev)->queue) < 0)) {
 			*firstdev = dev;
 		}
 	}
 }
 
-static void maybePrintStart(struct log_device_t* dev)
-{
+static void maybePrintStart(struct log_device_t* dev) {
 	if (!dev->printed) {
 		dev->printed = true;
-		if (g_dev_count > 1) {
+		if (g_dev_count > 1 ) {
 			char buf[1024];
 			snprintf(buf, sizeof(buf), "--------- beginning of %s\n", dev->device);
 			if (write(g_log_file.fd, buf, strlen(buf)) < 0) {
@@ -145,8 +130,7 @@ static void maybePrintStart(struct log_device_t* dev)
 	}
 }
 
-static void skipNextEntry(struct log_device_t* dev)
-{
+static void skipNextEntry(struct log_device_t* dev) {
 	maybePrintStart(dev);
 	struct queued_entry_t* entry = pop_queued_entry(&dev->queue);
 	free_queued_entry(entry);
@@ -170,7 +154,7 @@ static void read_log_lines(struct log_device_t* devices)
 	int result;
 	fd_set readset;
 
-	for (dev = devices; dev; dev = dev->next) {
+	for (dev=devices; dev; dev = dev->next) {
 		if (dev->fd > max) {
 			max = dev->fd;
 		}
@@ -180,14 +164,14 @@ static void read_log_lines(struct log_device_t* devices)
 		do {
 			struct timeval timeout = { 0, 5000 /* 5ms */ }; // If we oversleep it's ok, i.e. ignore EINTR.
 			FD_ZERO(&readset);
-			for (dev = devices; dev; dev = dev->next) {
+			for (dev=devices; dev; dev = dev->next) {
 				FD_SET(dev->fd, &readset);
 			}
 			result = select(max + 1, &readset, NULL, NULL, sleep ? NULL : &timeout);
 		} while (result == -1 && errno == EINTR);
 
 		if (result >= 0) {
-			for (dev = devices; dev; dev = dev->next) {
+			for (dev=devices; dev; dev = dev->next) {
 				if (FD_ISSET(dev->fd, &readset)) {
 					int ret;
 					struct queued_entry_t *entry =
@@ -199,13 +183,13 @@ static void read_log_lines(struct log_device_t* devices)
 						goto next;
 					else if (ret == RQER_EAGAIN)
 						break;
-					else if (ret == RQER_PARSE) {
+					else if(ret == RQER_PARSE) {
 						printf("Wrong formatted message is written.\n");
 						continue;
 					}
 					/* EPIPE is not an error: it signals the cyclic buffer having
 					 * made a full turn and overwritten previous data */
-					else if (ret == RQER_EPIPE)
+					else if(ret == RQER_EPIPE)
 						continue;
 
 					enqueue(&dev->queue, entry);
@@ -301,7 +285,7 @@ static int set_log_format(const char * formatString)
 
 static void show_help(const char *cmd)
 {
-	fprintf(stderr, "Usage: %s [options] [filterspecs]\n", cmd);
+	fprintf(stderr,"Usage: %s [options] [filterspecs]\n", cmd);
 
 	fprintf(stderr, "options include:\n"
 			"  -s              Set default filter to silent.\n"
@@ -319,7 +303,7 @@ static void show_help(const char *cmd)
 			"                  ('main' (default), 'radio', 'system')");
 
 
-	fprintf(stderr, "\nfilterspecs are a series of \n"
+	fprintf(stderr,"\nfilterspecs are a series of \n"
 			"  <tag>[:priority]\n\n"
 			"where <tag> is a log component tag (or * for all) and priority is:\n"
 			"  V    Verbose\n"
@@ -419,111 +403,7 @@ static int log_devices_add_to_tail(struct log_device_t *devices, struct log_devi
 	return 0;
 }
 
-#endif
-
-#if DLOG_BACKEND_JOURNAL
-
-int main_journal(int argc, char **argv)
-{
-	int r;
-	sd_journal *j;
-
-	static const char pri_table[DLOG_PRIO_MAX] = {
-		[LOG_DEBUG] = 'D',
-		[LOG_INFO] = 'I',
-		[LOG_WARNING] = 'W',
-		[LOG_ERR] = 'E',
-		[LOG_CRIT] = 'F',
-	};
-
-	r = sd_journal_open(&j, SD_JOURNAL_LOCAL_ONLY);
-	if (r < 0) {
-		fprintf(stderr, "Failed to open journal (%d)\n", -r);
-
-		return 1;
-	}
-
-	fprintf(stderr, "read\n");
-	SD_JOURNAL_FOREACH(j) {
-		const char *priority, *log_tag, *tid,  *message;
-		size_t l;
-		int prio_idx;
-
-		r = sd_journal_get_data(j, "PRIORITY", (const void **)&priority, &l);
-		if (r < 0)
-			continue;
-
-		prio_idx = atoi(priority+9);
-		if (prio_idx < LOG_CRIT || prio_idx > LOG_DEBUG) {
-			fprintf(stdout, "Wrong priority");
-			continue;
-		}
-
-		r = sd_journal_get_data(j, "LOG_TAG", (const void **)&log_tag, &l);
-		if (r < 0)
-			continue;
-
-		r = sd_journal_get_data(j, "TID", (const void **)&tid, &l);
-		if (r < 0)
-			continue;
-
-		r = sd_journal_get_data(j, "MESSAGE", (const void **)&message, &l);
-		if (r < 0)
-			continue;
-
-		fprintf(stdout, "%c/%s(%5d): %s\n", pri_table[prio_idx], log_tag+8, atoi(tid+4), message+8);
-	}
-
-	fprintf(stderr, "wait\n");
-	for (;;) {
-		const char *log_tag, *priority, *tid, *message;
-		size_t l;
-		int prio_idx;
-
-		if (sd_journal_seek_tail(j) < 0) {
-			fprintf(stderr, "Couldn't find journal");
-		} else if (sd_journal_previous(j) > 0) {
-			r = sd_journal_get_data(j, "PRIORITY", (const void **)&priority, &l);
-			if (r < 0)
-				continue;
-
-			prio_idx = atoi(priority+9);
-			if (prio_idx < LOG_CRIT || prio_idx > LOG_DEBUG) {
-				fprintf(stdout, "Wrong priority");
-				continue;
-			}
-
-			r = sd_journal_get_data(j, "LOG_TAG", (const void **)&log_tag, &l);
-			if (r < 0)
-				continue;
-
-			r = sd_journal_get_data(j, "TID", (const void **)&tid, &l);
-			if (r < 0)
-				continue;
-
-			r = sd_journal_get_data(j, "MESSAGE", (const void **)&message, &l);
-			if (r < 0)
-				continue;
-
-			fprintf(stdout, "%c/%s(%5d): %s", pri_table[prio_idx], log_tag+8, atoi(tid+4), message+8);
-			fprintf(stdout, "\n");
-
-			r = sd_journal_wait(j, (uint64_t) -1);
-			if (r < 0) {
-				fprintf(stderr, "Couldn't wait for journal event");
-				break;
-			}
-		}
-	}
-
-	sd_journal_close(j);
-
-	return 0;
-}
-
-#elif (DLOG_BACKEND_KMSG) || (DLOG_BACKEND_LOGGER)
-
-int main_others(int argc, char **argv)
+int main (int argc, char **argv)
 {
 	int err;
 	int has_set_log_format = 0;
@@ -723,7 +603,7 @@ int main_others(int argc, char **argv)
 	while (dev) {
 		dev->fd = open(dev->device, mode);
 		if (dev->fd < 0) {
-			_E("Unable to open log device %s (%d)",
+			_E("Unable to open log device '%s': errno %d\n",
 					dev->device, errno);
 			exit(EXIT_FAILURE);
 		}
@@ -738,7 +618,8 @@ int main_others(int argc, char **argv)
 			off_t off;
 			off = lseek(dev->fd, 0, SEEK_DATA);
 			if (off == -1) {
-				_E("Unable to lseek device %s. (%d)\n", dev->device, errno);
+				_E("Unable to lseek device %s, errno %d\n",
+						dev->device, errno);
 				exit(EXIT_FAILURE);
 			}
 		}
@@ -772,16 +653,3 @@ int main_others(int argc, char **argv)
 	return 0;
 }
 
-#endif
-
-int main(int argc, char **argv)
-{
-#if DLOG_BACKEND_JOURNAL
-	return main_journal(argc, argv);
-#elif (DLOG_BACKEND_KMSG) || (DLOG_BACKEND_LOGGER)
-	return main_others(argc, argv);
-#else
-	printf("Backend isn't set at the build time.\n");
-	return 1;
-#endif
-}
