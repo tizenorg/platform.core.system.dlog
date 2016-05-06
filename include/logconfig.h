@@ -18,11 +18,29 @@
 #ifndef _LOGCONFIG_H_
 #define _LOGCONFIG_H_
 
+#define CONFIG_FILENAME TZ_SYS_ETC"/dlog.conf"
+
+#define MAX_CONF_KEY_LEN   32
+#define MAX_CONF_VAL_LEN   256
+#define MAX_CONF_ENTRY_LEN (MAX_CONF_KEY_LEN + MAX_CONF_VAL_LEN + 2) // +2 for the delimiter and newline
+
+struct log_conf_entry;
+
 struct log_config {
-	int lc_plog;        /* Platform logging enable/disable */
-	int lc_limiter;     /* Log limiter enable/disable */
+	struct log_conf_entry *begin;
+	struct log_conf_entry *last;
 };
 
-int __log_config_read(const char* config_file, struct log_config* config);
+int log_config_set (struct log_config* config, const char* key, const char* value);
+const char* log_config_get (struct log_config* config, const char* key);
+int log_config_read (struct log_config* config);
+int log_config_write(struct log_config* config);
+void log_config_free (struct log_config* config);
+
+void log_config_print_out (struct log_config* config);
+int log_config_print_key (struct log_config* config, const char* key);
+void log_config_push (struct log_config* config, const char* key, const char* value);
+int log_config_remove (struct log_config* config, const char* key);
+int log_config_foreach (struct log_config* config, int (*func)(const char* key, const char* value));
 
 #endif /* _LOGCONFIG_H_ */
