@@ -3,11 +3,11 @@
 
 #include <dlog.h>
 #include <logcommon.h>
+#include <logconfig.h>
 
 extern int (*write_to_log)(log_id_t, log_priority, const char *tag, const char *msg);
 
 static int log_fds[(int)LOG_ID_MAX] = { -1, -1, -1, -1 };
-static char log_devs[LOG_ID_MAX][PATH_MAX];
 
 static int __write_to_log_kmsg(log_id_t log_id, log_priority prio, const char *tag, const char *msg)
 {
@@ -41,20 +41,36 @@ static int __write_to_log_kmsg(log_id_t log_id, log_priority prio, const char *t
 
 void __dlog_init_backend()
 {
-	if (0 == get_log_dev_names(log_devs)) {
-		log_fds[LOG_ID_MAIN]   = open(log_devs[LOG_ID_MAIN],   O_WRONLY);
-		log_fds[LOG_ID_SYSTEM] = open(log_devs[LOG_ID_SYSTEM], O_WRONLY);
-		log_fds[LOG_ID_RADIO]  = open(log_devs[LOG_ID_RADIO],  O_WRONLY);
-		log_fds[LOG_ID_APPS]   = open(log_devs[LOG_ID_APPS],   O_WRONLY);
-	}
-	if (log_fds[LOG_ID_MAIN] >= 0)
-		write_to_log = __write_to_log_kmsg;
+	struct log_config conf;
+	log_id_t buf_id;
 
-	if (log_fds[LOG_ID_RADIO]  < 0)
-		log_fds[LOG_ID_RADIO]  = log_fds[LOG_ID_MAIN];
-	if (log_fds[LOG_ID_SYSTEM] < 0)
-		log_fds[LOG_ID_SYSTEM] = log_fds[LOG_ID_MAIN];
-	if (log_fds[LOG_ID_APPS]   < 0)
-		log_fds[LOG_ID_APPS]   = log_fds[LOG_ID_MAIN];
+	if (!log_config_read (&conf, get_config_filename(CONFIG_KMSG)))
+		return;
+
+	for (buf_id = 0; buf_id < LOG_ID_MAX; ++buf_id) {
+		const char * const buffer_name = log_config_get(&conf, log_name_by_id(buf_id));
+
+		if (!buffer_name) {
+			char err_message [MAX_CONF_VAL_LEN + 64];
+			snprintf (err_message, MAX_CONF_VAL_LEN + 64, "LOG BUFFER #%d %s HAS NO PATH SET IN CONFIG", buf_id, buffer_name);
+			syslog_critical_failure (err_message);
+			return;
+		}
+
+		log_fds[buf_id] = open(buffer_name, O_WRONLY);
+	}
+
+	log_config_free (&conf);
+
+	if (log_fds[LOG_ID_MAIN] < 0) {
+		syslog_critical_failure ("COULD NOT OPEN MAIN LOG");
+		return;
+	}
+
+	write_to_log = __write_to_log_kmsg;
+
+	for (buf_id = 0; buf_id < LOG_ID_MAX; ++buf_id)
+		if ((buf_id != LOG_ID_MAIN) && (log_fds[buf_id] < 0))
+			log_fds[buf_id] = log_fds[LOG_ID_MAIN];
 }
 
