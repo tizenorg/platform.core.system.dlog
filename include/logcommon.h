@@ -36,4 +36,5 @@
 char * log_name_by_id (log_id_t id);
 log_id_t log_id_by_name (const char *name);
 
+int recv_file_descriptor(int socket);
 #endif /* _LOGCOMMON_H */
