@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
@@ -28,23 +29,35 @@
 #include <libudev.h>
 
 #include <logcommon.h>
+#include <logconfig.h>
 #include <dlog.h>
-
-#ifdef DLOG_BACKEND_KMSG
 
 #define DEV_KMSG	"/dev/kmsg"
 
 int g_minors[LOG_ID_MAX] = {-1, -1, -1, -1};
 
-static int create_kmsg_devs(int fd)
+static int create_kmsg_devs(int fd, struct log_config *conf)
 {
 	int i;
 	struct kmsg_cmd_buffer_add cmd = {
-		.size = 1024*256,
 		.mode = 0662,
 	};
 
 	for (i = 0; i < LOG_ID_MAX; i++) {
+		char key [MAX_CONF_KEY_LEN];
+		const char *size_str;
+		char *size_str_end;
+
+		snprintf (key, MAX_CONF_KEY_LEN, "%s_size", log_name_by_id(i));
+		size_str = log_config_get (conf, key);
+		if (!size_str)
+			return -1;
+
+		errno = 0;
+		cmd.size = strtol(size_str, &size_str_end, 10);
+		if (errno || (cmd.size <= 0) || (*size_str_end != '\0'))
+			return -1;
+
 		if (0 > ioctl(fd, KMSG_CMD_BUFFER_ADD, &cmd)) {
 			_E("ioctl KMSG_CMD_BUFFER_ADD failed. (%d)\n", errno);
 			return -1;
@@ -66,58 +79,14 @@ static void remove_kmsg_devs(int fd)
 	}
 }
 
-static int write_config_kmsg(FILE *config_file)
-{
-	return fprintf(config_file,
-			"%s%s\n"
-			"%s%s%d\n"
-			"%s%s%d\n"
-			"%s%s%d\n"
-			"%s%s%d",
-			LOG_TYPE_CONF_PREFIX, "kmsg",
-			LOG_MAIN_CONF_PREFIX, DEV_KMSG, g_minors[LOG_ID_MAIN],
-			LOG_RADIO_CONF_PREFIX, DEV_KMSG, g_minors[LOG_ID_RADIO],
-			LOG_SYSTEM_CONF_PREFIX, DEV_KMSG, g_minors[LOG_ID_SYSTEM],
-			LOG_APPS_CONF_PREFIX, DEV_KMSG, g_minors[LOG_ID_APPS]);
-}
-
-#elif DLOG_BACKEND_LOGGER
-
-static void write_config_logger(FILE *config_file)
-{
-	fprintf(config_file,
-			"%s%s\n"
-			"%s%s\n"
-			"%s%s\n"
-			"%s%s\n"
-			"%s%s",
-			LOG_TYPE_CONF_PREFIX,   "logger",
-			LOG_MAIN_CONF_PREFIX,   "/dev/log_main",
-			LOG_RADIO_CONF_PREFIX,  "/dev/log_radio",
-			LOG_SYSTEM_CONF_PREFIX, "/dev/log_system",
-			LOG_APPS_CONF_PREFIX,   "/dev/log_apps");
-}
-
-#elif DLOG_BACKEND_JOURNAL
-
-static void write_config_journal(FILE *config_file)
-{
-	fprintf(config_file, "%s%s",
-			LOG_TYPE_CONF_PREFIX, "journal");
-}
-
-#endif
-
 int main()
 {
-	FILE *config_file = fopen(KMSG_DEV_CONFIG_FILE, "w");
-	if (!config_file) {
-		_E("Unable to open %s config file\n", KMSG_DEV_CONFIG_FILE);
-		exit(EXIT_FAILURE);
-	}
+	int kmsg_fd, i;
+	struct log_config conf_in;
+	struct log_config conf_out;
 
-#ifdef DLOG_BACKEND_KMSG
-	int kmsg_fd;
+	log_config_read (&conf_in, CONFIG_FILENAME);
+	memset (&conf_out, 0, sizeof(struct log_config));
 
 	kmsg_fd = open(DEV_KMSG, O_RDWR);
 	if (kmsg_fd < 0) {
@@ -125,25 +94,26 @@ int main()
 		exit(EXIT_FAILURE);
 	}
 
-	if (0 > create_kmsg_devs(kmsg_fd))
+	if (0 > create_kmsg_devs(kmsg_fd, &conf_in))
 		goto error;
 
-	if (0 > write_config_kmsg(config_file))
-		goto error;
+	for (i = 0; i < LOG_ID_MAX; ++i) {
+		char key [MAX_CONF_KEY_LEN];
+		char val [MAX_CONF_VAL_LEN];
+
+		snprintf(key, MAX_CONF_KEY_LEN, "%s_size", log_name_by_id(i));
+		snprintf(val, MAX_CONF_VAL_LEN, "%s", log_config_get (&conf_in, key));
+		log_config_push (&conf_out, key, val);
+
+		snprintf(val, MAX_CONF_VAL_LEN, "%s%d", DEV_KMSG, g_minors[i]);
+		log_config_push (&conf_out, log_name_by_id(i), val);
+	}
+
+	log_config_write (&conf_out, KMSG_DEVICE_FILE);
 
 	return 0;
 
 error:
 	remove_kmsg_devs(kmsg_fd);
 	exit(EXIT_FAILURE);
-
-#elif DLOG_BACKEND_LOGGER
-	write_config_logger(config_file);
-	return 0;
-
-#elif DLOG_BACKEND_JOURNAL
-	write_config_journal(config_file);
-	return 0;
-
-#endif
 }
