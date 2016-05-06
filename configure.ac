@@ -95,6 +95,5 @@ AC_SUBST(TZ_SYS_ETC)
 
 # output files
 AC_CONFIG_FILES([Makefile dlog.pc]
-				scripts/dlogctrl
 				)
 AC_OUTPUT

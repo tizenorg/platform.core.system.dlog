@@ -64,6 +64,11 @@ void log_set_print_format(log_format *p_format,
         log_print_format format);
 
 /**
+ * Returns a deep copy of the passed object.
+ */
+log_format *log_format_from_format(log_format *p_format);
+
+/**
  * Returns FORMAT_OFF on invalid string
  */
 log_print_format log_format_from_string(const char *s);

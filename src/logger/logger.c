@@ -37,6 +37,7 @@
 #include <log_file.h>
 #include <logprint.h>
 #include <dlog_ioctl.h>
+#include <logconfig.h>
 
 #define COMMAND_MAX 5
 #define DELIMITER " "
@@ -45,8 +46,6 @@
 #define MAX_QUEUED 4096
 #define BUFFER_MAX 100
 #define INTERVAL_MAX 60*60
-
-#define CONFIG_FILE TZ_SYS_ETC"/dlog_logger.conf"
 
 #define ARRAY_SIZE(name) (sizeof(name)/sizeof(name[0]))
 
@@ -80,7 +79,7 @@ struct log_device {
 	struct log_device *next;
 };
 
-static char device_path_table[LOG_ID_MAX][PATH_MAX];
+static struct log_config conf;
 
 static struct log_work *works;
 static struct log_device *devices;
@@ -186,7 +185,7 @@ static void maybe_print_start(struct log_device *dev)
 			logwork->printed = true;
 			snprintf(buf, sizeof(buf),
 					"--------- beginning of %s\n",
-					device_path_table[dev->id]);
+					log_config_get(&conf, log_name_by_id(dev->id)));
 			if (write(logwork->file.fd, buf, strlen(buf)) < 0) {
 				_E("maybe work error");
 				exit(EXIT_FAILURE);
@@ -463,10 +462,10 @@ static struct log_device *device_new(int id)
 		return NULL;
 	}
 	dev->id = id;
-	dev->fd = open(device_path_table[id], O_RDONLY);
+	dev->fd = open(log_config_get(&conf, log_name_by_id(id)), O_RDONLY);
 	if (dev->fd < 0) {
 		_E("Unable to open log device %s (%d)",
-				device_path_table[id],
+				log_config_get(&conf, log_name_by_id(id)),
 				errno);
 		free(dev);
 		return NULL;
@@ -478,7 +477,7 @@ static struct log_device *device_new(int id)
 
 	get_log_read_size_max(dev->fd, &dev->log_read_size_max);
 	_D("device %s log read size max %u\n",
-	   device_path_table[id], dev->log_read_size_max);
+	   log_config_get(&conf, log_name_by_id(id)), dev->log_read_size_max);
 
 #if DLOG_BACKEND_KMSG
 	off_t off;
@@ -486,7 +485,7 @@ static struct log_device *device_new(int id)
 	off = lseek(dev->fd, 0, SEEK_DATA);
 	if (off == -1) {
 		_E("Unable to lseek device %s. %d\n",
-		   device_path_table[id], errno);
+		   log_config_get(&conf, log_name_by_id(id)), errno);
 		exit(EXIT_FAILURE);
 	}
 #endif
@@ -523,13 +522,13 @@ static void device_add(int id)
 			devices = device_new(id);
 			if (devices == NULL) {
 				_E("failed to device_new: %s\n",
-						device_path_table[id]);
+						log_config_get(&conf, log_name_by_id(id)));
 				exit(EXIT_FAILURE);
 			}
 	} else {
 		if (device_add_to_tail(devices, device_new(id)) < 0) {
 			_E("failed to device_add_to_tail: %s\n",
-					device_path_table[id]);
+					log_config_get(&conf, log_name_by_id(id)));
 			exit(EXIT_FAILURE);
 		}
 	}
@@ -582,7 +581,7 @@ static void device_chain_free(struct log_device *dev)
  * parse command line
  * using getopt function
  */
-static int parse_command_line(char *linebuffer, struct log_command *cmd)
+static int parse_command_line(char const *linebuffer, struct log_command *cmd)
 {
 	int i, ret, id, argc;
 	char *argv[MAX_ARGS];
@@ -720,32 +719,29 @@ exit_free:
  */
 static int parse_command(struct log_command *command_list)
 {
-	FILE *fp;
+	struct log_config conf;
+	char conf_key [MAX_CONF_KEY_LEN];
+	const char * conf_val;
 	int ncmd;
-	char *line_p;
-	char linebuffer[1024];
 
-	fp = fopen(CONFIG_FILE, "re");
-	if (!fp) {
-		_E("no config file\n");
-		goto exit;
-	}
+	if (!log_config_read (&conf))
+		return 0;
+
 	ncmd = 0;
-	while (fgets(linebuffer, sizeof(linebuffer), fp) != NULL) {
-		line_p = strchr(linebuffer, '\n');
-		if (line_p != NULL)
-			*line_p = '\0';
-		if (parse_command_line(linebuffer, &command_list[ncmd]) == 0)
+	while (1) {
+		sprintf (conf_key, "dlog_logger_conf_%d", ncmd);
+		conf_val = log_config_get (&conf, conf_key);
+		if (!conf_val)
+			break;
+		if (parse_command_line(conf_val, &command_list[ncmd]) == 0)
 			ncmd++;
 		if (COMMAND_MAX <= ncmd)
 			break;
 	}
-	fclose(fp);
+
+	log_config_free (&conf);
 
 	return ncmd;
-
-exit:
-	return 0;
 }
 
 /*
@@ -864,7 +860,7 @@ int main(int argc, char **argv)
 	if (!ncmd)
 		goto exit;
 
-	if (0 != get_log_dev_names(device_path_table))
+	if (!log_config_read (&conf))
 		goto exit;
 
 	/* create log device */

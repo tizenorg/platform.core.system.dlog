@@ -177,6 +177,38 @@ log_format *log_format_new(void)
 	return p_ret;
 }
 
+log_format *log_format_from_format(log_format *p_format)
+{
+	log_format *p_ret;
+	FilterInfo *p_info, *p_info_old = NULL;
+
+	if (!(p_ret = log_format_new()))
+		return NULL;
+
+	*p_ret = *p_format;
+
+	p_info = p_format->filters;
+
+	while (p_info != NULL) {
+		FilterInfo *p_tmp;
+		p_tmp = filterinfo_new(p_info->mTag, p_info->mPri);
+		if (!p_tmp)
+		{
+			log_format_free(p_ret);
+			return NULL;
+		}
+
+		if (!p_info_old)
+			p_format->filters = p_tmp;
+		else
+			p_info_old->p_next = p_tmp;
+
+		p_info_old = p_tmp;
+		p_info = p_info->p_next;
+	}
+	return p_ret;
+}
+
 void log_format_free(log_format *p_format)
 {
 	FilterInfo *p_info, *p_info_old;
