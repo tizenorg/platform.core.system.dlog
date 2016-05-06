@@ -30,6 +30,7 @@
 #include <log_file.h>
 #include <logprint.h>
 #include <dlog_ioctl.h>
+#include <logconfig.h>
 
 #define DEFAULT_LOG_ROTATE_SIZE_KBYTES 16
 #define DEFAULT_MAX_ROTATED_LOGS 4
@@ -58,7 +59,7 @@ struct log_device_t {
 	struct log_device_t* next;
 };
 
-static char g_devs[LOG_ID_MAX][PATH_MAX];
+static struct log_config conf;
 
 static void processBuffer(struct log_device_t* dev, struct logger_entry *buf)
 {
@@ -403,7 +404,7 @@ static int log_devices_add_to_tail(struct log_device_t *devices, struct log_devi
 	return 0;
 }
 
-int main (int argc, char **argv)
+int main(int argc, char **argv)
 {
 	int err;
 	int has_set_log_format = 0;
@@ -428,8 +429,11 @@ int main (int argc, char **argv)
 		show_help(argv[0]);
 		exit(0);
 	}
-
-	if (0 != get_log_dev_names(g_devs)) {
+#ifdef DLOG_BACKEND_KMSG
+	if (!log_config_read(&conf, get_config_filename (CONFIG_KMSG))) {
+#else
+	if (!log_config_read(&conf, get_config_filename (CONFIG_COMMON))) {
+#endif
 		_E("Unable to read initial configuration\n");
 		exit(-1);
 	}
@@ -474,14 +478,14 @@ int main (int argc, char **argv)
 						  exit(-1);
 					  }
 
-					  dev = log_devices_new(g_devs[id]);
+					  dev = log_devices_new(log_config_get(&conf, log_name_by_id(id)));
 					  if (dev == NULL) {
-						  _E("Can't add log device: %s\n", g_devs[id]);
+						  _E("Can't add log device: %s\n", log_config_get(&conf, log_name_by_id(id)));
 						  exit(-1);
 					  }
 					  if (devices) {
 						  if (log_devices_add_to_tail(devices, dev)) {
-							  _E("Open log device %s failed\n", g_devs[id]);
+							  _E("Open log device %s failed\n", log_config_get(&conf, log_name_by_id(id)));
 							  exit(-1);
 						  }
 					  } else {
@@ -543,9 +547,9 @@ int main (int argc, char **argv)
 	}
 
 	if (!devices) {
-		devices = log_devices_new(g_devs[LOG_ID_MAIN]);
+		devices = log_devices_new(log_config_get(&conf, log_name_by_id(LOG_ID_MAIN)));
 		if (devices == NULL) {
-			_E("Can't add log device: %s\n", g_devs[LOG_ID_MAIN]);
+			_E("Can't add log device: %s\n", log_config_get(&conf, log_name_by_id(LOG_ID_MAIN)));
 			exit(-1);
 		}
 		g_dev_count = 1;
@@ -554,15 +558,15 @@ int main (int argc, char **argv)
 			accessmode = W_OK;
 
 		/* only add this if it's available */
-		if (0 == access(g_devs[LOG_ID_SYSTEM], accessmode)) {
-			if (log_devices_add_to_tail(devices, log_devices_new(g_devs[LOG_ID_SYSTEM]))) {
-				_E("Can't add log device: %s\n", g_devs[LOG_ID_SYSTEM]);
+		if (0 == access(log_config_get(&conf, log_name_by_id(LOG_ID_SYSTEM)), accessmode)) {
+			if (log_devices_add_to_tail(devices, log_devices_new(log_config_get(&conf, log_name_by_id(LOG_ID_SYSTEM))))) {
+				_E("Can't add log device: %s\n", log_config_get(&conf, log_name_by_id(LOG_ID_SYSTEM)));
 				exit(-1);
 			}
 		}
-		if (0 == access(g_devs[LOG_ID_APPS], accessmode)) {
-			if (log_devices_add_to_tail(devices, log_devices_new(g_devs[LOG_ID_APPS]))) {
-				_E("Can't add log device: %s\n", g_devs[LOG_ID_APPS]);
+		if (0 == access(log_config_get(&conf, log_name_by_id(LOG_ID_APPS)), accessmode)) {
+			if (log_devices_add_to_tail(devices, log_devices_new(log_config_get(&conf, log_name_by_id(LOG_ID_APPS))))) {
+				_E("Can't add log device: %s\n", log_config_get(&conf, log_name_by_id(LOG_ID_APPS)));
 				exit(-1);
 			}
 		}
