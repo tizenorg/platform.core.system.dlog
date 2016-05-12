@@ -15,6 +15,8 @@ AC_PROG_CC
 AC_PROG_GCC_TRADITIONAL
 AC_PROG_LIBTOOL
 
+__dlog_backends_selected=0
+
 # backend: journald
 AC_ARG_ENABLE(journal, AS_HELP_STRING([--enable-journal], [enable systemd journal]),
     [with_systemd_journal=yes],
@@ -26,6 +28,8 @@ if test "x$with_systemd_journal" != "xno"; then
 		have_systemd_journal=no)
 	if test "x$have_systemd_journal" = "xno" -a "x$with_systemd_journal" = "xyes"; then
 		AC_MSG_ERROR([systemd journal requested but libraries not found])
+	else
+		__dlog_backends_selected=$(($__dlog_backends_selected + 1))
 	fi
 fi
 AM_CONDITIONAL(WITH_SYSTEMD_JOURNAL, [test "x$have_systemd_journal" = "xyes"])
@@ -36,6 +40,7 @@ AC_ARG_ENABLE(pipe, AS_HELP_STRING([--enable-pipe], [enable pipe (log to pipe fd
 	with_pipe=no)
 if test "x$with_pipe" = "xyes"; then
 	AC_DEFINE(DLOG_BACKEND_PIPE, 1, [Define if pipe backend is selected])
+	__dlog_backends_selected=$(($__dlog_backends_selected + 1))
 fi
 AM_CONDITIONAL(WITH_PIPE, [test "x$with_pipe" = "xyes"])
 
@@ -45,6 +50,7 @@ AC_ARG_ENABLE(kmsg, AS_HELP_STRING([--enable-kmsg], [enable kmsg (requires kmsg 
 	with_kmsg=no)
 if test "x$with_kmsg" = "xyes"; then
 	AC_DEFINE(DLOG_BACKEND_KMSG, 1, [Define if kmsg backend is selected])
+	__dlog_backends_selected=$(($__dlog_backends_selected + 1))
 fi
 AM_CONDITIONAL(WITH_KMSG, [test "x$with_kmsg" = "xyes"])
 
@@ -54,8 +60,13 @@ AC_ARG_ENABLE(android_logger, AS_HELP_STRING([--enable-android-logger], [enable 
 	with_android_logger=no)
 if test "x$with_android_logger" = "xyes"; then
 	AC_DEFINE(DLOG_BACKEND_LOGGER, 1, [Define if (legacy) android logger backend is selected])
+	__dlog_backends_selected=$(($__dlog_backends_selected + 1))
 fi
 AM_CONDITIONAL(WITH_ANDROID_LOGGER, [test "x$with_android_logger" = "xyes"])
+
+if test $__dlog_backends_selected -ne 1; then
+	AC_MSG_ERROR([Exactly one backend needs to be selected.])
+fi
 
 # check binary type for dlog debug mode
 AC_ARG_ENABLE([debug_mode],
