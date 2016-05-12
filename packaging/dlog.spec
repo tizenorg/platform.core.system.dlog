@@ -111,20 +111,7 @@ cp %{SOURCE102} .
 			--enable-debug_mode \
 			TZ_SYS_ETC=%{TZ_SYS_ETC}
 make %{?jobs:-j%jobs} \
-	CFLAGS+=-DTZ_SYS_ETC=\\\"%{TZ_SYS_ETC}\\\" \
-%if 0%{?backend_journal}
-	CFLAGS+=-DDLOG_BACKEND_JOURNAL
-%endif
-%if 0%{?backend_kmsg}
-	CFLAGS+=-DDLOG_BACKEND_KMSG
-%endif
-%if 0%{?backend_logger}
-	CFLAGS+=-DDLOG_BACKEND_LOGGER
-%endif
-%if 0%{?backend_pipe}
-	CFLAGS+=-DDLOG_BACKEND_PIPE
-%endif
-
+	CFLAGS+=-DTZ_SYS_ETC=\\\"%{TZ_SYS_ETC}\\\"
 
 %install
 rm -rf %{buildroot}
