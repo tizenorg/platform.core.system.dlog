@@ -7,10 +7,6 @@ License:    Apache-2.0
 Source0:    %{name}-%{version}.tar.gz
 Source101:  packaging/dlogutil.manifest
 Source102:  packaging/libdlog.manifest
-Source201:  packaging/dlog.conf.kmsg
-Source202:  packaging/dlog.conf.logger
-Source203:  packaging/dlog.conf.journal
-Source204:  packaging/dlog.conf.pipe
 Source301:  packaging/dlog_logger.service
 Source302:  packaging/dlog_logger.path.kmsg
 Source303:  packaging/dlog_logger.path.logger
@@ -120,18 +116,6 @@ rm -rf %{buildroot}
 mkdir -p %{buildroot}/usr/bin/
 
 mkdir -p %{buildroot}%{TZ_SYS_ETC}
-%if 0%{?backend_kmsg}
-cp %SOURCE201 %{buildroot}%{TZ_SYS_ETC}/dlog.conf
-%endif
-%if 0%{?backend_logger}
-cp %SOURCE202 %{buildroot}%{TZ_SYS_ETC}/dlog.conf
-%endif
-%if 0%{?backend_journal}
-cp %SOURCE203 %{buildroot}%{TZ_SYS_ETC}/dlog.conf
-%endif
-%if 0%{?backend_pipe}
-cp %SOURCE204 %{buildroot}%{TZ_SYS_ETC}/dlog.conf
-%endif
 
 %if 0%{?backend_pipe} || 0%{?backend_logger} || 0%{?backend_kmsg}
 

@@ -165,6 +165,29 @@ dlogctrl_SOURCES = \
 	src/logctrl/logctrl.c \
 	include/logconfig.h
 
-# conf file
+# conf files
+
+.PHONY: dlog.conf
+
+if WITH_KMSG
+dlog.conf: configs/dlog.conf.kmsg
+	cp configs/dlog.conf.kmsg dlog.conf
+endif
+if WITH_PIPE
+dlog.conf: configs/dlog.conf.pipe
+	cp configs/dlog.conf.pipe dlog.conf
+endif
+if WITH_ANDROID_LOGGER
+dlog.conf: configs/dlog.conf.logger
+	cp configs/dlog.conf.logger dlog.conf
+endif
+if WITH_SYSTEMD_JOURNAL
+dlog.conf: configs/dlog.conf.journal
+	cp configs/dlog.conf.journal dlog.conf
+endif
+
+optetcdir = /opt/etc
+optetc_DATA = dlog.conf
+
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = dlog.pc
