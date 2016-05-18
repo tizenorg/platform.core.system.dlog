@@ -1,0 +1,83 @@
+== Where does the config live? ==
+
+  By default, the config lives in "/opt/etc/dlog.conf".
+  This can be changed by setting the environment variable "DLOG_CONFIG_PATH".
+  Beware that changing this will not affect running programs.
+
+== What format does the config have? ==
+
+  The configuration file is a list of entries.
+  Empty lines and lines starting with # are not parsed.
+  Each valid entry takes one line.
+  Each entry should be of key=value format.
+
+== What kind of entries should I know about? ==
+
+  There are two important values which apply to all backends:
+  "plog": can be 0 or 1. A boolean value which controls whether logging occurs at all.
+  "limiter": can be 0 or 1. A boolean value which controls whether limiting occurs.
+
+== How do I control the limiter? ==
+
+  Config entries can describe filtering rules for the limiter.
+  Each rule concerns a tag and priority pair, and defines how many logs of that type can occur per minute.
+  The priority can take following values:
+    V or 1 (verbose)
+    D or 2 (debug)
+    I or 3 (information)
+    W or 4 (warning)
+    E or 5 (error)
+    F or 6 (fatal)
+  The value can be either an integer number, or "allow", or "deny".
+    "allow" and numbers above 10000 means there is no filtering.
+    "deny" and numbers below 0 mean everything is filtered.
+    Numbers between 1 and 10000 mean that many logs of this type are allowed per minute.
+  The tag is defined by applications and is an arbitrary string.
+  The entry defining a rule looks like: "limiter|TAG|PRIORITY=VALUE".
+  Examples:
+     limiter|SOME_TAG|E=allow
+     limiter|SOME_OTHER_TAG|3=1000
+     limiter|ANOTHER_TAG|D=deny
+  And their respective meanings:
+     Error-level logs tagged as SOME_TAG are not filtered.
+     Information-level logs tagged as SOME_OTHER_TAG are allowed only 1000 per minute.
+     Debug-level logs tagged as ANOTHER_TAG are not let through.
+  Tag and priority can be replaced by an asterisk (*).
+  Asterisk is a wild-card; anything which does not fit an explicit rule fits an asterisk.
+  Examples:
+    limiter|SOME_TAG|E=allow
+    limiter|SOME_TAG|*=deny
+    limiter|*|W=1000
+  Meaning:
+    for tag SOME_TAG, allow all error-log levels but deny all other log levels.
+    only allow 1000 warning-level logs regardless of tag.
+  Asterisks can also be used for both tag and priority at the same time (limiter|*|*).
+  Double asterisk is used for anything which did not fit any previous rule.
+
+== How do I configure dlog_logger? ==
+
+  The dlog_logger daemon gathers logs and writes them to files.
+  dlog_logger configuration is done through entries with key "dlog_logger_conf_N", where N are consecutive integers from 0.
+  Its configuration syntax is the same as dlogutil, consult the dlogutil documentation for details.
+  Examples:
+    dlog_logger_conf_0=dlogutil -b system -r 5120 -n 1 -f /var/log/dlog/system.log -v dump *:I
+    dlog_logger_conf_1=dlogutil -b main -r 3072 -n 1 -f /var/log/dlog/main.log -v dump *:W
+
+
+== How do I configure the buffer size for KMSG and PIPE backends? ==
+
+  Use "BUFFERNAME_size". Examples:
+    main_size=1048576
+    apps_size=1048576
+
+== How do I configure the pipe socket for the PIPE backend? ==
+
+  Use "pipe_control_socket".
+  For example, "pipe_control_socket=/var/log/dlog/control.sock"
+
+== How do I configure buffer names for the ANDROID LOGGER backend? ==
+
+  Use "BUFFERNAME". For example:
+    main=/var/log/log_main
+    apps=/var/log/log_apps
+
