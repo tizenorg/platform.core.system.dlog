@@ -56,6 +56,7 @@ static int log_config_multiplex_opt(char* opt_str, char* val_str, int prio,
 	if (0 < prio) { /* Is it a rule or an option  ? */
 		/* For the filtering rule ... */
 
+		//LCOV_EXCL_START
 		if (!strncasecmp(ALLOW_STRING, val_str, sizeof(ALLOW_STRING))) {
 			value = __LOG_LIMITER_LIMIT_MAX + 1;
 		} else if (!strncasecmp(DENY_STRING, val_str, sizeof(DENY_STRING))) {
@@ -67,6 +68,7 @@ static int log_config_multiplex_opt(char* opt_str, char* val_str, int prio,
 			if (*endptr != '\0')
 				return RET_ERROR;
 		}
+		//LCOV_EXCL_STOP
 
 		return __log_limiter_add_rule(opt_str, prio, value);
 
@@ -158,6 +160,7 @@ int __log_config_read(const char* config_file, struct log_config* config)
 	return RET_SUCCESS;
 
 bailout:
+	//LCOV_EXCL_START
 	/* These actions should warranty that
 	   we cleanly handle initialization errors */
 	fclose(fconfig);
@@ -166,4 +169,5 @@ bailout:
 	__log_limiter_rules_purge();
 
 	return RET_ERROR;
+	//LCOV_EXCL_STOP
 }
