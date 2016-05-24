@@ -86,12 +86,15 @@ static void rules_destroy(struct rule* rlist)
 	}
 }
 
+//LCOV_EXCL_START : system error
 void __log_limiter_rules_purge(void)
 {
 	rules_destroy(rules_table);
 	rules_table = NULL;
 }
+//LCOV_EXCL_STOP
 
+//LCOV_EXCL_START : disabled feature (loglimiter)
 static int rule_compare(struct rule* r1, struct rule* r2)
 {
 	if (r1->hash == r2->hash) {
@@ -115,6 +118,7 @@ static int rule_match(struct rule* r1, unsigned key, const char* s, int prio)
 
 	return (r1->hash > key ? 1 : (-1));
 }
+//LCOV_EXCL_STOP
 
 /* Translate fancy priority notation into common denominator */
 static int util_prio_to_char(int prio)
@@ -172,6 +176,7 @@ finish:
 	return hash;
 }
 
+//LCOV_EXCL_START : disabled feature (loglimiter)
 /* Create hashmap, it's internal interface. */
 static struct hashmap* hashmap_create(int size, hash_cmp_func_t cmp_func,
 				      hash_match_func_t match_func)
@@ -292,6 +297,7 @@ bailout:
 
 	return (-1);
 }
+//LCOV_EXCL_STOP
 
 void __log_limiter_destroy(void)
 {
@@ -328,6 +334,7 @@ int __log_limiter_add_rule(const char* tag, int prio, int limit)
 }
 
 
+//LCOV_EXCL_START : disabled feature (loglimiter)
 /* Function implement logic needed to decide,
    whenever message is written to log or not.
 
@@ -401,3 +408,4 @@ int __log_limiter_pass_log(const char* tag, int prio)
 	/* If everything failed, then pass message through */
 	return 1;
 }
+//LCOV_EXCL_STOP

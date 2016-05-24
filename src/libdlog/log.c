@@ -149,10 +149,12 @@ static int __write_to_log_sd_journal(log_id_t log_id, log_priority prio, const c
 }
 
 #else
+//LCOV_EXCL_START : system error
 static int __write_to_log_null(log_id_t log_id, log_priority prio, const char *tag, const char *msg)
 {
 	return DLOG_ERROR_NOT_PERMITTED;
 }
+//LCOV_EXCL_STOP
 
 #if DLOG_BACKEND_KMSG
 
@@ -186,7 +188,7 @@ static int __write_to_log_kmsg(log_id_t log_id, log_priority prio, const char *t
 				last_msg_len < LOG_ATOMIC_SIZE - 1 ? last_msg_len : LOG_ATOMIC_SIZE - 1);
 
 		if (written_len < 0)
-			return -errno;
+			return -errno;	//LCOV_EXCL_LINE : system error
 
 		ret += (written_len - prefix_len);
 		msg_ptr += (written_len - prefix_len);
@@ -239,13 +241,17 @@ static int __write_to_log_logger(log_id_t log_id, log_priority prio, const char 
 static void __configure(void)
 {
 	if (0 > __log_config_read(LOG_CONFIG_FILE, &config)) {
+		//LCOV_EXCL_START : system error
 		config.lc_limiter = 0;
 		config.lc_plog = 0;
+		//LCOV_EXCL_STOP
 	}
 
 	if (config.lc_limiter) {
+		//LCOV_EXCL_START : disabled feature (loglimiter)
 		if (0 > __log_limiter_initialize())
 			config.lc_limiter = 0;
+		//LCOV_EXCL_STOP
 	}
 }
 
@@ -264,7 +270,7 @@ static void __dlog_init(void)
 			log_fds[LOG_ID_APPS] = open(log_devs[LOG_ID_APPS], O_WRONLY);
 		}
 		if (log_fds[LOG_ID_MAIN] < 0) {
-			write_to_log = __write_to_log_null;
+			write_to_log = __write_to_log_null;	//LCOV_EXCL_LINE : system error
 		} else {
 #if DLOG_BACKEND_KMSG
 			write_to_log = __write_to_log_kmsg;
@@ -272,12 +278,14 @@ static void __dlog_init(void)
 			write_to_log = __write_to_log_logger;
 #endif
 		}
+		//LCOV_EXCL_START : system error
 		if (log_fds[LOG_ID_RADIO] < 0)
 			log_fds[LOG_ID_RADIO] = log_fds[LOG_ID_MAIN];
 		if (log_fds[LOG_ID_SYSTEM] < 0)
 			log_fds[LOG_ID_SYSTEM] = log_fds[LOG_ID_MAIN];
 		if (log_fds[LOG_ID_APPS] < 0)
 			log_fds[LOG_ID_APPS] = log_fds[LOG_ID_MAIN];
+		//LCOV_EXCL_STOP
 #endif
 		pthread_mutex_unlock(&log_init_lock);
 }
@@ -306,6 +314,7 @@ static int dlog_should_log(log_id_t log_id, const char* tag, int prio)
 	if (log_id != LOG_ID_APPS && !config.lc_plog)
 		return DLOG_ERROR_NOT_PERMITTED;
 
+	//LCOV_EXCL_START : disabled feature (loglimiter)
 	if (config.lc_limiter) {
 		should_log = __log_limiter_pass_log(tag, prio);
 
@@ -317,6 +326,7 @@ static int dlog_should_log(log_id_t log_id, const char* tag, int prio)
 			return DLOG_ERROR_NOT_PERMITTED;
 		}
 	}
+	//LCOV_EXCL_STOP
 
 	return DLOG_ERROR_NONE;
 }
