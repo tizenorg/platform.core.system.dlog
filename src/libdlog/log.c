@@ -88,7 +88,7 @@ static inline const char* dlog_id_to_string(log_id_t log_id)
 		[LOG_ID_APPS]   = "log_apps",
 	};
 
-	if (log_id < 0 || log_id >= LOG_ID_MAX || !id_table[log_id])
+	if (log_id == LOG_ID_INVALID || log_id >= LOG_ID_MAX || !id_table[log_id])
 		return "UNKNOWN";
 
 	return id_table[log_id];
@@ -164,7 +164,7 @@ static int __write_to_log_kmsg(log_id_t log_id, log_priority prio, const char *t
 	char buf[LOG_ATOMIC_SIZE];
 	const char *msg_ptr = msg;
 
-	if (log_id < LOG_ID_MAX)
+	if (log_id > LOG_ID_INVALID && log_id < LOG_ID_MAX)
 		log_fd = log_fds[log_id];
 	else
 		return DLOG_ERROR_INVALID_PARAMETER;
@@ -205,7 +205,7 @@ static int __write_to_log_logger(log_id_t log_id, log_priority prio, const char 
 	int log_fd;
 	struct iovec vec[3];
 
-	if (log_id < LOG_ID_MAX)
+	if (log_id > LOG_ID_INVALID && log_id < LOG_ID_MAX)
 		log_fd = log_fds[log_id];
 	else
 		return DLOG_ERROR_INVALID_PARAMETER;
@@ -300,7 +300,7 @@ static int dlog_should_log(log_id_t log_id, const char* tag, int prio)
 	if (!tag)
 		return DLOG_ERROR_INVALID_PARAMETER;
 
-	if (log_id < 0 || LOG_ID_MAX <= log_id)
+	if (log_id == LOG_ID_INVALID || LOG_ID_MAX <= log_id)
 		return DLOG_ERROR_INVALID_PARAMETER;
 
 	if (log_id != LOG_ID_APPS && !config.lc_plog)

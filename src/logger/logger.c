@@ -100,8 +100,8 @@ static int min_interval = 0;
  */
 static int check_device(int id)
 {
-	if (id < 0 || LOG_ID_MAX <= id)
-		return 0;
+	if (id == LOG_ID_INVALID || LOG_ID_MAX <= id)
+		return -1;
 
 	return (device_list[id] == true) ? 0 : -1;
 }
@@ -111,7 +111,7 @@ static int check_device(int id)
  */
 static int register_device(int id)
 {
-	if (id < 0 || LOG_ID_MAX <= id)
+	if (id == LOG_ID_INVALID || LOG_ID_MAX <= id)
 		return -1;
 	device_list[id] = true;
 
@@ -455,7 +455,7 @@ static struct log_device *device_new(int id)
 {
 	struct log_device *dev;
 
-	if (LOG_ID_MAX <= id)
+	if (id == LOG_ID_INVALID || LOG_ID_MAX <= id)
 		return NULL;
 	dev = malloc(sizeof(struct log_device));
 	if (dev == NULL) {
@@ -631,7 +631,7 @@ static int parse_command_line(char *linebuffer, struct log_command *cmd)
 		case 'b':
 			id = log_id_by_name(optarg);
 			_D("command device name %s id %d\n", optarg, id);
-			if (id < 0)
+			if (id == LOG_ID_INVALID)
 				break;
 			cmd->option_buffer = true;
 			/* enable to log in device on/off struct */
