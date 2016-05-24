@@ -21,7 +21,7 @@ libdlog_la_SOURCES =  \
 	src/shared/logcommon.c \
 	include/dlog.h \
 	include/dlog-internal.h \
-	src/libdlog/logconfig.c \
+	src/shared/logconfig.c \
 	include/logconfig.h \
 	src/libdlog/loglimiter.c \
 	include/loglimiter.h
@@ -70,6 +70,7 @@ dlogutil_SOURCES = \
 	src/shared/logprint.c \
 	src/shared/queued_entry.c \
 	src/shared/log_file.c \
+	src/shared/logconfig.c \
 	include/dlog_ioctl.h \
 	include/logcommon.h \
 	include/queued_entry.h \
@@ -88,8 +89,6 @@ if WITH_SYSTEMD_JOURNAL
 dlogutil_SOURCES += src/logutil/logutil_journal.c
 endif
 
-sbin_PROGRAMS = dloginit
-
 if !WITH_SYSTEMD_JOURNAL
 
 bin_PROGRAMS += dlog_logger
@@ -105,6 +104,7 @@ dlog_logger_LDFLAGS = \
 dlog_logger_SOURCES = \
 	src/shared/dlog_ioctl.c \
 	src/shared/logcommon.c \
+	src/shared/logconfig.c \
 	src/shared/logprint.c \
 	src/logger/logger.c \
 	src/shared/queued_entry.c \
@@ -117,6 +117,8 @@ dlog_logger_SOURCES = \
 
 endif
 
+if WITH_KMSG
+sbin_PROGRAMS = dloginit
 dloginit_CFLAGS =  \
 	$(AM_CFLAGS) \
 	$(LIBUDEV_CFLAGS) \
@@ -129,9 +131,45 @@ dloginit_LDFLAGS = \
 
 dloginit_SOURCES = \
 	src/loginit/loginit.c \
+	src/shared/logconfig.c \
+	src/shared/logcommon.c \
 	include/logcommon.h \
 	include/dlog.h
+endif
 
-# conf file
+bin_PROGRAMS += dlogctrl
+dlogctrl_CFLAGS =  \
+	$(AM_CFLAGS) \
+	-fPIE
+
+dlogctrl_LDFLAGS = \
+	$(AM_LDFLAGS) \
+	-pie
+
+dlogctrl_SOURCES = \
+	src/shared/logconfig.c \
+	src/logctrl/logctrl.c \
+	include/logconfig.h
+
+# conf files
+
+.PHONY: dlog.conf
+
+if WITH_KMSG
+dlog.conf: configs/dlog.conf.kmsg
+	cp configs/dlog.conf.kmsg dlog.conf
+endif
+if WITH_ANDROID_LOGGER
+dlog.conf: configs/dlog.conf.logger
+	cp configs/dlog.conf.logger dlog.conf
+endif
+if WITH_SYSTEMD_JOURNAL
+dlog.conf: configs/dlog.conf.journal
+	cp configs/dlog.conf.journal dlog.conf
+endif
+
+optetcdir = /opt/etc
+optetc_DATA = dlog.conf
+
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = dlog.pc
