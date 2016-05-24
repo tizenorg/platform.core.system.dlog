@@ -149,10 +149,12 @@ static int __write_to_log_sd_journal(log_id_t log_id, log_priority prio, const c
 }
 
 #else
+//LCOV_EXCL_START
 static int __write_to_log_null(log_id_t log_id, log_priority prio, const char *tag, const char *msg)
 {
 	return DLOG_ERROR_NOT_PERMITTED;
 }
+//LCOV_EXCL_STOP
 
 #if DLOG_BACKEND_KMSG
 
@@ -186,7 +188,7 @@ static int __write_to_log_kmsg(log_id_t log_id, log_priority prio, const char *t
 				last_msg_len < LOG_ATOMIC_SIZE ? last_msg_len : LOG_ATOMIC_SIZE);
 
 		if (written_len < 0)
-			return -errno;
+			return -errno;	//LCOV_EXCL_LINE
 
 		ret += written_len;
 
@@ -239,6 +241,7 @@ static int __write_to_log_logger(log_id_t log_id, log_priority prio, const char 
 
 static void __configure(void)
 {
+	//LCOV_EXCL_START
 	if (0 > __log_config_read(LOG_CONFIG_FILE, &config)) {
 		config.lc_limiter = 0;
 		config.lc_plog = 0;
@@ -248,6 +251,7 @@ static void __configure(void)
 		if (0 > __log_limiter_initialize())
 			config.lc_limiter = 0;
 	}
+	//LCOV_EXCL_STOP
 }
 
 static void __dlog_init(void)
@@ -265,7 +269,7 @@ static void __dlog_init(void)
 			log_fds[LOG_ID_APPS] = open(log_devs[LOG_ID_APPS], O_WRONLY);
 		}
 		if (log_fds[LOG_ID_MAIN] < 0) {
-			write_to_log = __write_to_log_null;
+			write_to_log = __write_to_log_null;	//LCOV_EXCL_LINE
 		} else {
 #if DLOG_BACKEND_KMSG
 			write_to_log = __write_to_log_kmsg;
@@ -273,16 +277,19 @@ static void __dlog_init(void)
 			write_to_log = __write_to_log_logger;
 #endif
 		}
+		//LCOV_EXCL_START
 		if (log_fds[LOG_ID_RADIO] < 0)
 			log_fds[LOG_ID_RADIO] = log_fds[LOG_ID_MAIN];
 		if (log_fds[LOG_ID_SYSTEM] < 0)
 			log_fds[LOG_ID_SYSTEM] = log_fds[LOG_ID_MAIN];
 		if (log_fds[LOG_ID_APPS] < 0)
 			log_fds[LOG_ID_APPS] = log_fds[LOG_ID_MAIN];
+		//LCOV_EXCL_STOP
 #endif
 		pthread_mutex_unlock(&log_init_lock);
 }
 
+//LCOV_EXCL_START
 void __dlog_fatal_assert(int prio)
 {
 #ifdef FATAL_ON
@@ -367,6 +374,7 @@ int __dlog_print(log_id_t log_id, int prio, const char *tag, const char *fmt, ..
 #endif
 	return ret;
 }
+//LCOV_EXCL_STOP
 
 int dlog_vprint(log_priority prio, const char *tag, const char *fmt, va_list ap)
 {
