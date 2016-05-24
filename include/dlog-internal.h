@@ -51,7 +51,8 @@ extern "C" {
  * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @elseif TV 3.0 @endif
  */
 typedef enum {
-    LOG_ID_MAIN = 0,
+	LOG_ID_INVALID = -1,
+	LOG_ID_MAIN,
 	LOG_ID_RADIO,
 	LOG_ID_SYSTEM,
 	LOG_ID_APPS,
