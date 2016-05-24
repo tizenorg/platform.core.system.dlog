@@ -106,5 +106,5 @@ log_id_t log_id_by_name(const char *name)
 	else if (0 == strcmp(name, "apps"))
 		return LOG_ID_APPS;
 	else
-		return -1;
+		return LOG_ID_INVALID;
 }

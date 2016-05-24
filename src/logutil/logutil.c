@@ -589,7 +589,7 @@ int main_others(int argc, char **argv)
 
 		case 'b': {
 					  id = log_id_by_name(optarg);
-					  if (id < 0) {
+					  if (id == LOG_ID_INVALID) {
 						  _E("Unknown log buffer %s\n", optarg);
 						  exit(-1);
 					  }
