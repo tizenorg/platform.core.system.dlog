@@ -43,12 +43,15 @@
 #define VALUE_MAX 2
 #define LOG_CONFIG_FILE TZ_SYS_ETC"/dlog.conf"
 
+#define LOG_MAX_SIZE	4076
+
 static int (*write_to_log)(log_id_t, log_priority, const char *tag, const char *msg) = NULL;
 static pthread_mutex_t log_init_lock = PTHREAD_MUTEX_INITIALIZER;
 static struct log_config config;
 
 #if DLOG_BACKEND_JOURNAL
 #define LOG_BUF_SIZE 1024
+#define LOG_INFO_SIZE 16
 
 static inline int dlog_pri_to_journal_pri(log_priority prio)
 {
@@ -105,17 +108,17 @@ static int __write_to_log_sd_journal(log_id_t log_id, log_priority prio, const c
 		tag = "";
 
 	struct iovec vec[5];
-	char _msg[LOG_BUF_SIZE + 8];
-	char _prio[LOG_BUF_SIZE + 9];
+	char _msg[LOG_MAX_SIZE + 8];
+	char _prio[LOG_INFO_SIZE + 9];
 	char _tag[LOG_BUF_SIZE + 8];
-	char _log_id[LOG_BUF_SIZE + 7];
-	char _tid[LOG_BUF_SIZE + 4];
+	char _log_id[LOG_INFO_SIZE + 7];
+	char _tid[LOG_INFO_SIZE + 4];
 
-	snprintf(_msg, LOG_BUF_SIZE + 8, "MESSAGE=%s", msg);
+	snprintf(_msg, LOG_MAX_SIZE + 8, "MESSAGE=%s", msg);
 	vec[0].iov_base = (void *)_msg;
 	vec[0].iov_len = strlen(vec[0].iov_base);
 
-	snprintf(_prio, LOG_BUF_SIZE + 9, "PRIORITY=%i", dlog_pri_to_journal_pri(prio));
+	snprintf(_prio, LOG_INFO_SIZE + 9, "PRIORITY=%i", dlog_pri_to_journal_pri(prio));
 	vec[1].iov_base = (void *)_prio;
 	vec[1].iov_len = strlen(vec[1].iov_base);
 
@@ -123,11 +126,11 @@ static int __write_to_log_sd_journal(log_id_t log_id, log_priority prio, const c
 	vec[2].iov_base = (void *)_tag;
 	vec[2].iov_len = strlen(vec[2].iov_base);
 
-	snprintf(_log_id, LOG_BUF_SIZE + 7, "LOG_ID=%s", lid_str);
+	snprintf(_log_id, LOG_INFO_SIZE + 7, "LOG_ID=%s", lid_str);
 	vec[3].iov_base = (void *)_log_id;
 	vec[3].iov_len = strlen(vec[3].iov_base);
 
-	snprintf(_tid, LOG_BUF_SIZE + 4, "TID=%d", tid);
+	snprintf(_tid, LOG_INFO_SIZE + 4, "TID=%d", tid);
 	vec[4].iov_base = (void *)_tid;
 	vec[4].iov_len = strlen(vec[4].iov_base);
 
@@ -141,13 +144,6 @@ static int __write_to_log_sd_journal(log_id_t log_id, log_priority prio, const c
 
 #else
 
-/*
- * LOG_ATOMIC_SIZE is calculated according to kernel value
- * 976 = 1024(size of log line) - 48(size of max prefix length)
- */
-#define LOG_ATOMIC_SIZE	976
-#define LOG_MAX_SIZE	4076
-
 static int log_fds[(int)LOG_ID_MAX] = { -1, -1, -1, -1 };
 static char log_devs[LOG_ID_MAX][PATH_MAX];
 
@@ -157,6 +153,12 @@ static int __write_to_log_null(log_id_t log_id, log_priority prio, const char *t
 }
 
 #if DLOG_BACKEND_KMSG
+
+/*
+ * LOG_ATOMIC_SIZE is calculated according to kernel value
+ * 976 = 1024(size of log line) - 48(size of max prefix length)
+ */
+#define LOG_ATOMIC_SIZE	976
 
 static int __write_to_log_kmsg(log_id_t log_id, log_priority prio, const char *tag, const char *msg)
 {
