@@ -37,6 +37,19 @@
 #define LOG_APPS_CONF_PREFIX    "LOG_APPS="
 #define LOG_TYPE_CONF_PREFIX	"LOG_TYPE="
 
+/*
+ * LOG_ATOMIC_SIZE is calculated according to kernel value
+ * 976 = 1024(size of log line) - 48(size of max prefix length)
+ */
+#define LOG_INFO_SIZE   16
+#define LOG_ATOMIC_SIZE 976
+#define LOG_BUF_SIZE    1024
+#define LOG_MAX_SIZE    4076
+
+#define LOG_CONFIG_FILE TZ_SYS_ETC"/dlog.conf"
+
+#define gettid() syscall(SYS_gettid)
+
 int get_log_dev_names(char devs[LOG_ID_MAX][PATH_MAX]);
 
 log_id_t log_id_by_name(const char *name);
