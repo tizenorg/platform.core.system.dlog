@@ -43,22 +43,13 @@
 #define VALUE_MAX 2
 #define LOG_CONFIG_FILE TZ_SYS_ETC"/dlog.conf"
 
-/*
- * LOG_ATOMIC_SIZE is calculated according to kernel value
- * 976 = 1024(size of log line) - 48(size of max prefix length)
- */
-#define LOG_ATOMIC_SIZE	976
-#define LOG_MAX_SIZE	4076
-
-#ifndef DLOG_BACKEND_JOURNAL
-static int log_fds[(int)LOG_ID_MAX] = { -1, -1, -1, -1 };
-static char log_devs[LOG_ID_MAX][PATH_MAX];
-#endif
 static int (*write_to_log)(log_id_t, log_priority, const char *tag, const char *msg) = NULL;
 static pthread_mutex_t log_init_lock = PTHREAD_MUTEX_INITIALIZER;
 static struct log_config config;
 
 #if DLOG_BACKEND_JOURNAL
+#define LOG_BUF_SIZE 1024
+
 static inline int dlog_pri_to_journal_pri(log_priority prio)
 {
 	static int pri_table[DLOG_PRIO_MAX] = {
@@ -149,6 +140,17 @@ static int __write_to_log_sd_journal(log_id_t log_id, log_priority prio, const c
 }
 
 #else
+
+/*
+ * LOG_ATOMIC_SIZE is calculated according to kernel value
+ * 976 = 1024(size of log line) - 48(size of max prefix length)
+ */
+#define LOG_ATOMIC_SIZE	976
+#define LOG_MAX_SIZE	4076
+
+static int log_fds[(int)LOG_ID_MAX] = { -1, -1, -1, -1 };
+static char log_devs[LOG_ID_MAX][PATH_MAX];
+
 //LCOV_EXCL_START : system error
 static int __write_to_log_null(log_id_t log_id, log_priority prio, const char *tag, const char *msg)
 {
