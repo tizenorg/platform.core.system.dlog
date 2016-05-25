@@ -17,94 +17,50 @@
  */
 
 #include <string.h>
+#include <syslog.h>
 
 #include <logcommon.h>
 
 #define MAX_PREFIX_SIZE 32
 #define LINE_MAX        (MAX_PREFIX_SIZE+PATH_MAX)
 
-static char* get_dev_from_line(char *line, char *prefix)
-{
-	size_t len = strlen(prefix);
-	if (strncmp(line, prefix, len))
-		return NULL;
-	return line + len;
-}
-
-int get_log_dev_names(char devs[LOG_ID_MAX][PATH_MAX])
-{
-	int i;
-	FILE *config_file;
-	char line[LINE_MAX];
-
-	for (i = 0; i < LOG_ID_MAX; i++)
-		devs[i][0] = '\0';
-
-	config_file = fopen(KMSG_DEV_CONFIG_FILE, "r");
-	if (!config_file)
-		return -1;
-
-	while (fgets(line, LINE_MAX, config_file)) {
-		char *dev;
-		int len = strlen(line);
-
-		if (line[0] == '\n' || line[0] == '#')
-			continue;
-
-		if (line[len-1] == '\n')
-			line[len-1] = '\0';
-
-		dev = get_dev_from_line(line, LOG_TYPE_CONF_PREFIX);
-		if (dev)
-			continue;
-
-		dev = get_dev_from_line(line, LOG_MAIN_CONF_PREFIX);
-		if (dev) {
-			strncpy(devs[LOG_ID_MAIN], dev, PATH_MAX);
-			continue;
-		}
-		dev = get_dev_from_line(line, LOG_RADIO_CONF_PREFIX);
-		if (dev) {
-			strncpy(devs[LOG_ID_RADIO], dev, PATH_MAX);
-			continue;
-		}
-		dev = get_dev_from_line(line, LOG_SYSTEM_CONF_PREFIX);
-		if (dev) {
-			strncpy(devs[LOG_ID_SYSTEM], dev, PATH_MAX);
-			continue;
-		}
-		dev = get_dev_from_line(line, LOG_APPS_CONF_PREFIX);
-		if (dev) {
-			strncpy(devs[LOG_ID_APPS], dev, PATH_MAX);
-			continue;
-		}
-
-		goto error;
-	}
-
-	for (i = 0; i < LOG_ID_MAX; i++) {
-		if (devs[i][0] == '\0')
-			goto error;
-	}
-
-	fclose(config_file);
-	return 0;
-
-error:
-	fclose(config_file);
-	return -1;
-}
+static struct {
+	log_id_t id;
+	char * name;
+} logid_map [] = {
+	{ .id = LOG_ID_MAIN,   .name = "main" },
+	{ .id = LOG_ID_RADIO,  .name = "radio" },
+	{ .id = LOG_ID_SYSTEM, .name = "system" },
+	{ .id = LOG_ID_APPS,   .name = "apps" },
+};
 
 log_id_t log_id_by_name(const char *name)
 {
-	if (0 == strcmp(name, "main"))
-		return LOG_ID_MAIN;
-	else if (0 == strcmp(name, "radio"))
-		return LOG_ID_RADIO;
-	else if (0 == strcmp(name, "system"))
-		return LOG_ID_SYSTEM;
-	else if (0 == strcmp(name, "apps"))
-		return LOG_ID_APPS;
-	else
-		return LOG_ID_INVALID;
+	log_id_t i;
+
+	for (i = 0; i < LOG_ID_MAX; ++i)
+		if (!strcmp (name, logid_map[i].name))
+			return logid_map[i].id;
+
+	return LOG_ID_INVALID;
 }
+
+char * log_name_by_id (log_id_t id)
+{
+	log_id_t i;
+
+	for (i = 0; i < LOG_ID_MAX; ++i)
+		if (id == logid_map[i].id)
+			return logid_map[i].name;
+
+	return "";
+}
+
+/* Sends a message to syslog in case dlog has a critical failure and cannot make its own log */
+void syslog_critical_failure (const char * message)
+{
+	openlog (NULL, LOG_PERROR | LOG_CONS | LOG_PID | LOG_NDELAY, 0);
+	syslog (LOG_CRIT, "DLOG CRITIAL FAILURE: %s", message);
+	closelog ();
+}
+

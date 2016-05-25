@@ -2,4 +2,4 @@
 Description=Path activation for dlog_logger
 
 [Path]
-PathExists=/run/dloginit.conf
+PathExists=/run/dlog.conf
