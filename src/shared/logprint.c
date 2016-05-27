@@ -495,7 +495,7 @@ char *log_format_log_line(
 		break;
 	case FORMAT_THREAD:
 		prefixLen = snprintf(prefixBuf, sizeof(prefixBuf),
-				"%c(%5d:%5d) ", priChar, (int)entry->pid, (int)entry->tid);
+				"%c(P%5d, T%5d) ", priChar, (int)entry->pid, (int)entry->tid);
 		strncpy(suffixBuf, "\n", 2);
 		suffixLen = 1;
 		break;
@@ -514,8 +514,9 @@ char *log_format_log_line(
 		break;
 	case FORMAT_THREADTIME:
 		prefixLen = snprintf(prefixBuf, sizeof(prefixBuf),
-				"%s.%03ld%s %5d %5d %c %-8s: ", timeBuf, entry->tv_nsec / 1000000,
-				tzBuf, (int)entry->pid, (int)entry->tid, priChar, entry->tag);
+				"%s.%03ld%s %c/%-8s(P%5d, T%5d): ",
+				timeBuf, entry->tv_nsec / 1000000,
+				tzBuf, priChar, entry->tag, (int)entry->pid, (int)entry->tid);
 		strncpy(suffixBuf, "\n", 2);
 		suffixLen = 1;
 		break;
@@ -529,9 +530,9 @@ char *log_format_log_line(
 		break;
 	case FORMAT_LONG:
 		prefixLen = snprintf(prefixBuf, sizeof(prefixBuf),
-				"[ %s.%03ld %5d:%5d %c/%-8s ]\n",
-				timeBuf, entry->tv_nsec / 1000000, (int)entry->pid,
-				(int)entry->tid, priChar, entry->tag);
+				"[ %s.%03ld %c/%-8s P%5d, T%5d]\n",
+				timeBuf, entry->tv_nsec / 1000000, priChar, entry->tag,
+				(int)entry->pid, (int)entry->tid);
 		strncpy(suffixBuf, "\n\n", 3);
 		suffixLen = 2;
 		prefixSuffixIsHeaderFooter = 1;
