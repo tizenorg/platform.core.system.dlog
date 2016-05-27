@@ -218,8 +218,8 @@ log_print_format log_format_from_string(const char * formatString)
 		format = FORMAT_TIME;
 	else if (strcmp(formatString, "threadtime") == 0)
 		format = FORMAT_THREADTIME;
-	else if (strcmp(formatString, "dump") == 0)
-		format = FORMAT_DUMP;
+	else if (strcmp(formatString, "kerneltime") == 0)
+		format = FORMAT_KERNELTIME;
 	else if (strcmp(formatString, "long") == 0)
 		format = FORMAT_LONG;
 	else format = FORMAT_OFF;
@@ -519,11 +519,11 @@ char *log_format_log_line(
 		strncpy(suffixBuf, "\n", 2);
 		suffixLen = 1;
 		break;
-	case FORMAT_DUMP:
+	case FORMAT_KERNELTIME:
 		prefixLen = snprintf(prefixBuf, sizeof(prefixBuf),
-				"%s.%03ld%s %5d %5d %c %-8s: ", timeBuf,
-				entry->tv_nsec / 1000000, tzBuf, (int)entry->pid,
-				(int)entry->tid, priChar, entry->tag);
+				"%5lu.%03ld%s %c/%-8s(P%5d, T%5d): ",
+				entry->tv_sec, entry->tv_nsec / 1000000,
+				tzBuf, priChar, entry->tag, (int)entry->pid, (int)entry->tid);
 		strncpy(suffixBuf, "\n", 2);
 		suffixLen = 1;
 		break;
