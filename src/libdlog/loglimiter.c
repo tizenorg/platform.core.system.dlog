@@ -33,9 +33,7 @@
 /* Included for priorities level */
 #include <dlog.h>
 #include "loglimiter.h"
-
-/* Defines maximal meaningful tag length */
-#define TAG_REASONABLE_LEN        32
+#include <logconfig.h>
 
 /* Some random big odd number to make hash more diverse */
 #define HASH_MAGIC_THINGY         5237231
@@ -52,7 +50,7 @@ struct rule {
 	int limit;
 	int hit;
 	time_t start;
-	char tag[TAG_REASONABLE_LEN];
+	char tag[MAX_CONF_KEY_LEN];
 };
 
 typedef int (*hash_cmp_func_t)(struct rule*, struct rule*);
@@ -314,7 +312,7 @@ int __log_limiter_add_rule(const char* tag, int prio, int limit)
 
 	memset(r, 0, sizeof(struct rule));
 
-	snprintf(r->tag, TAG_REASONABLE_LEN, "%s", tag);
+	snprintf(r->tag, MAX_CONF_KEY_LEN, "%s", tag);
 	r->prio = util_prio_to_char(prio);
 	r->hash = util_hash_key(tag, r->prio);
 	r->limit = limit;
