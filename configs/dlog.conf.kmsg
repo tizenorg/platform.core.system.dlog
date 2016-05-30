@@ -1,0 +1,10 @@
+plog=1
+limiter=0
+limiter|*|*=allow
+main_size=1048576
+apps_size=1048576
+system_size=1048576
+radio_size=1048576
+dlog_logger_conf_0=dlogutil -b system -r 5120 -n 1 -f /var/log/dlog/system -v kerneltime *:I
+dlog_logger_conf_1=dlogutil -b main -r 3072 -n 1 -f /var/log/dlog/main -v kerneltime *:W
+dlog_logger_conf_2=dlogutil -b radio -r 1024 -n 1 -f /var/log/dlog/radio -v kerneltime

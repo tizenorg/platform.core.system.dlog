@@ -17,6 +17,7 @@
  */
 
 #include <pthread.h>
+#include <stdlib.h>
 
 #include <dlog.h>
 #include <logcommon.h>
@@ -29,7 +30,7 @@
 /*
  * @brief Points to a function which writes a log message
  * @details The function pointed to depends on the backend used
- * @param log_id ID of the buffer to log to. Belongs to [0, LOG_ID_MAX)
+ * @param log_id ID of the buffer to log to. Belongs to (LOG_ID_INVALID, LOG_ID_MAX) non-inclusive
  * @param prio Priority of the message.
  * @param tag The message tag, identifies the sender.
  * @param msg The contents of the message.
@@ -37,27 +38,70 @@
  * @seealso __dlog_init_backend
  */
 int (*write_to_log)(log_id_t log_id, log_priority prio, const char *tag, const char *msg);
-
-static pthread_mutex_t log_init_lock = PTHREAD_MUTEX_INITIALIZER;
-static struct log_config config;
+pthread_mutex_t log_init_lock = PTHREAD_MUTEX_INITIALIZER;
 extern void __dlog_init_backend();
+
+static int limiter;
+static int plog;
 
 static int __write_to_log_null(log_id_t log_id, log_priority prio, const char *tag, const char *msg)
 {
 	return DLOG_ERROR_NOT_PERMITTED;
 }
 
+static int __config_iteration(const char* key, const char* value)
+{
+	const int prefix_len = strlen("limiter|");
+	char * delimiter_pos;
+	char limiter_tag [MAX_CONF_KEY_LEN];
+	int limit;
+
+	if (!strcmp(key, "limiter|"))
+		return 1;
+
+	delimiter_pos = strchr(key + prefix_len + 1, '|');
+	if (!delimiter_pos || (delimiter_pos + 1 == key + strlen(key)))
+		return 1;
+
+	snprintf(limiter_tag, delimiter_pos - (key + prefix_len), "%s", key + prefix_len);
+
+	if (!strcmp(value, "allow"))
+		limit = __LOG_LIMITER_LIMIT_MAX + 1;
+	else if (!strcmp(value, "deny" ))
+		limit = 0;
+	else
+		limit = atoi(value);
+
+	__log_limiter_add_rule(limiter_tag, *(delimiter_pos + 1), limit);
+	return 0;
+}
+
 static void __configure(void)
 {
-	if (0 > __log_config_read(LOG_CONFIG_FILE, &config)) {
-		config.lc_limiter = 0;
-		config.lc_plog = 0;
-	}
+	struct log_config conf;
+	const char * conf_value;
 
-	if (config.lc_limiter) {
-		if (0 > __log_limiter_initialize())
-			config.lc_limiter = 0;
-	}
+	limiter = 0;
+	plog = 0;
+
+	if (!log_config_read(&conf))
+		return;
+
+	conf_value = log_config_get (&conf, "plog");
+	if (!conf_value)
+		return;
+	plog = atoi (conf_value);
+
+	conf_value = log_config_get (&conf, "limiter");
+	if (!conf_value)
+		return;
+	limiter = atoi (conf_value);
+
+	log_config_foreach(&conf, __config_iteration);
+	log_config_free (&conf);
+
+	if (limiter && (0 > __log_limiter_initialize()))
+		limiter = 0;
 }
 
 static void __dlog_init(void)
@@ -90,10 +134,10 @@ static int dlog_should_log(log_id_t log_id, const char* tag, int prio)
 	if (log_id == LOG_ID_INVALID || LOG_ID_MAX <= log_id)
 		return DLOG_ERROR_INVALID_PARAMETER;
 
-	if (log_id != LOG_ID_APPS && !config.lc_plog)
+	if (log_id != LOG_ID_APPS && !plog)
 		return DLOG_ERROR_NOT_PERMITTED;
 
-	if (config.lc_limiter) {
+	if (limiter) {
 		should_log = __log_limiter_pass_log(tag, prio);
 
 		if (!should_log) {
