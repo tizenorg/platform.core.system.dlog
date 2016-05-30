@@ -1,0 +1,15 @@
+plog=1
+limiter=0
+limiter|*|*=allow
+pipe_control_socket=/var/log/dlog/control.sock
+main=/var/log/dlog/log_main.sock
+apps=/var/log/dlog/log_apps.sock
+system=/var/log/dlog/log_system.sock
+radio=/var/log/dlog/log_radio.sock
+main_size=1048576
+apps_size=1048576
+system_size=1048576
+radio_size=1048576
+dlog_logger_conf_0=dlogutil -b system -r 5120 -n 1 -f /var/log/dlog/system -v kerneltime *:I
+dlog_logger_conf_1=dlogutil -b main -r 3072 -n 1 -f /var/log/dlog/main -v kerneltime *:W
+dlog_logger_conf_2=dlogutil -b radio -r 1024 -n 1 -f /var/log/dlog/radio -v kerneltime
