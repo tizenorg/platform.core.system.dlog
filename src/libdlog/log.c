@@ -16,229 +16,36 @@
  * limitations under the License.
  */
 
-#include "config.h"
 #include <pthread.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdarg.h>
-#include <fcntl.h>
-#include <sys/uio.h>
-#include <sys/syscall.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <errno.h>
+
 #include <dlog.h>
 #include <logcommon.h>
 #include "loglimiter.h"
 #include "logconfig.h"
-#ifdef DLOG_BACKEND_JOURNAL
-#define SD_JOURNAL_SUPPRESS_LOCATION 1
-#include <syslog.h>
-#include <systemd/sd-journal.h>
-#endif
 #ifdef FATAL_ON
 #include <assert.h>
 #endif
 
-#define VALUE_MAX 2
-#define LOG_CONFIG_FILE TZ_SYS_ETC"/dlog.conf"
+/*
+ * @brief Points to a function which writes a log message
+ * @details The function pointed to depends on the backend used
+ * @param log_id ID of the buffer to log to. Belongs to [0, LOG_ID_MAX)
+ * @param prio Priority of the message.
+ * @param tag The message tag, identifies the sender.
+ * @param msg The contents of the message.
+ * @retval Returns the number of bytes written on success and a negative error value on error.
+ * @seealso __dlog_init_backend
+ */
+int (*write_to_log)(log_id_t log_id, log_priority prio, const char *tag, const char *msg);
 
-#define LOG_MAX_SIZE	4076
-
-static int (*write_to_log)(log_id_t, log_priority, const char *tag, const char *msg) = NULL;
 static pthread_mutex_t log_init_lock = PTHREAD_MUTEX_INITIALIZER;
 static struct log_config config;
-
-#if DLOG_BACKEND_JOURNAL
-#define LOG_BUF_SIZE 1024
-#define LOG_INFO_SIZE 16
-
-static inline int dlog_pri_to_journal_pri(log_priority prio)
-{
-	static int pri_table[DLOG_PRIO_MAX] = {
-		[DLOG_UNKNOWN] = LOG_DEBUG,
-		[DLOG_DEFAULT] = LOG_DEBUG,
-		[DLOG_VERBOSE] = LOG_DEBUG,
-		[DLOG_DEBUG] = LOG_DEBUG,
-		[DLOG_INFO] = LOG_INFO,
-		[DLOG_WARN] = LOG_WARNING,
-		[DLOG_ERROR] = LOG_ERR,
-		[DLOG_FATAL] = LOG_CRIT,
-		[DLOG_SILENT] = -1,
-	};
-
-	if (prio < 0 || prio >= DLOG_PRIO_MAX)
-		return DLOG_ERROR_INVALID_PARAMETER;
-
-	return pri_table[prio];
-}
-
-static inline const char* dlog_id_to_string(log_id_t log_id)
-{
-	static const char* id_table[LOG_ID_MAX] = {
-		[LOG_ID_MAIN]   = "log_main",
-		[LOG_ID_RADIO]  = "log_radio",
-		[LOG_ID_SYSTEM] = "log_system",
-		[LOG_ID_APPS]   = "log_apps",
-	};
-
-	if (log_id == LOG_ID_INVALID || log_id >= LOG_ID_MAX || !id_table[log_id])
-		return "UNKNOWN";
-
-	return id_table[log_id];
-}
-
-static int __write_to_log_sd_journal(log_id_t log_id, log_priority prio, const char *tag, const char *msg)
-{
-	const char *lid_str = dlog_id_to_string(log_id);
-	int ret;
-
-	pid_t tid = (pid_t)syscall(SYS_gettid);
-
-	if (!msg)
-		return DLOG_ERROR_INVALID_PARAMETER;
-
-	if (strncmp(lid_str, "UNKNOWN", 7) == 0)
-		return DLOG_ERROR_INVALID_PARAMETER;
-
-	if (prio < DLOG_VERBOSE || prio >= DLOG_PRIO_MAX)
-		return DLOG_ERROR_INVALID_PARAMETER;
-
-	if (!tag)
-		tag = "";
-
-	struct iovec vec[5];
-	char _msg[LOG_MAX_SIZE + 8];
-	char _prio[LOG_INFO_SIZE + 9];
-	char _tag[LOG_BUF_SIZE + 8];
-	char _log_id[LOG_INFO_SIZE + 7];
-	char _tid[LOG_INFO_SIZE + 4];
-
-	snprintf(_msg, LOG_MAX_SIZE + 8, "MESSAGE=%s", msg);
-	vec[0].iov_base = (void *)_msg;
-	vec[0].iov_len = strlen(vec[0].iov_base);
-
-	snprintf(_prio, LOG_INFO_SIZE + 9, "PRIORITY=%i", dlog_pri_to_journal_pri(prio));
-	vec[1].iov_base = (void *)_prio;
-	vec[1].iov_len = strlen(vec[1].iov_base);
-
-	snprintf(_tag, LOG_BUF_SIZE + 8, "LOG_TAG=%s", tag);
-	vec[2].iov_base = (void *)_tag;
-	vec[2].iov_len = strlen(vec[2].iov_base);
-
-	snprintf(_log_id, LOG_INFO_SIZE + 7, "LOG_ID=%s", lid_str);
-	vec[3].iov_base = (void *)_log_id;
-	vec[3].iov_len = strlen(vec[3].iov_base);
-
-	snprintf(_tid, LOG_INFO_SIZE + 4, "TID=%d", tid);
-	vec[4].iov_base = (void *)_tid;
-	vec[4].iov_len = strlen(vec[4].iov_base);
-
-	ret = sd_journal_sendv(vec, 5);
-
-	if (ret == 0)
-		return (vec[0].iov_len + vec[1].iov_len + vec[2].iov_len + vec[3].iov_len + vec[4].iov_len);
-	else
-		return ret;
-}
-
-#else
-
-static int log_fds[(int)LOG_ID_MAX] = { -1, -1, -1, -1 };
-static char log_devs[LOG_ID_MAX][PATH_MAX];
+extern void __dlog_init_backend();
 
 static int __write_to_log_null(log_id_t log_id, log_priority prio, const char *tag, const char *msg)
 {
 	return DLOG_ERROR_NOT_PERMITTED;
 }
-
-#if DLOG_BACKEND_KMSG
-
-/*
- * LOG_ATOMIC_SIZE is calculated according to kernel value
- * 976 = 1024(size of log line) - 48(size of max prefix length)
- */
-#define LOG_ATOMIC_SIZE	976
-
-static int __write_to_log_kmsg(log_id_t log_id, log_priority prio, const char *tag, const char *msg)
-{
-	ssize_t ret;
-	int log_fd;
-	ssize_t prefix_len, written_len, last_msg_len;
-	char buf[LOG_ATOMIC_SIZE];
-	const char *msg_ptr = msg;
-
-	if (log_id > LOG_ID_INVALID && log_id < LOG_ID_MAX)
-		log_fd = log_fds[log_id];
-	else
-		return DLOG_ERROR_INVALID_PARAMETER;
-
-	if (prio < DLOG_VERBOSE || prio >= DLOG_PRIO_MAX)
-		return DLOG_ERROR_INVALID_PARAMETER;
-
-	if (!tag)
-		tag = "";
-
-	if (!msg)
-		return DLOG_ERROR_INVALID_PARAMETER;
-
-	ret = 0;
-	prefix_len = strlen(tag) + 3;
-	while (1) {
-		last_msg_len = snprintf(buf, LOG_ATOMIC_SIZE, "%s;%d;%s", tag, prio, msg_ptr);
-		written_len = write(log_fd, buf,
-				last_msg_len < LOG_ATOMIC_SIZE - 1 ? last_msg_len : LOG_ATOMIC_SIZE - 1);
-
-		if (written_len < 0)
-			return -errno;
-
-		ret += (written_len - prefix_len);
-		msg_ptr += (written_len - prefix_len);
-
-		if (*(msg_ptr) == '\0')
-			break;
-	}
-
-	return ret;
-}
-#elif DLOG_BACKEND_LOGGER
-
-static int __write_to_log_logger(log_id_t log_id, log_priority prio, const char *tag, const char *msg)
-{
-	ssize_t ret;
-	int log_fd;
-	struct iovec vec[3];
-
-	if (log_id > LOG_ID_INVALID && log_id < LOG_ID_MAX)
-		log_fd = log_fds[log_id];
-	else
-		return DLOG_ERROR_INVALID_PARAMETER;
-
-	if (prio < DLOG_VERBOSE || prio >= DLOG_PRIO_MAX)
-		return DLOG_ERROR_INVALID_PARAMETER;
-
-	if (!tag)
-		tag = "";
-
-	if (!msg)
-		return DLOG_ERROR_INVALID_PARAMETER;
-
-	vec[0].iov_base	= (unsigned char *) &prio;
-	vec[0].iov_len	= 1;
-	vec[1].iov_base	= (void *) tag;
-	vec[1].iov_len	= strlen(tag) + 1;
-	vec[2].iov_base	= (void *) msg;
-	vec[2].iov_len	= strlen(msg) + 1;
-
-	ret = writev(log_fd, vec, 3);
-	if (ret < 0)
-	    ret = -errno;
-
-	return ret;
-}
-
-#endif
-#endif
 
 static void __configure(void)
 {
@@ -256,34 +63,10 @@ static void __configure(void)
 static void __dlog_init(void)
 {
 	pthread_mutex_lock(&log_init_lock);
+	write_to_log = __write_to_log_null;
 	__configure();
-
-#ifdef DLOG_BACKEND_JOURNAL
-	write_to_log = __write_to_log_sd_journal;
-#else
-	if (0 == get_log_dev_names(log_devs)) {
-			log_fds[LOG_ID_MAIN] = open(log_devs[LOG_ID_MAIN], O_WRONLY);
-			log_fds[LOG_ID_SYSTEM] = open(log_devs[LOG_ID_SYSTEM], O_WRONLY);
-			log_fds[LOG_ID_RADIO] = open(log_devs[LOG_ID_RADIO], O_WRONLY);
-			log_fds[LOG_ID_APPS] = open(log_devs[LOG_ID_APPS], O_WRONLY);
-		}
-		if (log_fds[LOG_ID_MAIN] < 0) {
-			write_to_log = __write_to_log_null;
-		} else {
-#if DLOG_BACKEND_KMSG
-			write_to_log = __write_to_log_kmsg;
-#elif DLOG_BACKEND_LOGGER
-			write_to_log = __write_to_log_logger;
-#endif
-		}
-		if (log_fds[LOG_ID_RADIO] < 0)
-			log_fds[LOG_ID_RADIO] = log_fds[LOG_ID_MAIN];
-		if (log_fds[LOG_ID_SYSTEM] < 0)
-			log_fds[LOG_ID_SYSTEM] = log_fds[LOG_ID_MAIN];
-		if (log_fds[LOG_ID_APPS] < 0)
-			log_fds[LOG_ID_APPS] = log_fds[LOG_ID_MAIN];
-#endif
-		pthread_mutex_unlock(&log_init_lock);
+	__dlog_init_backend();
+	pthread_mutex_unlock(&log_init_lock);
 }
 
 void __dlog_fatal_assert(int prio)
