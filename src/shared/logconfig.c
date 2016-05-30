@@ -62,7 +62,6 @@ int log_config_set (struct log_config* c, const char* key, const char* value)
 
 int log_config_read (struct log_config* config)
 {
-	int i;
 	int ret = 0;
 	char const * override;
 
