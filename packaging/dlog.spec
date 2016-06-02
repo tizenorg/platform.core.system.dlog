@@ -169,6 +169,9 @@ systemctl daemon-reload
 
 %post -n libdlog
 /sbin/ldconfig
+%if %{?backend_pipe} == ON
+chsmack -a System /var/log/dlog
+%endif
 
 %postun -n libdlog
 /sbin/ldconfig
@@ -178,12 +181,12 @@ systemctl daemon-reload
 /usr/share/license/dlogutil
 %attr(750,log,log) %{_bindir}/dlogutil
 %attr(755,log,log) %{_bindir}/dlogctrl
+%if %{?backend_pipe} == OFF
 %attr(755,log,log) /var/log/dlog
 %if %{?backend_journal} == OFF
 %attr(750,log,log) %{_bindir}/dlog_logger
 %{_unitdir}/dlog_logger.service
 %{_unitdir}/dlog_logger.path
-%if  %{?backend_pipe} == OFF
 %{_udevrulesdir}/01-dlog.rules
 %{_unitdir}/multi-user.target.wants/dlog_logger.path
 %endif
@@ -207,9 +210,12 @@ systemctl daemon-reload
 %{_unitdir}/sysinit.target.wants/dloginit.service
 %endif
 %if %{?backend_pipe} == ON
+%attr(755,log,log) /var/log/dlog
+%attr(750,log,log) %{_bindir}/dlog_logger
+%{_unitdir}/dlog_logger.service
+%{_unitdir}/dlog_logger.path
 %attr(664,log,log) /usr/lib/tmpfiles.d/dlog-pipe.conf
 %endif
-
 %files -n libdlog-devel
 %{_includedir}/dlog/dlog.h
 %{_includedir}/dlog/dlog-internal.h
