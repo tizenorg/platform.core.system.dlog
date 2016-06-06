@@ -188,10 +188,13 @@ static void read_log_lines(struct log_device_t* devices)
 						printf("Wrong formatted message is written.\n");
 						continue;
 					}
-					/* EPIPE is not an error: it signals the cyclic buffer having
-					 * made a full turn and overwritten previous data */
+#ifdef DLOG_BACKEND_KMSG
+					/* In the KMSG backend, EPIPE is not an error:
+					 * it signals the cyclic buffer having made
+					 * a full turn and overwritten previous data */
 					else if(ret == RQER_EPIPE)
 						continue;
+#endif
 
 					enqueue(&dev->queue, entry);
 					++queued_lines;

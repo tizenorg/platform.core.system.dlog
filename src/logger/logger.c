@@ -266,11 +266,12 @@ static void do_logger(struct log_device *dev)
 					printf("Wrong formatted message is written. \n");
 					continue;
 				}
-				/* EPIPE is not an error: it signals the cyclic buffer 
+#ifdef DLOG_KMSG_BACKEND
+				/* In KMSG, EPIPE is not an error: it signals the cyclic buffer
 				 * having made a full turn and overwritten previous data */
 				else if (ret == RQER_EPIPE)
 					continue;
-
+#endif
 				enqueue(&pdev->queue, entry);
 				++queued_lines;
 
