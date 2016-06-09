@@ -170,6 +170,8 @@ systemctl daemon-reload
 %post -n libdlog
 /sbin/ldconfig
 %if %{?backend_pipe} == ON
+systemctl daemon-reload
+systemctl restart dlog_logger.service
 chsmack -a System /var/log/dlog
 %endif
 

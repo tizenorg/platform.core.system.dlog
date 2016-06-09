@@ -70,7 +70,6 @@ static int __write_to_log_pipe(log_id_t log_id, log_priority prio, const char *t
 	ssize_t ret;
 	char buf [LOG_MAX_SIZE];
 	struct logger_entry* le = (struct logger_entry*)buf;
-	struct timespec ts;
 	int len;
 	int tag_l;
 	int msg_l;
@@ -90,9 +89,6 @@ static int __write_to_log_pipe(log_id_t log_id, log_priority prio, const char *t
 	if (len > LOG_MAX_SIZE)
 		return DLOG_ERROR_INVALID_PARAMETER;
 
-	clock_gettime (CLOCK_MONOTONIC, &ts);
-	le->sec = ts.tv_sec;
-	le->nsec = ts.tv_nsec;
 	le->buf_id = log_id;
 	le->len = len;
 	le->pid = getpid();

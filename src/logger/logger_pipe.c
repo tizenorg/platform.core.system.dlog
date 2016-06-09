@@ -826,6 +826,10 @@ static int service_writer_pipe(struct logger* server, struct writer* wr, struct 
 
 		entry = (struct logger_entry*)wr->buffer;
 		while ((wr->readed >= sizeof(entry->len)) && (entry->len <= wr->readed)) {
+			struct timespec timestamp;
+			clock_gettime (CLOCK_MONOTONIC, &timestamp);
+			entry->sec  = timestamp.tv_sec;
+			entry->nsec = timestamp.tv_nsec;
 			buffer_append(entry, server->buffers[entry->buf_id]);
 			wr->readed -= entry->len;
 			server->should_timeout |= (1<<entry->buf_id);

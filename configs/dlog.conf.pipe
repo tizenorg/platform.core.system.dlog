@@ -1,11 +1,11 @@
 plog=1
 limiter=0
 limiter|*|*=allow
-pipe_control_socket=/run/dlog/control.sock
-main=/run/dlog/log_main.sock
-apps=/run/dlog/log_apps.sock
-system=/run/dlog/log_system.sock
-radio=/run/dlog/log_radio.sock
+pipe_control_socket=/var/log/dlog/control.sock
+main=/var/log/dlog/log_main.sock
+apps=/var/log/dlog/log_apps.sock
+system=/var/log/dlog/log_system.sock
+radio=/var/log/dlog/log_radio.sock
 main_size=1048576
 apps_size=1048576
 system_size=1048576
