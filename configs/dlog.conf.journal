@@ -1,3 +1,4 @@
+backend=journal
 plog=1
 limiter=0
 limiter|*|*=allow
