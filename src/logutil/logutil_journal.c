@@ -17,6 +17,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #include "dlog.h"
 
@@ -26,6 +27,7 @@ int main (int argc, char **argv)
 {
 	int r;
 	sd_journal *j;
+	int g_nonblock = 0;
 
 	static const char pri_table[DLOG_PRIO_MAX] = {
 		[LOG_DEBUG] = 'D',
@@ -40,6 +42,28 @@ int main (int argc, char **argv)
 		fprintf(stderr, "Failed to open journal: %d\n", -r);
 
 		return 1;
+	}
+
+	for (;;) {
+		int ret;
+
+		ret = getopt(argc, argv, "dv:");
+
+		if (ret < 0)
+			break;
+
+		switch (ret) {
+		case 'd':
+			g_nonblock = 1;
+			break;
+		/* Ignore this option */
+		case 'v':
+			break;
+		default:
+			printf("Unrecognized Option\n");
+			exit(-1);
+			break;
+		};
 	}
 
 	fprintf(stderr, "read\n");
@@ -71,6 +95,11 @@ int main (int argc, char **argv)
 			continue;
 
 		fprintf(stdout, "%c/%s(%5d): %s\n", pri_table[prio_idx], log_tag+8, atoi(tid+4), message+8);
+	}
+
+	if (g_nonblock) {
+		sd_journal_close(j);
+		return 0;
 	}
 
 	fprintf(stderr, "wait\n");
