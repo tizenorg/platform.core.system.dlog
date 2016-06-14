@@ -34,12 +34,57 @@
 #include <logprint.h>
 #include <log_file.h>
 #include <logconfig.h>
+#include <queued_entry.h>
 
 /* should fit a whole command line with concatenated arguments (reasonably) */
 #define MAX_LOGGER_REQUEST_LEN 2048
 
-int buf_id = 0;
-int sock_fd = -1;
+/* Time window when sorting logs. Proportionate to accuracy, but also delay. */
+#define SORT_TIMEOUT 1.0
+
+static int buf_id = 0;
+static int sock_fd = -1;
+static log_format * log_fmt;
+
+static struct sorting_vector {
+	struct logger_entry ** data;
+	int size;
+	int capacity;
+	int last_processed;
+} logs;
+
+static void push (struct logger_entry * p)
+{
+	int i;
+	log_entry entry;
+
+	log_process_log_buffer (p, & entry);
+	if (!log_should_print_line (log_fmt, entry.tag, entry.priority))
+		return;
+
+	if (logs.size == logs.capacity) {
+		struct logger_entry ** temp = logs.data;
+
+		logs.capacity *= 2;
+		logs.data = malloc (sizeof (struct logger_entry *) * logs.capacity);
+		memcpy (logs.data, temp, logs.size * sizeof (struct logger_entry *));
+		free (temp);
+	}
+
+	for (i = logs.size; i > 0; --i) {
+		struct logger_entry * e = logs.data[i-1];
+		if (e->sec < p->sec || (e->sec == p->sec && e->nsec < p->nsec)) {
+			logs.data[i] = p;
+			++ logs.size;
+			return;
+		} else {
+			logs.data[i] = e;
+		}
+	}
+
+	logs.data[i] = p;
+	++ logs.size;
+}
 
 static int connect_sock(const char * path)
 {
@@ -64,13 +109,12 @@ static int connect_sock(const char * path)
 
 static int do_clear ()
 {
-	const int size = sizeof(struct dlog_control_msg) + 1;
+	const int size = sizeof(struct dlog_control_msg);
 	struct dlog_control_msg * const msg = calloc (1, size);
 
 	msg->length = size;
 	msg->request = DLOG_REQ_CLEAR;
 	msg->flags = 0;
-	msg->data[0] = buf_id;
 	if (write (sock_fd, msg, size) < 0) {
 		printf("Error: could not send a CLEAR request to logger; socket write failed\n");
 		return 1;
@@ -102,9 +146,7 @@ static int send_logger_request (int argc, char ** argv)
 	int i;
 
 	for (i = 1; i < argc; ++i)
-        {
-                logger_request_len += snprintf (logger_request + logger_request_len, MAX_LOGGER_REQUEST_LEN - logger_request_len, " %s", argv[i]);
-        }
+		logger_request_len += snprintf (logger_request + logger_request_len, MAX_LOGGER_REQUEST_LEN - logger_request_len, " %s", argv[i]);
 
 	logger_request_len += sizeof(struct dlog_control_msg) + 1;
 
@@ -122,17 +164,108 @@ static int send_logger_request (int argc, char ** argv)
 	return 1;
 }
 
-static void handle_pipe (int pipe_fd)
+static int process_log (struct logger_entry * e, const struct timespec * now)
+{
+	int s = now->tv_sec - e->sec;
+	int ns = now->tv_nsec - e->nsec;
+
+	if (ns < 0) {
+		ns += 1000000000;
+		-- s;
+	}
+
+	if (SORT_TIMEOUT < (s + ns * 1E-9)) {
+		log_entry entry;
+		log_process_log_buffer (e, & entry);
+		log_print_log_line (log_fmt, 1, & entry);
+		return 1;
+	} else
+		return 0;
+}
+
+static void handle_pipe (int pipe_fd, int dump)
 {
 	char buff [LOG_MAX_SIZE];
+	int index = 0;
+
 	int r;
+	int accepting_logs = 1;
+	struct timespec start_time;
+
+	clock_gettime (CLOCK_MONOTONIC, &start_time);
+
+	fcntl (pipe_fd, F_SETFL, fcntl (pipe_fd, F_GETFL, 0) | O_NONBLOCK);
+
 	for (;;) {
-		r = read(pipe_fd, buff, LOG_MAX_SIZE);
-		if (r <= 0 && errno != EAGAIN)
-			return;
-		buff[r] = '\0';
-		printf ("%s", buff);
+		struct logger_entry * e;
+		struct timespec now;
+		clock_gettime (CLOCK_MONOTONIC, & now);
+
+		if (dump > 0) {
+			if (!accepting_logs) {
+				logs.last_processed = logs.size - dump;
+				if (logs.last_processed < 0)
+					logs.last_processed = 0;
+				dump = 0;
+			}
+		} else
+			while (logs.last_processed < logs.size)
+				if (process_log(logs.data[logs.last_processed], & now))
+					++ logs.last_processed;
+				else
+					break;
+
+		if (!accepting_logs)
+			if (logs.last_processed == logs.size)
+				break;
+			else
+				continue;
+
+		r = read (pipe_fd, buff + index, LOG_MAX_SIZE - index);
+
+		if (r < 0)
+			if (errno != EAGAIN)
+				return;
+			else
+				continue;
+
+		if (r == 0)
+			accepting_logs = 0;
+
+		index += r;
+
+		e = (struct logger_entry *) buff;
+		while (index > 2 && index >= e->len) {
+			struct logger_entry * temp = malloc (e->len);
+			memcpy (temp, buff, e->len);
+			index -= e->len;
+			memmove (buff, buff + e->len, LOG_MAX_SIZE - e->len);
+			push (temp);
+		}
 	}
+}
+
+int handle_stdin (int dump)
+{
+	fd_set readfds;
+	int endian, version;
+	FD_ZERO (&readfds);
+	FD_SET (STDIN_FILENO, &readfds);
+
+	struct timeval timeout;
+	timeout.tv_sec = 0;
+	timeout.tv_usec = 0;
+
+	/* Check whether stdin contains anything.
+	read() would be blocking if nothing was redirected into stdin
+	ergo we need to know about that beforehand. */
+	if (!select (1, &readfds, NULL, NULL, &timeout))
+		return 0;
+
+	read (STDIN_FILENO, &endian, 4);
+	read (STDIN_FILENO, &version, 4);
+	handle_pipe (STDIN_FILENO, dump);
+	return 1;
 }
 
 int main (int argc, char ** argv)
@@ -143,7 +276,12 @@ int main (int argc, char ** argv)
 	struct log_config conf;
 	int should_clear = 0;
 	int should_getsize = 0;
+	int dump = 0;
 	int into_file = 0;
+	char conf_key [MAX_CONF_KEY_LEN];
+
+	log_fmt = log_format_new ();
+	log_set_print_format (log_fmt, FORMAT_KERNELTIME);
 
 	while (1) {
 		int option = getopt(argc, argv, "cdt:gsf:r:n:v:b:");
@@ -152,6 +290,12 @@ int main (int argc, char ** argv)
 			break;
 
 		switch (option) {
+		case 'd':
+			dump = -1;
+			break;
+		case 't':
+			dump = atoi (optarg);
+			break;
 		case 'c':
 			should_clear = 1;
 			break;
@@ -164,11 +308,25 @@ int main (int argc, char ** argv)
 		case 'f':
 			into_file = 1;
 			break;
+		case 'v':
+			log_set_print_format (log_fmt, log_format_from_string (optarg));
+			break;
 		default:
 			// everything else gets relegated to dlog_logger
 			break;
 		}
 	}
+
+	if (optind < argc)
+		while (optind < argc)
+			log_add_filter_string(log_fmt, argv[optind++]);
+	else
+		log_add_filter_string(log_fmt, "*:D");
+
+	logs.capacity = 42;
+	logs.data = malloc (logs.capacity * sizeof (struct logger_entry *));
+	logs.size = 0;
+	logs.last_processed = 0;
 
 	if (strlen(buffer_name) && (((buf_id = log_id_by_name (buffer_name)) < 0) || (buf_id >= LOG_ID_MAX))) {
 		printf ("There is no buffer \"%s\"\n", buffer_name);
@@ -180,12 +338,17 @@ int main (int argc, char ** argv)
 	if (should_getsize)
 		return do_getsize (&conf);
 
-	if ((sock_path = log_config_get(&conf, "pipe_control_socket")) == NULL) {
+	snprintf (conf_key, sizeof(conf_key), "%s_sock", log_name_by_id (buf_id));
+
+	if ((sock_path = log_config_get(&conf, conf_key)) == NULL) {
 		printf("Error: dlog config is broken, lacks the pipe_control_socket entry\n");
 		return 1;
 	}
 
 	log_config_free (&conf);
+
+	if (handle_stdin (dump))
+		return 0;
 
 	if ((sock_fd = connect_sock (sock_path)) < 0) {
 		printf("Error: socket connection failed\n");
@@ -210,7 +373,7 @@ int main (int argc, char ** argv)
 		return 1;
 	}
 
-	handle_pipe (pipe_fd);
+	handle_pipe (pipe_fd, dump);
 
 	return 0;
 }
