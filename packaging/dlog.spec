@@ -131,6 +131,7 @@ ln -s ../dlog_logger.path %{buildroot}%{_unitdir}/multi-user.target.wants/dlog_l
 %if %{?backend_pipe} == ON
 install -m 0644 %SOURCE304 %{buildroot}%{_unitdir}/dlog_logger.path
 ln -s ../dlog_logger.service %{buildroot}%{_unitdir}/multi-user.target.wants/dlog_logger.service
+sed -e '/^Nice=/ d' -i %{buildroot}%{_unitdir}/dlog_logger.service
 %endif
 
 %endif
@@ -192,11 +193,6 @@ chsmack -a System /var/log/dlog
 %endif
 %endif
 
-%if %{?backend_pipe} == ON
-%{_unitdir}/multi-user.target.wants/dlog_logger.service
-%endif
-
-
 %files  -n libdlog
 %manifest libdlog.manifest
 /usr/share/license/libdlog
@@ -212,6 +208,7 @@ chsmack -a System /var/log/dlog
 %if %{?backend_pipe} == ON
 %attr(755,log,log) /var/log/dlog
 %attr(750,log,log) %{_bindir}/dlog_logger
+%{_unitdir}/multi-user.target.wants/dlog_logger.service
 %{_unitdir}/dlog_logger.service
 %{_unitdir}/dlog_logger.path
 %attr(664,log,log) /usr/lib/tmpfiles.d/dlog-pipe.conf
