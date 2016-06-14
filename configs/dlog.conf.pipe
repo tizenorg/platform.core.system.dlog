@@ -1,15 +1,54 @@
 plog=1
 limiter=0
 limiter|*|*=allow
-pipe_control_socket=/run/dlog/control.sock
-main=/run/dlog/log_main.sock
-apps=/run/dlog/log_apps.sock
-system=/run/dlog/log_system.sock
-radio=/run/dlog/log_radio.sock
+
+main_write_sock=/run/dlog/main.wr
+apps_write_sock=/run/dlog/apps.wr
+system_write_sock=/run/dlog/system.wr
+radio_write_sock=/run/dlog/radio.wr
+
+main_ctl_sock=/run/dlog/main.ctl
+apps_ctl_sock=/run/dlog/apps.ctl
+system_ctl_sock=/run/dlog/system.ctl
+radio_ctl_sock=/run/dlog/radio.ctl
+
+main_write_sock_rights=0222
+apps_write_sock_rights=0222
+system_write_sock_rights=0222
+radio_write_sock_rights=0222
+
+main_ctl_sock_rights=0222
+apps_ctl_sock_rights=0222
+system_ctl_sock_rights=0222
+radio_ctl_sock_rights=0222
+
+main_write_sock_owner=log
+apps_write_sock_owner=log
+system_write_sock_owner=log
+radio_write_sock_owner=log
+
+main_ctl_sock_owner=log
+apps_ctl_sock_owner=log
+system_ctl_sock_owner=log
+radio_ctl_sock_owner=log
+
+main_write_sock_group=log
+apps_write_sock_group=log
+system_write_sock_group=log
+radio_write_sock_group=log
+
+main_ctl_sock_group=log
+apps_ctl_sock_group=log
+system_ctl_sock_group=log
+radio_ctl_sock_group=log
+
 main_size=1048576
 apps_size=1048576
 system_size=1048576
 radio_size=1048576
-dlog_logger_conf_0=dlogutil -b system -r 5120 -n 1 -f /var/log/dlog/system -v kerneltime *:I
-dlog_logger_conf_1=dlogutil -b main -r 3072 -n 1 -f /var/log/dlog/main -v kerneltime *:W
-dlog_logger_conf_2=dlogutil -b radio -r 1024 -n 1 -f /var/log/dlog/radio -v kerneltime
+
+dlog_logger_conf_0=dlogutil -b system -r 5120 -n 1 -f /var/log/dlog/system.raw *:I
+dlog_logger_conf_1=dlogutil -b main -r 3072 -n 1 -f /var/log/dlog/main.raw *:W
+dlog_logger_conf_2=dlogutil -b radio -r 1024 -n 1 -f /var/log/dlog/radio.raw
+
+util_sorting_time_window=1000

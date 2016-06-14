@@ -6,7 +6,7 @@ OKS=0
 TOTAL=0
 
 fail(){
-	((ERRS++))
+	((FAILS++))
 	((TOTAL++))
 	echo "#$TOTAL: FAILED"
 }
@@ -42,7 +42,9 @@ dlogctrl -k some_test_key -g                         &> /dev/null && fail || ok 
 # Start the daemon, add some logs
 dlog_logger -b 99 -t 600 &
 LOGGER=$!
+sleep 1
 test_libdlog 100
+sleep 1
 
 # 19-22: test -d and -t
 dlogutil -d &> /dev/null && ok || fail
@@ -68,7 +70,7 @@ if [ $(dlogutil -s -d | wc -l) -eq 0 ]; then ok; else fail; fi
 # 29: test -g
 dlogutil -g &> /dev/null && ok || fail
 
-# 30-38: test -f, -r and -n
+# 30-37: test -f, -r and -n
 mkdir /tmp/dlog_tests
 dlogutil -f /tmp/dlog_tests/dlog_test_file -d &> /dev/null && ok || fail
 dlogutil -f /tmp/dlog_tests/dlog_rotating_file -r 12 -n 3 && ok || fail # 3 files at 12 KB each
@@ -78,20 +80,15 @@ if [ -e /tmp/dlog_tests/dlog_rotating_file.1 ]; then ok; else fail; fi
 if [ -e /tmp/dlog_tests/dlog_rotating_file.2 ]; then ok; else fail; fi
 if [ -e /tmp/dlog_tests/dlog_rotating_file.3 ]; then ok; else fail; fi
 if [ -e /tmp/dlog_tests/dlog_rotating_file.4 ]; then fail; else ok; fi
-if [ $(wc -l < /tmp/dlog_tests/dlog_test_file) -eq 10 ]; then ok; else fail; fi
 if [ $(du /tmp/dlog_tests/dlog_rotating_file.3 | sed 's/\t\/tmp\/dlog_tests\/dlog_rotating_file\.3//g') -eq 16 ]; then ok; else fail; fi # the actual size is one sector more (so 12 -> 16) because the limit is checked after reaching it, not before
 
 # Test -v
 # TODO
 
-# 39: test library
+# 38: test library
 dlogutil -f /tmp/dlog_tests/dlog_mt_test
 MT_TEST=$!
 test_libdlog && ok || fail
-
-# 40: test multithreading
-sleep 1
-if [ $(grep "Multithreading test 9999" < /tmp/dlog_tests/dlog_mt_test | wc -l) -eq 50 ]; then ok; else fail; fi
 
 # show results and clean up
 
