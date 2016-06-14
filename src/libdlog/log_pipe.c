@@ -32,8 +32,8 @@
 
 extern int (*write_to_log)(log_id_t, log_priority, const char *tag, const char *msg);
 extern pthread_mutex_t log_init_lock;
-static int pipe_fd = -1;
-static char log_pipe_path [PATH_MAX];
+static int pipe_fd [LOG_ID_MAX];
+static char log_pipe_path [LOG_ID_MAX] [PATH_MAX];
 
 
 static int connect_pipe(const char * path)
@@ -104,21 +104,23 @@ static int __write_to_log_pipe(log_id_t log_id, log_priority prio, const char *t
 
 	if (le->len % 2)
 		le->len += 1;
-	ret = write (pipe_fd, buf, le->len);
+	ret = write (pipe_fd[log_id], buf, le->len);
 	if (ret < 0 && errno == EPIPE) {
-		pthread_mutex_lock(&log_init_lock);
-		close (pipe_fd);
-		pipe_fd = connect_pipe(log_pipe_path);
-		pthread_mutex_unlock(&log_init_lock);
-		ret = write (pipe_fd, buf, le->len);
+		pthread_mutex_lock (&log_init_lock);
+		close (pipe_fd [log_id]);
+		pipe_fd [log_id] = connect_pipe (log_pipe_path [log_id]);
+		pthread_mutex_unlock (&log_init_lock);
+		ret = write (pipe_fd [log_id], buf, le->len);
 	}
 	return ret;
 }
 
 void __dlog_init_backend()
 {
-	const char * pipe_path_temp;
+	const char * conf_val;
+	char conf_key [MAX_CONF_KEY_LEN];
 	struct log_config conf;
+	int i;
 
 	/*
 	 * We mask SIGPIPE signal because most applications do not install their
@@ -128,14 +130,18 @@ void __dlog_init_backend()
 	signal(SIGPIPE, SIG_IGN);
 
 	log_config_read (&conf);
-	pipe_path_temp = log_config_get(&conf, "pipe_control_socket");
-	if (!pipe_path_temp) {
-		syslog_critical_failure ("THERE IS NO PATH TO pipe_control_socket IN THE CONFIG!");
-		return;
+
+	for (i = 0; i < LOG_ID_MAX; ++i) {
+		snprintf (conf_key, sizeof (conf_key), "%s_write_sock", log_name_by_id (i));
+		conf_val = log_config_get (&conf, conf_key);
+		if (!conf_val) {
+			syslog_critical_failure ("DLog config lacks the \"%s\" entry!");
+			return;
+		}
+		snprintf (log_pipe_path[i], PATH_MAX, "%s", conf_val);
+		pipe_fd[i] = connect_pipe (log_pipe_path[i]);
 	}
-	sprintf(log_pipe_path, "%s", pipe_path_temp);
 	log_config_free (&conf);
 
-	pipe_fd = connect_pipe(log_pipe_path);
 	write_to_log = __write_to_log_pipe;
 }
