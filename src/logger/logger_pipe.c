@@ -114,6 +114,7 @@ struct writer {
 
 	struct writer*     next;
 	struct writer*     prev;
+	struct log_buffer* buf_ptr;
 
 	int                readed;
 	char               state;
@@ -152,12 +153,14 @@ struct control {
 	struct fd_entity   _entity;
 	int                fd;
 	struct epoll_event event;
+	struct log_buffer* buf_ptr;
 	char               path [PATH_MAX];
 };
 
 struct logger {
 	int                 epollfd;
-	struct control      control;
+	struct control      main_control;
+	struct control      control [LOG_ID_MAX];
 	struct writer*      writers;
 	struct reader**     readers;
 	struct log_buffer** buffers;
@@ -314,42 +317,58 @@ static void buffer_append(const struct logger_entry* entry, struct log_buffer* b
 	++ b->lines;
 }
 
-static int print_out_logs(struct log_file* file, struct log_buffer* buffer, int from, int dumpcount)
+static void add_misc_file_info (int fd)
+{
+	const int32_t version = PIPE_FILE_FORMAT_VERSION;
+	const int32_t endian = 0x12345678;
+	int r;
+
+	r = write (fd, &endian, 4);
+	if (r <= 0)
+		return;
+
+	r = write (fd, &version, 4);
+	if (r <= 0)
+		return;
+}
+
+static int print_out_logs(struct log_file* file, struct log_buffer* buffer, int from)
 {
 	int r;
-	int written;
-	log_entry entry;
 	struct logger_entry* ple;
-	char tmp[LOG_MAX_SIZE];
-	int skip = (dumpcount > 0) * (buffer->lines - dumpcount);
+	char tmp [LOG_MAX_SIZE];
+	int priority;
+	char * tag;
 
 	while (from != buffer->tail) {
 		ple = (struct logger_entry*)(buffer->buffer + from);
-		if (ple->len + from >= buffer->size) {
-			copy_from_buffer(tmp, from, ple->len, buffer);
-			ple = (struct logger_entry*)tmp;
-		}
+		copy_from_buffer(tmp, from, ple->len, buffer);
+		ple = (struct logger_entry*)tmp;
 
 		from += ple->len;
 		from %= buffer->size;
-		r = log_process_log_buffer(ple, &entry);
-		if (r)
-			return r;
 
-		if (skip --> 0)
+		priority = ple->msg[0];
+		if (priority < 0 || priority > DLOG_SILENT)
 			continue;
 
-		if (!log_should_print_line(file->format, entry.tag, entry.priority))
+		tag = ple->msg + 1;
+		if (!strlen (tag))
 			continue;
 
-		written = log_print_log_line(file->format, file->fd, &entry);
-		if (written < 0)
-			return 1;
+		if (!log_should_print_line(file->format, tag, priority))
+			continue;
 
-		file->size += written;
+		do {
+			r = write (file->fd, ple, ple->len);
+		} while (r < 0 && errno == EINTR);
 
-		if ((file->rotate_size_kbytes > 0) && ((file->size / 1024) >= file->rotate_size_kbytes))
+		if (r > 0) file->size += r;
+
+		if ((file->rotate_size_kbytes > 0) && ((file->size / 1024) >= file->rotate_size_kbytes)) {
 			rotate_logs(file);
+			add_misc_file_info (file->fd);
+		}
 	}
 	return 0;
 }
@@ -385,31 +404,6 @@ static int send_pipe(int socket, int wr_pipe, int type)
 	return 0;
 }
 
-static int send_data(int socket, struct dlog_control_msg* m, const void*  data, int len)
-{
-	int r;
-	struct msghdr msg = { 0 };
-
-	struct iovec io[2] = {
-		(struct iovec){
-			.iov_base = m,
-			.iov_len = sizeof(struct dlog_control_msg)
-		},
-		(struct iovec){
-			.iov_base = (void*)data,
-			.iov_len = len
-		}
-	};
-
-	msg.msg_iov = io;
-	msg.msg_iovlen = 2;
-
-	if ((r = sendmsg(socket, &msg, 0)) < 0)
-		return r;
-
-	return 0;
-}
-
 static void writer_close_fd(struct logger* server, struct writer* wr)
 {
 	switch (wr->state) {
@@ -442,20 +436,20 @@ static int service_reader(struct logger* server, struct reader* reader)
 	struct log_buffer* buffer = server->buffers[buf_id];
 	int r = 0;
 
-	r = print_out_logs(&reader->file, buffer, reader->current, reader->dumpcount);
+	r = print_out_logs(&reader->file, buffer, reader->current);
 	reader->current = buffer->tail;
 	return r;
 }
 
-static int parse_command_line(const char* cmdl, struct logger* server, int wr_socket_fd)
+static int parse_command_line(const char* cmdl, struct logger* server, struct writer* wr)
 {
 	char cmdline[512];
 	int option, argc;
 	char *argv [ARG_MAX];
 	char *tok;
 	char *tok_sv;
-	int silent = 0;
 	int retval = 0;
+	int wr_socket_fd = wr ? wr->socket_fd : -1;
 	struct reader * reader;
 
 	if (!server || !cmdl) return EINVAL;
@@ -484,24 +478,12 @@ static int parse_command_line(const char* cmdl, struct logger* server, int wr_so
 	reader->buf_id = 0;
 	reader->dumpcount = 0;
 
-	while ((option = getopt(argc, argv, "cgsdt:f:r:n:v:b:")) != -1) {
+	while ((option = getopt(argc, argv, "cdt:gsf:r:n:v:b:")) != -1) {
 		switch (option) {
-		case 'c':
-		case 'g':
-			// already handled in dlogutil
-			break;
-		case 't':
-			if (!optarg) {
-				retval = -1;
-				goto cleanup;
-			}
-			reader->dumpcount = atoi(optarg);
 			break;
 		case 'd':
-			if (!reader->dumpcount) reader->dumpcount = -1;
-			break;
-		case 's':
-			silent = 1;
+		case 't':
+			reader->dumpcount = -1;
 			break;
 		case 'f':
 			if (!optarg) {
@@ -531,40 +513,23 @@ static int parse_command_line(const char* cmdl, struct logger* server, int wr_so
 			}
 			reader->file.max_rotated = atoi(optarg);
 			break;
-		case 'v':
-			if (!optarg) {
-				retval = -1;
-				goto cleanup;
-			} else {
-				log_print_format print_format;
-				print_format = log_format_from_string(optarg);
-				if (print_format == FORMAT_OFF)
-					break;
-
-				log_set_print_format(reader->file.format, print_format);
-			}
-			break;
 		default:
+			// everything else gets handled in util directly
 			break;
 		}
 	}
+
+	if (wr && wr->buf_ptr)
+		reader->buf_id = wr->buf_ptr->id;
 
 	if ((reader->buf_id >= LOG_ID_MAX) || (reader->buf_id < 0)) {
 		retval = -1;
 		goto cleanup;
 	}
 
-	if (!silent)
-		if (argc != optind)
-			while (optind < argc)
-				log_add_filter_string(reader->file.format, argv[optind++]);
-		else
-			log_add_filter_string(reader->file.format, "*:d");
-	else
-		log_add_filter_string(reader->file.format, "*:s");
-
 	if (reader->file.path != NULL) {
 		reader->file.fd = open (reader->file.path, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
+		add_misc_file_info (reader->file.fd);
 	} else {
 		reader->file.rotate_size_kbytes = 0;
 		reader->file.max_rotated = 0;
@@ -580,6 +545,7 @@ static int parse_command_line(const char* cmdl, struct logger* server, int wr_so
 	}
 	reader->current = server->buffers[reader->buf_id]->head;
 	server->should_timeout |= (1 << reader->buf_id);
+	server->buffers[reader->buf_id]->elapsed = server->max_buffered_time;
 	LIST_ADD(server->readers[reader->buf_id], reader);
 
 cleanup:
@@ -616,37 +582,6 @@ static void fd_change_flag(int fd, int flag, int set)
 	* > 1 - failure of this particular request (value is +errno). Reader connection to be kept.
 	* < 0 - failure of connection (value is -errno). Reader needs to be closed.
 */
-static int service_writer_handle_req_remove(struct logger* server, struct writer* wr, struct dlog_control_msg* msg)
-{
-	char * str = msg->data;
-	int buf_id;
-	struct reader * reader;
-
-	if (msg->length < (sizeof(struct dlog_control_msg)))
-		return EINVAL;
-
-	msg->data[msg->length - sizeof(struct dlog_control_msg) -1] = 0;
-	buf_id = log_id_by_name(str);
-	if (buf_id < 0 || buf_id >= LOG_ID_MAX)
-		return EINVAL;
-
-	str = msg->data + strlen(str) + 1;
-	LIST_FOREACH(server->readers[buf_id], reader) {
-		if (!str ? !reader->file.path : !strcmp(str, reader->file.path)) {
-			LIST_REMOVE(server->readers[buf_id], reader, reader);
-			LIST_ITEM_FREE(reader, reader);
-			break;
-		}
-	}
-
-	if (wr->readed > msg->length) {
-		wr->readed -= msg->length;
-		memcpy(wr->buffer, wr->buffer + msg->length, wr->readed);
-	} else
-		wr->readed = 0;
-
-	return 1;
-}
 
 static int service_writer_handle_req_util(struct logger* server, struct writer* wr, struct dlog_control_msg* msg)
 {
@@ -656,7 +591,8 @@ static int service_writer_handle_req_util(struct logger* server, struct writer* 
 		return EINVAL;
 
 	msg->data[msg->length - sizeof(struct dlog_control_msg) -1] = 0;
-	r = parse_command_line(msg->data, server, wr->socket_fd);
+	r = parse_command_line(msg->data, server, wr);
+
 	if (r < 0)
 		return r;
 
@@ -671,53 +607,20 @@ static int service_writer_handle_req_util(struct logger* server, struct writer* 
 
 static int service_writer_handle_req_clear(struct logger* server, struct writer* wr, struct dlog_control_msg* msg)
 {
-	int buf_id;
 	struct reader* reader;
-	struct log_buffer* lb;
 
-	if (msg->length != (sizeof(struct dlog_control_msg) + 1))
+	if (msg->length != (sizeof(struct dlog_control_msg)))
 		return EINVAL;
 
-	buf_id = msg->data[0];
-	if (buf_id < 0 || buf_id >= LOG_ID_MAX)
+	if (!wr || !wr->buf_ptr)
 		return EINVAL;
 
-	lb = server->buffers[buf_id];
-	lb->head = lb->tail = lb->not_empty = 0;
-	lb->elapsed = lb->buffered_len = lb->lines = 0;
+	wr->buf_ptr->head = wr->buf_ptr->tail = wr->buf_ptr->not_empty = 0;
+	wr->buf_ptr->elapsed = wr->buf_ptr->buffered_len = wr->buf_ptr->lines = 0;
 
-	LIST_FOREACH(server->readers[buf_id], reader) {
+	LIST_FOREACH(server->readers[wr->buf_ptr->id], reader) {
 		reader->current = 0;
 	}
-
-	if (wr->readed > msg->length) {
-		wr->readed -= msg->length;
-		memcpy(wr->buffer, wr->buffer + msg->length, wr->readed);
-	} else
-		wr->readed = 0;
-
-	return 1;
-}
-
-static int service_writer_handle_req_size(struct logger* server, struct writer* wr, struct dlog_control_msg* msg)
-{
-	int r;
-	int buf_id;
-	if (msg->length != (sizeof(struct dlog_control_msg) + 1))
-		return EINVAL;
-
-	buf_id = msg->data[0];
-	if (buf_id < 0 || buf_id >= LOG_ID_MAX)
-		return EINVAL;
-
-	msg->flags |= DLOG_FLAG_ANSW;
-	r = send_data (wr->socket_fd,
-				   msg,
-				   &server->buffers[buf_id]->size,
-				   sizeof(server->buffers[buf_id]->size));
-
-	if (r)
-		return r;
 
 	if (wr->readed > msg->length) {
 		wr->readed -= msg->length;
@@ -782,17 +685,11 @@ static int service_writer_socket(struct logger* server, struct writer* wr, struc
 		case DLOG_REQ_PIPE :
 			r = service_writer_handle_req_pipe(server, wr, msg);
 			break;
-		case DLOG_REQ_BUFFER_SIZE :
-			r = service_writer_handle_req_size(server, wr, msg);
-			break;
 		case DLOG_REQ_CLEAR:
 			r = service_writer_handle_req_clear(server, wr, msg);
 			break;
 		case DLOG_REQ_HANDLE_LOGUTIL:
 			r = service_writer_handle_req_util(server, wr, msg);
-			break;
-		case DLOG_REQ_REMOVE_WRITER:
-			r = service_writer_handle_req_remove(server, wr, msg);
 			break;
 		default:
 			return EINVAL;
@@ -877,13 +774,12 @@ static void service_all_readers(struct logger* server, int time_elapsed)
 	}
 }
 
-static struct logger* logger_create(char* path, struct log_config *conf)
+static struct logger* logger_create (struct log_config *conf)
 {
 	struct logger* l = calloc(1, sizeof(struct logger));
 	int i = 0;
-	int j;
 	int size = 0;
-	char conf_line [MAX_CONF_KEY_LEN];
+	char conf_key [MAX_CONF_KEY_LEN];
 	const char *conf_value;
 
 	if (!l)
@@ -893,52 +789,84 @@ static struct logger* logger_create(char* path, struct log_config *conf)
 	if (l->epollfd == -1)
 		goto err1;
 
-	strncpy(l->control.path, path, sizeof(l->control.path));
+	snprintf (conf_key, MAX_CONF_KEY_LEN, "pipe_control_socket");
+	conf_value = log_config_get (conf, conf_key);
+	if (!conf_value)
+		goto err2;
 
-	if ((l->control.fd = listen_fd_create(l->control.path)) < 0)
-		goto err1;
+	strncpy(l->main_control.path, conf_value, sizeof(l->main_control.path));
 
-	l->control._entity.type = ENTITY_CONTROL;
-	l->control.event.data.ptr = &l->control;
-	l->control.event.events = EPOLLIN;
+	if ((l->main_control.fd = listen_fd_create(l->main_control.path)) < 0)
+		goto err2;
+	l->main_control._entity.type = ENTITY_CONTROL;
+	l->main_control.event.data.ptr = &l->main_control;
+	l->main_control.event.events = EPOLLIN;
+	l->main_control.buf_ptr = NULL;
+
+	add_fd_loop (l->epollfd, l->main_control.fd, &l->main_control.event);
 
 	if (!(l->default_format = log_format_new()))
-		goto err2;
+		goto err3;
 	log_add_filter_string(l->default_format, "*:d");
 
 	if (!(l->buffers = calloc(LOG_ID_MAX, sizeof(struct log_buffer*))))
-		goto err2;
+		goto err4;
 
 	if (!(l->readers = calloc(LOG_ID_MAX, sizeof(struct reader*))))
-		goto err3;
-
-	add_fd_loop(l->epollfd, l->control.fd, &l->control.event);
+		goto err5;
 
 	for (i = 0; i < LOG_ID_MAX; i++) {
-		snprintf(conf_line, MAX_CONF_KEY_LEN, "%s_size", log_name_by_id(i));
-		conf_value = log_config_get (conf, conf_line);
+		snprintf (conf_key, MAX_CONF_KEY_LEN, "%s_ctl_sock", log_name_by_id (i));
+		conf_value = log_config_get (conf, conf_key);
 		if (!conf_value)
-			goto err4;
+			goto err6;
+		strncpy(l->control[i].path, conf_value, sizeof(l->control[i].path));
+
+		if ((l->control[i].fd = listen_fd_create(l->control[i].path)) < 0)
+			goto err6;
+
+		l->control[i]._entity.type = ENTITY_CONTROL;
+		l->control[i].event.data.ptr = &l->control[i];
+		l->control[i].event.events = EPOLLIN;
+
+		add_fd_loop (l->epollfd, l->control[i].fd, &l->control[i].event);
+
+		snprintf (conf_key, MAX_CONF_KEY_LEN, "%s_size", log_name_by_id(i));
+		conf_value = log_config_get (conf, conf_key);
+		if (!conf_value)
+			goto err7;
 
 		size = atoi (conf_value);
 
-		conf_value = log_config_get(conf, log_name_by_id(i));
+		snprintf (conf_key, MAX_CONF_KEY_LEN, "%s_read_sock", log_name_by_id(i));
+		conf_value = log_config_get (conf, conf_key);
 		if (!conf_value)
-			goto err4;
+			goto err6;
 
 		if (!(l->buffers[i] = buffer_create(i, size, conf_value)))
-			goto err4;
+			goto err6;
+
+		l->control[i].buf_ptr = l->buffers[i];
 	}
 
 	return l;
 
+err7:
+	close (l->control[i].fd);
+err6:
+	while (i--) {
+		close (l->control[i].fd);
+		buffer_free (&l->buffers[i]);
+	}
+	free (l->readers);
+err5:
+	free (l->buffers);
 err4:
-	for (j = 0; j < i; j++)
-		buffer_free(&l->buffers[j]);
+	log_format_free (l->default_format);
 err3:
-	free(l->buffers);
+	close (l->main_control.fd);
 err2:
-	close(l->control.fd);
+	close (l->epollfd);
 err1:
 	free(l);
 	return NULL;
@@ -968,11 +896,12 @@ static void logger_free(struct logger* l)
 		}
 	}
 
-	for (j = 0; j < LOG_ID_MAX; j++)
+	for (j = 0; j < LOG_ID_MAX; j++) {
+		close (l->control[j].fd);
 		buffer_free(&l->buffers[j]);
+	}
 
 	free(l->buffers);
-	close(l->control.fd);
 	free(l);
 }
 
@@ -1018,6 +947,7 @@ static int dispatch_event(struct logger* server, struct fd_entity* entity, struc
 			struct writer* writer = writer_create(sock_pipe);
 
 			if (writer) {
+				writer->buf_ptr = ((struct control*)event->data.ptr)->buf_ptr;
 				LIST_ADD(server->writers, writer);
 				add_fd_loop(server->epollfd, writer->socket_fd, &writer->event);
 			} else
@@ -1096,33 +1026,24 @@ err:
 static int parse_configs(struct logger** server)
 {
 	struct log_config conf;
-	const char * tmp;
-	char tmp2 [64];
-	int i;
-	char path_buffer[1024];
-	path_buffer[0] = 0;
+	const char * conf_val;
+	char conf_key [MAX_CONF_KEY_LEN];
+	int i = 0;
 	if (*server)
 		logger_free(*server);
 
 	log_config_read (&conf);
-	tmp = log_config_get(&conf, "pipe_control_socket");
 
-	if (!tmp)
-		sprintf(path_buffer, LOG_CONTROL_SOCKET);
-	else
-		sprintf(path_buffer, "%s", tmp);
-
-	*server = logger_create(path_buffer, &conf);
+	*server = logger_create (&conf);
 	if (!(*server))
 		return EINVAL;
-	i = 0;
 
 	while (1) {
-		sprintf(tmp2, "dlog_logger_conf_%d", i);
-		tmp = log_config_get(&conf, tmp2);
-		if (!tmp) break;
-		parse_command_line (tmp, *server, -1);
-		++i;
+		sprintf (conf_key, "dlog_logger_conf_%d", i++);
+		conf_val = log_config_get (&conf, conf_key);
+		if (!conf_val)
+			break;
+		parse_command_line (conf_val, *server, NULL);
 	}
 
 	log_config_free (&conf);
