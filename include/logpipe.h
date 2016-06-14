@@ -20,14 +20,14 @@
 
 #include <logcommon.h>
 
+#define PIPE_FILE_FORMAT_VERSION 1
+
 #define DLOG_CTRL_REQ_PIPE {sizeof(struct dlog_control_msg), DLOG_REQ_PIPE, 0}
 
 enum {
 	DLOG_REQ_PIPE=1,
-	DLOG_REQ_BUFFER_SIZE,
 	DLOG_REQ_CLEAR,
 	DLOG_REQ_HANDLE_LOGUTIL,
-	DLOG_REQ_REMOVE_WRITER,
 	DLOG_REQ_MAX
 };
 
@@ -43,19 +43,5 @@ struct dlog_control_msg {
 	char flags;
 	char data[0];
 };
-
-struct log_buffer_desc {
-	const char* path;
-	const int   size;
-	const int   flag;
-};
-
-struct dlog_crtl_file {
-	unsigned char  buf_id;
-	unsigned short rot_size;
-	unsigned short max_size;
-	char           path[0];
-} __attribute__ ((packed));
-
 
 #endif
