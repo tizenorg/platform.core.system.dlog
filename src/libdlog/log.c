@@ -138,6 +138,7 @@ static int dlog_should_log(log_id_t log_id, const char* tag, int prio)
 		return DLOG_ERROR_NOT_PERMITTED;
 
 	if (limiter) {
+		// LCOV_EXCL_START : disabled feature (limiter)
 		should_log = __log_limiter_pass_log(tag, prio);
 
 		if (!should_log) {
@@ -147,6 +148,7 @@ static int dlog_should_log(log_id_t log_id, const char* tag, int prio)
 			             "Your log has been blocked due to limit of log lines per minute.");
 			return DLOG_ERROR_NOT_PERMITTED;
 		}
+		// LCOV_EXCL_STOP
 	}
 
 	return DLOG_ERROR_NONE;
