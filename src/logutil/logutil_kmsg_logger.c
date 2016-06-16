@@ -111,16 +111,17 @@ static void chooseFirst(struct log_device_t* dev, struct log_device_t** firstdev
 {
 	for (*firstdev = NULL; dev != NULL; dev = dev->next) {
 		if (dev->queue != NULL && (*firstdev == NULL ||
-				   	cmp(dev->queue, (*firstdev)->queue) < 0)) {
+					cmp(dev->queue, (*firstdev)->queue) < 0)) {
 			*firstdev = dev;
 		}
 	}
 }
 
-static void maybePrintStart(struct log_device_t* dev) {
+static void maybePrintStart(struct log_device_t* dev)
+{
 	if (!dev->printed) {
 		dev->printed = true;
-		if (g_dev_count > 1 ) {
+		if (g_dev_count > 1) {
 			char buf[1024];
 			snprintf(buf, sizeof(buf), "--------- beginning of %s\n", dev->device);
 			if (write(g_log_file.fd, buf, strlen(buf)) < 0) {
@@ -131,7 +132,8 @@ static void maybePrintStart(struct log_device_t* dev) {
 	}
 }
 
-static void skipNextEntry(struct log_device_t* dev) {
+static void skipNextEntry(struct log_device_t* dev)
+{
 	maybePrintStart(dev);
 	struct queued_entry_t* entry = pop_queued_entry(&dev->queue);
 	free_queued_entry(entry);
@@ -155,7 +157,7 @@ static void read_log_lines(struct log_device_t* devices)
 	int result;
 	fd_set readset;
 
-	for (dev=devices; dev; dev = dev->next) {
+	for (dev = devices; dev; dev = dev->next) {
 		if (dev->fd > max) {
 			max = dev->fd;
 		}
@@ -165,14 +167,14 @@ static void read_log_lines(struct log_device_t* devices)
 		do {
 			struct timeval timeout = { 0, 5000 /* 5ms */ }; // If we oversleep it's ok, i.e. ignore EINTR.
 			FD_ZERO(&readset);
-			for (dev=devices; dev; dev = dev->next) {
+			for (dev = devices; dev; dev = dev->next) {
 				FD_SET(dev->fd, &readset);
 			}
 			result = select(max + 1, &readset, NULL, NULL, sleep ? NULL : &timeout);
 		} while (result == -1 && errno == EINTR);
 
 		if (result >= 0) {
-			for (dev=devices; dev; dev = dev->next) {
+			for (dev = devices; dev; dev = dev->next) {
 				if (FD_ISSET(dev->fd, &readset)) {
 					int ret;
 					struct queued_entry_t *entry =
@@ -184,7 +186,7 @@ static void read_log_lines(struct log_device_t* devices)
 						goto next;
 					else if (ret == RQER_EAGAIN)
 						break;
-					else if(ret == RQER_PARSE) {
+					else if (ret == RQER_PARSE) {
 						printf("Wrong formatted message is written.\n");
 						continue;
 					}
@@ -192,7 +194,7 @@ static void read_log_lines(struct log_device_t* devices)
 					/* In the KMSG backend, EPIPE is not an error:
 					 * it signals the cyclic buffer having made
 					 * a full turn and overwritten previous data */
-					else if(ret == RQER_EPIPE)
+					else if (ret == RQER_EPIPE)
 						continue;
 #endif
 
@@ -289,7 +291,7 @@ static int set_log_format(const char * formatString)
 
 static void show_help(const char *cmd)
 {
-	fprintf(stderr,"Usage: %s [options] [filterspecs]\n", cmd);
+	fprintf(stderr, "Usage: %s [options] [filterspecs]\n", cmd);
 
 	fprintf(stderr, "options include:\n"
 			"  -s              Set default filter to silent.\n"
@@ -307,7 +309,7 @@ static void show_help(const char *cmd)
 			"                  ('main' (default), 'radio', 'system')");
 
 
-	fprintf(stderr,"\nfilterspecs are a series of \n"
+	fprintf(stderr, "\nfilterspecs are a series of \n"
 			"  <tag>[:priority]\n\n"
 			"where <tag> is a log component tag (or * for all) and priority is:\n"
 			"  V    Verbose\n"
@@ -472,7 +474,7 @@ int main(int argc, char **argv)
 
 		case 'b': {
 					  id = log_id_by_name(optarg);
-					  if (id <= LOG_ID_INVALID) {
+					  if (id == LOG_ID_INVALID) {
 						  _E("Unknown log buffer %s\n", optarg);
 						  exit(-1);
 					  }
