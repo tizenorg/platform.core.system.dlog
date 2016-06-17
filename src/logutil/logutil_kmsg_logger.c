@@ -23,6 +23,9 @@
 
 #include <sys/stat.h>
 
+#include <signal.h>
+#include <errno.h>
+
 #include "dlog.h"
 
 #include <logcommon.h>
@@ -35,6 +38,14 @@
 #define DEFAULT_LOG_ROTATE_SIZE_KBYTES 16
 #define DEFAULT_MAX_ROTATED_LOGS 4
 #define MAX_QUEUED 4096
+
+#define START_TIME_BUF_SIZE		20
+#define START_TIME_PATH			"/tmp/dlog_start_time"
+
+static int ignore_time_reversal = 0;
+static int start_sec = 0;
+static int start_nsec = 0;
+
 
 static bool g_nonblock = false;
 static int g_tail_lines = 0;
@@ -74,7 +85,9 @@ static void processBuffer(struct log_device_t* dev, struct logger_entry *buf)
 		goto error;
 	}
 
-	if (log_should_print_line(g_log_file.format, entry.tag, entry.priority)) {
+	if ((!ignore_time_reversal || (start_sec < entry.tv_sec) ||
+		((start_sec == entry.tv_sec) && (start_nsec < entry.tv_nsec))) &&
+		log_should_print_line(g_log_file.format, entry.tag, entry.priority)) {
 		if (false && g_dev_count > 1) {
 			mgs_buf[0] = dev->device[0];
 			mgs_buf[1] = ' ';
@@ -83,6 +96,10 @@ static void processBuffer(struct log_device_t* dev, struct logger_entry *buf)
 				_E("output error\n");
 				exit(-1);
 			}
+		}
+		if (ignore_time_reversal) {
+			start_sec = entry.tv_sec;
+			start_nsec = entry.tv_nsec;
 		}
 
 		bytes_written = log_print_log_line(g_log_file.format, g_log_file.fd, &entry);
@@ -409,6 +426,68 @@ static int log_devices_add_to_tail(struct log_device_t *devices, struct log_devi
 	return 0;
 }
 
+void set_dlog_time_history(void)
+{
+	char buf[START_TIME_BUF_SIZE] = {0,};
+	int size = 0;
+	int fd = open(START_TIME_PATH, (O_WRONLY | O_TRUNC | O_CREAT), 0777);
+	int dlogutil_pid = getpid();
+
+	if( fd < 0 ) {
+		printf("\n[dlogutil][%d][%s:%d] error to open (errno:%d)\n",
+				dlogutil_pid, __func__, __LINE__, errno);
+		return;
+	}
+
+	snprintf(buf, START_TIME_BUF_SIZE, "%d %d", start_sec, start_nsec);
+	size = strlen(buf);
+	if(write(fd, buf, size) < 0)
+		printf("\n[dlogutil][%d][%s:%d] error to write (errno:%d)\n",
+				dlogutil_pid, __func__, __LINE__, errno);
+	close(fd);
+}
+
+void dlogutil_signal_handler (int sig)
+{
+	int dlogutil_pid = getpid();
+	printf("\n[dlogutil][%d][info][%s:%d] recev signal(singal:%d)[%d.%d]\n",
+			dlogutil_pid, __func__, __LINE__, sig, start_sec, start_nsec);
+	set_dlog_time_history();
+	exit(-1);
+}
+
+void get_dlog_time_history()
+{
+	char buf[START_TIME_BUF_SIZE] = {0,};
+	struct sigaction act;
+	int fd = open(START_TIME_PATH, ( O_RDONLY ), 0777);
+	int dlogutil_pid = getpid();
+
+	if (fd < 0 && errno != ENOENT)
+		printf("\n[dlogutil][%d][%s:%d] error to open (errno:%d)\n",
+				dlogutil_pid, __func__, __LINE__, errno);
+	else if (fd < 0)
+		printf("\n[dlogutil][%d][%s:%d] file does not exists (errno:%d)\n",
+				dlogutil_pid, __func__, __LINE__, errno);
+	else if (read(fd, buf, START_TIME_BUF_SIZE)) {
+		buf[START_TIME_BUF_SIZE - 1] = 0;
+		sscanf((const char *)buf, "%d %d", &start_sec, &start_nsec);
+		close(fd);
+	} else
+		close(fd);
+
+	printf("\n[dlogutil][%d][%s:%d] start dlogutil sdb mode ([%d.%d])\n",
+			dlogutil_pid, __func__, __LINE__, start_sec, start_nsec);
+
+	act.sa_handler = dlogutil_signal_handler;
+	sigemptyset(&act.sa_mask);
+	act.sa_flags = 0;
+
+	if (sigaction(SIGTERM, &act, 0) < 0)
+		printf("\n[dlogutil] [%d] [%s:%d] error to register signal(signal:%d:errno:%d)\n",
+				dlogutil_pid, __func__, __LINE__, SIGTERM, errno);
+}
+
 int main(int argc, char **argv)
 {
 	int err;
@@ -442,12 +521,15 @@ int main(int argc, char **argv)
 	for (;;) {
 		int ret;
 
-		ret = getopt(argc, argv, "cdt:gsf:r:n:v:b:D");
+		ret = getopt(argc, argv, "xcdt:gsf:r:n:v:b:D");
 
 		if (ret < 0)
 			break;
 
 		switch (ret) {
+		case 'x':
+			ignore_time_reversal = 1;
+			break;
 		case 's':
 			/* default to all silent */
 			log_add_filter_rule(g_log_file.format, "*:s");
@@ -604,6 +686,10 @@ int main(int argc, char **argv)
 			}
 		}
 	}
+
+	if (ignore_time_reversal)
+		get_dlog_time_history();
+
 	dev = devices;
 	while (dev) {
 		dev->fd = open(dev->device, mode);
