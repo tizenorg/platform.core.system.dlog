@@ -146,8 +146,10 @@ int log_config_write (struct log_config* config, char const * filename)
 
 	while (e) {
 		r = fprintf (file, "%s=%s\n", e->key, e->value);
-		if (r < 0)
+		if (r < 0) {
+			fclose(file);
 			return 0;
+		}
 
 		e = e->next;
 	}

@@ -730,7 +730,7 @@ static int parse_command(struct log_command *command_list)
 
 	ncmd = 0;
 	while (1) {
-		sprintf (conf_key, "dlog_logger_conf_%d", ncmd);
+		snprintf(conf_key, MAX_CONF_KEY_LEN, "dlog_logger_conf_%d", ncmd);
 		conf_val = log_config_get (&conf, conf_key);
 		if (!conf_val)
 			break;
