@@ -17,3 +17,6 @@ radio_size=1048576
 dlog_logger_conf_0=dlogutil -b system -r 5120 -n 1 -f /var/log/dlog/system *:I
 dlog_logger_conf_1=dlogutil -b main -r 3072 -n 1 -f /var/log/dlog/main *:W
 dlog_logger_conf_2=dlogutil -b radio -r 1024 -n 1 -f /var/log/dlog/radio
+logger_max_buffered_time=600
+logger_max_buffered_length=99
+util_sorting_time_window=1.0
