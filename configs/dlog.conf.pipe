@@ -1,22 +1,49 @@
+# Lines starting with # are comments and are ignored.
+# Empty lines are also ignored.
+# Every other line is a config value has to be in key=value format
+
+##### Settings used by libdlog
+
+# Platform logging. Whether logging happens at all.
 plog=1
+
+# Limiter - whether it's enabled and the rules (check the documentation for how to create rules).
 limiter=0
 limiter|*|*=allow
+
+##### Settings used by logging daemon
+
+# Pipe control socket path. All libdlog applications connect here to receive the logging pipe.
 pipe_control_socket=/run/dlog/control.sock
+
+# Reception socket paths. Apps can connect here to read logs of the appropriate path.
 main_read_sock=/run/dlog/log_main.sock
 apps_read_sock=/run/dlog/log_apps.sock
 system_read_sock=/run/dlog/log_system.sock
 radio_read_sock=/run/dlog/log_radio.sock
+
+# Control sockets. Administrative programs can connect here to control the logger daemon.
 main_ctl_sock=/run/dlog/ctl_main.sock
 apps_ctl_sock=/run/dlog/ctl_apps.sock
 system_ctl_sock=/run/dlog/ctl_system.sock
 radio_ctl_sock=/run/dlog/ctl_radio.sock
+
+# Size for each logging buffer.
 main_size=1048576
 apps_size=1048576
 system_size=1048576
 radio_size=1048576
+
+# Passive logging to file done by the daemon
 dlog_logger_conf_0=dlogutil -b system -r 5120 -n 1 -f /var/log/dlog/system.raw *:I
 dlog_logger_conf_1=dlogutil -b main -r 3072 -n 1 -f /var/log/dlog/main.raw *:W
 dlog_logger_conf_2=dlogutil -b radio -r 1024 -n 1 -f /var/log/dlog/radio.raw
+
+# The scale of buffering done by the daemon when talking to other programs
 logger_max_buffered_time=600
 logger_max_buffered_length=99
+
+##### Settings used by logutil
+
+# Time window for sorting. Proportional to accuracy, but also delay.
 util_sorting_time_window=1000
