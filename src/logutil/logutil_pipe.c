@@ -39,14 +39,12 @@
 /* should fit a whole command line with concatenated arguments (reasonably) */
 #define MAX_LOGGER_REQUEST_LEN 2048
 
-/* Time window when sorting logs. Proportionate to accuracy, but also delay. */
-#define SORT_TIMEOUT 1.0
-
 /* The size of the sorting buffer. */
 #define SORT_BUFFER_SIZE 16384
 
 static int buf_id = 0;
 static int sock_fd = -1;
+static int sort_timeout = 1000; // ms
 static log_format * log_fmt;
 
 static struct sorting_vector {
@@ -173,7 +171,7 @@ static int process_log (struct logger_entry * e, const struct timespec * now)
 		-- s;
 	}
 
-	if (SORT_TIMEOUT < (s + ns * 1E-9)) {
+	if (sort_timeout < (s*1000 + ns/1000000)) {
 		log_entry entry;
 		log_process_log_buffer (e, & entry);
 		log_print_log_line (log_fmt, 1, & entry);
@@ -275,6 +273,7 @@ int main (int argc, char ** argv)
 {
 	char buffer_name [MAX_CONF_VAL_LEN] = "";
 	const char * sock_path;
+	const char * conf_value;
 	int pipe_fd;
 	struct log_config conf;
 	int should_clear = 0;
@@ -342,6 +341,12 @@ int main (int argc, char ** argv)
 	}
 
 	log_config_read (&conf);
+
+	conf_value = log_config_get (&conf, "util_sorting_time_window");
+	if (conf_value)
+		sort_timeout = strtol (conf_value, NULL, 10);
+	if (sort_timeout <= 0)
+		sort_timeout = 1000;
 
 	if (should_getsize)
 		return do_getsize (&conf);

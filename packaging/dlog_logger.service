@@ -7,7 +7,7 @@ User=log
 Group=log
 # the line below prevents logger from repeatedly statting /etc/localtime each time it wanted a timestamp, increasing performance.
 Environment=TZ=:/etc/localtime
-ExecStart=/usr/bin/dlog_logger -b 99 -t 600
+ExecStart=/usr/bin/dlog_logger
 Restart=always
 
 [Install]
