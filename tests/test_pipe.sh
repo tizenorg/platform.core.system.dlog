@@ -40,7 +40,7 @@ dlogctrl -k some_test_key -c                         &> /dev/null && fail || ok 
 dlogctrl -k some_test_key -g                         &> /dev/null && fail || ok # get the now non-existent key
 
 # Start the daemon, add some logs
-dlog_logger -b 99 -t 600 &
+dlog_logger &
 LOGGER=$!
 test_libdlog 100
 
