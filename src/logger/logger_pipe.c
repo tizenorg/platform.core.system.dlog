@@ -901,6 +901,14 @@ static struct logger* logger_create (struct log_config *conf)
 		l->control[i].buf_ptr = l->buffers[i];
 	}
 
+	conf_value = log_config_get (conf, "logger_max_buffered_time");
+	if (conf_value)
+		l->max_buffered_time = strtol(conf_value, NULL, 10);
+
+	conf_value = log_config_get (conf, "logger_max_buffered_length");
+	if (conf_value)
+		l->max_buffered_bytes = strtol (conf_value, NULL, 10);
+
 	return l;
 
 err7:
@@ -1112,42 +1120,13 @@ static void help () {
 	);
 }
 
-static int parse_args (int argc, char ** argv, struct logger * server)
+static int parse_args (int argc, char ** argv)
 {
-	int temp, option;
-	while ((option = getopt(argc, argv, "hb:t:")) != -1) {
-		switch (option) {
-		case 't':
-			if (!isdigit(optarg[0])) {
-				help();
-				return EINVAL;
-			}
-
-			temp = atoi(optarg);
-			if (temp < 0) temp = 0;
-			if (temp > INTERVAL_MAX) temp = INTERVAL_MAX;
-			server->max_buffered_time = temp;
-
-			break;
-		case 'b':
-			if (!isdigit(optarg[0])) {
-				help();
-				return EINVAL;
-			}
-
-			temp = atoi(optarg);
-			if (temp < 0) temp = 0;
-			if (temp > BUFFER_MAX) temp = BUFFER_MAX;
-			server->max_buffered_bytes = temp;
-
-			break;
-		case 'h':
-			help();
-			return EINVAL;
-		default:
-			return EINVAL;
-		}
+	while (getopt(argc, argv, "h") != -1) {
+		help();
+		return EINVAL;
 	}
+
 	optind = 0;
 	optopt = 0;
 	optarg = NULL;
@@ -1160,13 +1139,11 @@ int main(int argc, char** argv)
 	struct logger* server = NULL;
 	signal(SIGPIPE, SIG_IGN);
 
-	r = parse_configs(&server);
-	if (r) {
-		logger_free (server);
+	r = parse_args (argc, argv);
+	if (r)
 		return r;
-	}
 
-	r = parse_args (argc, argv, server);
+	r = parse_configs(&server);
 	if (r) {
 		logger_free (server);
 		return r;
