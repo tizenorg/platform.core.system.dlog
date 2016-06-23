@@ -131,6 +131,8 @@ struct reader {
 	int                dumpcount;
 	struct reader*     next;
 	struct reader*     prev;
+	int                partial_log_size;
+	char*              partial_log;
 };
 
 struct log_buffer {
@@ -300,13 +302,18 @@ static int buffer_free_space(struct log_buffer* b)
 	return free_space;
 }
 
-static void buffer_append(const struct logger_entry* entry, struct log_buffer* b)
+static void buffer_append(const struct logger_entry* entry, struct log_buffer* b, struct reader* reader_head)
 {
 	while (buffer_free_space(b) < entry->len) {
+		int old_head = b->head;
+		struct reader * reader;
 		struct logger_entry* t = (struct logger_entry*)(b->buffer + b->head);
 		b->head += t->len;
 		b->head %= b->size;
 		-- b->lines;
+		LIST_FOREACH(reader_head, reader)
+			if (reader->current == old_head)
+				reader->current = b->head;
 	}
 
 	copy_to_buffer(entry, b->tail, entry->len, b);
@@ -332,13 +339,45 @@ static void add_misc_file_info (int fd)
 		return;
 }
 
-static int print_out_logs(struct log_file* file, struct log_buffer* buffer, int from)
+static int print_out_logs(struct reader* reader, struct log_buffer* buffer)
 {
 	int r;
 	struct logger_entry* ple;
 	char tmp [LOG_MAX_SIZE];
 	int priority;
 	char * tag;
+	struct log_file* file = &reader->file;
+	struct epoll_event ev = { .events = EPOLLOUT, .data.fd = reader->file.fd };
+	int epoll_fd;
+	int from = reader->current;
+	int is_file = 0;
+
+	epoll_fd = epoll_create1 (0);
+	r = epoll_ctl (epoll_fd, EPOLL_CTL_ADD, reader->file.fd, &ev);
+	if (r == -1 && errno == EPERM)
+		is_file = 1;
+
+	if (reader->partial_log) {
+		r = epoll_wait (epoll_fd, &ev, 1, 0);
+
+		if (r < 1)
+			goto cleanup;
+		do {
+			r = write (reader->file.fd, reader->partial_log, reader->partial_log_size);
+		} while (r < 0 && errno == EINTR);
+
+		if (r <= 0)
+			goto cleanup;
+
+		if (r < reader->partial_log_size) {
+			reader->partial_log_size -= r;
+			memmove (reader->partial_log, reader->partial_log + r, reader->partial_log_size);
+			goto cleanup;
+		}
+
+		free (reader->partial_log);
+		reader->partial_log = NULL;
+	}
 
 	while (from != buffer->tail) {
 		ple = (struct logger_entry*)(buffer->buffer + from);
@@ -356,20 +395,33 @@ static int print_out_logs(struct log_file* file, struct log_buffer* buffer, int 
 		if (!strlen (tag))
 			continue;
 
-		if (!log_should_print_line(file->format, tag, priority))
+		if (!log_should_print_line(reader->file.format, tag, priority))
 			continue;
 
+		if (!is_file && epoll_wait (epoll_fd, &ev, 1, 0) < 1)
+			goto cleanup;
+
 		do {
-			r = write (file->fd, ple, ple->len);
+			r = write (reader->file.fd, ple, ple->len);
 		} while (r < 0 && errno == EINTR);
 
-		if (r > 0) file->size += r;
+		if (r > 0)
+			reader->file.size += r;
 
-		if ((file->rotate_size_kbytes > 0) && ((file->size / 1024) >= file->rotate_size_kbytes)) {
-			rotate_logs(file);
-			add_misc_file_info (file->fd);
+		if (r < ple->len) {
+			reader->partial_log_size = ple->len - r;
+			reader->partial_log = malloc (reader->partial_log_size);
+			memcpy (reader->partial_log, ple + r, reader->partial_log_size);
+			goto cleanup;
+		} else if ((reader->file.rotate_size_kbytes > 0) && ((reader->file.size / 1024) >= reader->file.rotate_size_kbytes)) {
+			rotate_logs(&reader->file);
+			add_misc_file_info (reader->file.fd);
 		}
 	}
+
+cleanup:
+	close (epoll_fd);
+	reader->current = from;
 	return 0;
 }
 
@@ -436,8 +488,7 @@ static int service_reader(struct logger* server, struct reader* reader)
 	struct log_buffer* buffer = server->buffers[buf_id];
 	int r = 0;
 
-	r = print_out_logs(&reader->file, buffer, reader->current);
-	reader->current = buffer->tail;
+	r = print_out_logs(reader, buffer);
 	return r;
 }
 
@@ -477,6 +528,8 @@ static int parse_command_line(const char* cmdl, struct logger* server, struct wr
 	reader->file.size = 0;
 	reader->buf_id = 0;
 	reader->dumpcount = 0;
+	reader->partial_log = NULL;
+	reader->partial_log_size = 0;
 
 	while ((option = getopt(argc, argv, "cdt:gsf:r:n:v:b:")) != -1) {
 		switch (option) {
@@ -723,7 +776,7 @@ static int service_writer_pipe(struct logger* server, struct writer* wr, struct 
 
 		entry = (struct logger_entry*)wr->buffer;
 		while ((wr->readed >= sizeof(entry->len)) && (entry->len <= wr->readed)) {
-			buffer_append(entry, server->buffers[entry->buf_id]);
+			buffer_append(entry, server->buffers[entry->buf_id], server->readers[entry->buf_id]);
 			wr->readed -= entry->len;
 			server->should_timeout |= (1<<entry->buf_id);
 			memmove(wr->buffer, wr->buffer + entry->len, LOG_MAX_SIZE - entry->len);
