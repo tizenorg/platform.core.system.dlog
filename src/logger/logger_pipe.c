@@ -180,14 +180,15 @@ static int parse_permissions (const char * str)
 	char * parse_safety;
 
 	if (!str)
-		return S_IWUSR | S_IWGRP | S_IWOTH;
+		return S_IWUSR | S_IWGRP | S_IWOTH; // 0222: everyone can write
 
-	parsed = strtol (str, & parse_safety, 8);
+	parsed = strtol (str, & parse_safety, 8); // note, rights are octal
 	if (parse_safety != (str + strlen (str)))
 		return 0;
 
 	ret = 0;
 
+	// note that R and X are pretty useless, only W makes sense
 	if (parsed & 00001) ret |= S_IXOTH;
 	if (parsed & 00002) ret |= S_IWOTH;
 	if (parsed & 00004) ret |= S_IROTH;
@@ -223,7 +224,7 @@ static int change_owners (const char * file, const char * user, const char * gro
 	if (grp)
 		gid = grp->gr_gid;
 
-	return! chown (file, uid, gid);
+	return! chown (file, uid, gid); // ideally would be fchown, but that is broken
 }
 
 static int listen_fd_create (const char* path, int permissions)
@@ -244,7 +245,7 @@ static int listen_fd_create (const char* path, int permissions)
 		goto failure;
 
 	if (permissions)
-		if (chmod (path, permissions) < 0)
+		if (chmod (path, permissions) < 0) // ideally, fchmod would be used, but that does not work
 			goto failure;
 
 	if (listen(sd, MAX_CONNECTION_Q) < 0)
@@ -354,7 +355,7 @@ static int buffer_free_space(struct log_buffer* b)
 
 static void buffer_append(const struct logger_entry* entry, struct log_buffer* b, struct reader* reader_head)
 {
-	while (buffer_free_space(b) <= entry->len) {
+	while (buffer_free_space(b) <= entry->len) { // note that we use <= instead of < to make sure there's always some extra empty space. This guarantees that head != tail, which serves to disambiguate readers living there
 		int old_head = b->head;
 		struct reader * reader;
 		struct logger_entry* t = (struct logger_entry*)(b->buffer + b->head);
