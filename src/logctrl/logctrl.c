@@ -4,22 +4,12 @@
 #include <unistd.h>
 
 #include <logconfig.h>
-
-void print_help ()
-{
-	printf ("dlogctrl - provides control over dlog configuration. Options:\n"
-		"\t-p        Precludes -k. Prints all entries in the config.\n"
-		"\t-k key    Precludes -p and requires one of -gs.  Specifies a config key.\n"
-		"\t-g        Requires -k, precludes -cs. Gets and prints the value of the entry assigned to the key.\n"
-		"\t-s value  Requires -k, precludes -cg. Sets the value of the entry associated with the key.\n"
-		"\t-c        Requires -k, precludes -gs. Clears the entry.\n"
-		"Having either -p or -k is mandatory.\n"
-	);
-}
+#include "logctrl_doc.h"
 
 struct options {
 	int print_all;
 	int has_key;
+	int help;
 	int should_get;
 	int should_set;
 	int should_clear;
@@ -28,16 +18,16 @@ struct options {
 int validate (struct options o) {
 	int valid = 1;
 
-	if (!o.has_key && !o.print_all) {
-		printf ("Having either -p or -k is mandatory!\n");
+	if (!o.has_key && !o.print_all && !o.help) {
+		printf ("Having either -i, -p, or -k is mandatory!\n");
 		valid = 0;
 	}
 	if (o.has_key && !(o.should_get || o.should_set || o.should_clear)) {
 		printf ("-k requires either -c, -g, or -s!\n");
 		valid = 0;
 	}
-	if (o.has_key && o.print_all) {
-		printf ("-p and -k preclude each other!\n");
+	if ((o.has_key + o.print_all + o.help) > 1) {
+		printf ("-i, -p and -k preclude each other!\n");
 		valid = 0;
 	}
 	if (o.should_set + o.should_get + o.should_clear > 1) {
@@ -57,7 +47,7 @@ int main (int argc, char ** argv)
 	struct log_config conf;
 	char key [MAX_CONF_KEY_LEN];
 	char val [MAX_CONF_VAL_LEN];
-	struct options opt = {0,0,0,0,0};
+	struct options opt = {0,0,0,0,0,0};
 	const char * filename = getenv ("DLOG_CONFIG_PATH") ?: get_config_filename (CONFIG_TYPE_COMMON);
 
 	if (argc == 1) {
@@ -66,7 +56,7 @@ int main (int argc, char ** argv)
 	}
 
 	for (;;) {
-		int ret = getopt(argc, argv, "pt:k:gs:c");
+		int ret = getopt(argc, argv, "pt:k:gs:ci");
 
 		if (ret < 0)
 			break;
@@ -89,11 +79,19 @@ int main (int argc, char ** argv)
 			opt.should_set = 1;
 			snprintf(val, MAX_CONF_VAL_LEN, "%s", optarg);
 			break;
+		case 'i':
+			opt.help = 1;
+			break;
 		}
 	}
 
 	if (!validate(opt)) {
 		print_help (argv[0]);
+		return 1;
+	}
+
+	if (opt.help) {
+		print_extended_help ();
 		return 1;
 	}
 

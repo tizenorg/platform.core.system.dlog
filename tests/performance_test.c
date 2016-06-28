@@ -1,4 +1,4 @@
-#define LOG_TAG "SRPOL_LOGGER"
+#define LOG_TAG "TEST"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -6,10 +6,10 @@
 #include <pthread.h>
 #include <time.h>
 
-#include <dlog.h>
+#include <dlog/dlog.h>
 
 #define THREADS 50
-#define LOGS_PER_THREAD 10000
+#define LOGS_PER_THREAD 1000
 #define TOTAL_LOGS (THREADS * LOGS_PER_THREAD)
 
 #define SECOND_TO_MICROSECOND 1000000
@@ -18,8 +18,12 @@ void * func (void * data)
 {
 	int i;
 
-	for (i = 0; i < LOGS_PER_THREAD; ++i)
-		LOGE ("Logging test %d", i);
+	for (i = 0; i < (LOGS_PER_THREAD / 4); ++i) {
+		 LOGE ("test");
+		SLOGE ("test");
+		RLOGE ("test");
+		ALOGE ("test");
+	}
 }
 
 int main (int argc, char **argv)
@@ -27,13 +31,13 @@ int main (int argc, char **argv)
 	int i = 0;
 	struct timespec start, end;
 	double elapsed;
-	pthread_t threads [50];
+	pthread_t threads [THREADS];
 
 	clock_gettime (CLOCK_MONOTONIC, &start);
 
-	for (i = 0; i < 50; ++i)
+	for (i = 0; i < THREADS; ++i)
 		pthread_create(threads + i, NULL, func, NULL);
-	for (i = 0; i < 50; ++i)
+	for (i = 0; i < THREADS; ++i)
 		pthread_join (threads[i], NULL);
 
 	clock_gettime (CLOCK_MONOTONIC, &end);

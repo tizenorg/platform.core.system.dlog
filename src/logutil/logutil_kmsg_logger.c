@@ -35,6 +35,8 @@
 #include <dlog_ioctl.h>
 #include <logconfig.h>
 
+#include "logutil_doc.h"
+
 #define DEFAULT_LOG_ROTATE_SIZE_KBYTES 16
 #define DEFAULT_MAX_ROTATED_LOGS 4
 #define MAX_QUEUED 4096
@@ -305,41 +307,6 @@ static int set_log_format(const char * formatString)
 
 	return 0;
 }
-
-static void show_help(const char *cmd)
-{
-	fprintf(stderr, "Usage: %s [options] [filterspecs]\n", cmd);
-
-	fprintf(stderr, "options include:\n"
-			"  -s              Set default filter to silent.\n"
-			"                  Like specifying filterspec '*:s'\n"
-			"  -f <filename>   Log to file. Default to stdout\n"
-			"  -r [<kbytes>]   Rotate log every kbytes. (16 if unspecified). Requires -f\n"
-			"  -n <count>      Sets max number of rotated logs to <count>, default 4\n"
-			"  -v <format>     Sets the log print format, where <format> is one of:\n\n"
-			"                  brief(by default) process tag thread raw time threadtime long\n\n"
-			"  -c              clear (flush) the entire log and exit, conflicts with '-g'\n"
-			"  -d              dump the log and then exit (don't block)\n"
-			"  -t <count>      print only the most recent <count> lines (implies -d)\n"
-			"  -g              get the size of the log's ring buffer and exit, conflicts with '-c'\n"
-			"  -b <buffer>     request alternate ring buffer\n"
-			"                  ('main' (default), 'radio', 'system')");
-
-
-	fprintf(stderr, "\nfilterspecs are a series of \n"
-			"  <tag>[:priority]\n\n"
-			"where <tag> is a log component tag (or * for all) and priority is:\n"
-			"  V    Verbose\n"
-			"  D    Debug\n"
-			"  I    Info\n"
-			"  W    Warn\n"
-			"  E    Error\n"
-			"  F    Fatal\n"
-			"  S    Silent (supress all output)\n"
-			"\n'*' means '*:D' and <tag> by itself means <tag>:V\n"
-			"If no filterspec is found, filter defaults to '*:I'\n\n");
-}
-
 
 /*
  * free one log_device_t and it doesn't take care of chain so it
