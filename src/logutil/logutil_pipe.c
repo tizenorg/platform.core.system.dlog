@@ -36,6 +36,8 @@
 #include <logconfig.h>
 #include <queued_entry.h>
 
+#include "logutil_doc.h"
+
 /* should fit a whole command line with concatenated arguments (reasonably) */
 #define MAX_LOGGER_REQUEST_LEN 2048
 
@@ -303,6 +305,11 @@ int main (int argc, char ** argv)
 	int into_file = 0;
 	int silence = 0;
 	char conf_key [MAX_CONF_KEY_LEN];
+
+	if (argc == 2 && !strcmp ("--help", argv[1])) {
+		show_help (argv[0]);
+		return 1;
+	}
 
 	log_fmt = log_format_new ();
 	log_set_print_format (log_fmt, FORMAT_KERNELTIME);
