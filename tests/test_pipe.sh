@@ -42,7 +42,9 @@ dlogctrl -k some_test_key -g                         &> /dev/null && fail || ok 
 # Start the daemon, add some logs
 dlog_logger -b 99 -t 600 &
 LOGGER=$!
+sleep 1
 test_libdlog 100
+sleep 1
 
 # 19-22: test -d and -t
 dlogutil -d &> /dev/null && ok || fail
