@@ -51,93 +51,91 @@ static int connect_sock(const char * path)
 	if (fd < 0)
 		return -errno;
 
-	strncpy(sa.sun_path, path, sizeof (sa.sun_path));
+	strncpy(sa.sun_path, path, sizeof(sa.sun_path));
 
 	r = connect(fd, (struct sockaddr *) &sa, sizeof(sa));
 	if (r < 0) {
-		close (fd);
+		close(fd);
 		return -errno;
 	}
 
 	return fd;
 }
 
-static int do_clear ()
+static int do_clear()
 {
 	const int size = sizeof(struct dlog_control_msg) + 1;
-	struct dlog_control_msg * const msg = calloc (1, size);
+	struct dlog_control_msg * const msg = calloc(1, size);
 
 	msg->length = size;
 	msg->request = DLOG_REQ_CLEAR;
 	msg->flags = 0;
 	msg->data[0] = buf_id;
-	if (write (sock_fd, msg, size) < 0) {
+	if (write(sock_fd, msg, size) < 0) {
 		printf("Error: could not send a CLEAR request to logger; socket write failed\n");
 		return 1;
 	}
 	return 0;
 }
 
-static int do_getsize (struct log_config * conf)
+static int do_getsize(struct log_config * conf)
 {
-	char conf_key [MAX_CONF_KEY_LEN];
+	char conf_key[MAX_CONF_KEY_LEN];
 	const char * conf_value;
 
-	sprintf(conf_key, "%s_size", log_name_by_id (buf_id));
-	conf_value = log_config_get (conf, conf_key);
+	sprintf(conf_key, "%s_size", log_name_by_id(buf_id));
+	conf_value = log_config_get(conf, conf_key);
 	if (!conf_value) {
-		printf ("Error: could not get size of buffer #%d (%s); it has no config entry\n", buf_id, log_name_by_id(buf_id));
+		printf("Error: could not get size of buffer #%d (%s); it has no config entry\n", buf_id, log_name_by_id(buf_id));
 		return 1;
 	}
 
-	printf ("Buffer #%d (%s) has size %d KB\n", buf_id, log_name_by_id (buf_id), atoi (conf_value) / 1024);
+	printf("Buffer #%d (%s) has size %d KB\n", buf_id, log_name_by_id(buf_id), atoi(conf_value) / 1024);
 	return 0;
 }
 
-static int send_logger_request (int argc, char ** argv)
+static int send_logger_request(int argc, char ** argv)
 {
-	char logger_request [MAX_LOGGER_REQUEST_LEN];
-	int logger_request_len = snprintf (logger_request, MAX_LOGGER_REQUEST_LEN, "dlogutil");
+	char logger_request[MAX_LOGGER_REQUEST_LEN];
+	int logger_request_len = snprintf(logger_request, MAX_LOGGER_REQUEST_LEN, "dlogutil");
 	struct dlog_control_msg * msg;
 	int i;
 
 	for (i = 1; i < argc; ++i)
-        {
-                logger_request_len += snprintf (logger_request + logger_request_len, MAX_LOGGER_REQUEST_LEN - logger_request_len, " %s", argv[i]);
-        }
+		logger_request_len += snprintf(logger_request + logger_request_len, MAX_LOGGER_REQUEST_LEN - logger_request_len, " %s", argv[i]);
 
 	logger_request_len += sizeof(struct dlog_control_msg) + 1;
 
-        msg = calloc(1, logger_request_len);
-        msg->length = logger_request_len;
-        msg->request = DLOG_REQ_HANDLE_LOGUTIL;
-        msg->flags = 0;
-        memcpy(msg->data, logger_request, logger_request_len - sizeof(struct dlog_control_msg));
-        if (write (sock_fd, msg, logger_request_len) < 0) {
-                printf("Error: could not send a logger request; socket write failed\n");
-                return 0;
-        }
+	msg = calloc(1, logger_request_len);
+	msg->length = logger_request_len;
+	msg->request = DLOG_REQ_HANDLE_LOGUTIL;
+	msg->flags = 0;
+	memcpy(msg->data, logger_request, logger_request_len - sizeof(struct dlog_control_msg));
+	if (write(sock_fd, msg, logger_request_len) < 0) {
+		printf("Error: could not send a logger request; socket write failed\n");
+		return 0;
+	}
 
-        free (msg);
+	free(msg);
 	return 1;
 }
 
-static void handle_pipe (int pipe_fd)
+static void handle_pipe(int pipe_fd)
 {
-	char buff [LOG_MAX_SIZE];
+	char buff[LOG_MAX_SIZE];
 	int r;
 	for (;;) {
 		r = read(pipe_fd, buff, LOG_MAX_SIZE);
 		if (r <= 0 && errno != EAGAIN)
 			return;
 		buff[r] = '\0';
-		printf ("%s", buff);
+		printf("%s", buff);
 	}
 }
 
-int main (int argc, char ** argv)
+int main(int argc, char ** argv)
 {
-	char buffer_name [MAX_CONF_VAL_LEN] = "";
+	char buffer_name[MAX_CONF_VAL_LEN] = "";
 	const char * sock_path;
 	int pipe_fd;
 	struct log_config conf;
@@ -159,7 +157,7 @@ int main (int argc, char ** argv)
 			should_getsize = 1;
 			break;
 		case 'b':
-			strncpy (buffer_name, optarg, MAX_CONF_VAL_LEN);
+			strncpy(buffer_name, optarg, MAX_CONF_VAL_LEN);
 			break;
 		case 'f':
 			into_file = 1;
@@ -170,47 +168,47 @@ int main (int argc, char ** argv)
 		}
 	}
 
-	if (strlen(buffer_name) && (((buf_id = log_id_by_name (buffer_name)) < 0) || (buf_id >= LOG_ID_MAX))) {
-		printf ("There is no buffer \"%s\"\n", buffer_name);
+	if (strlen(buffer_name) && (((buf_id = log_id_by_name(buffer_name)) < 0) || (buf_id >= LOG_ID_MAX))) {
+		printf("There is no buffer \"%s\"\n", buffer_name);
 		return 1;
 	}
 
-	log_config_read (&conf);
+	log_config_read(&conf);
 
 	if (should_getsize)
-		return do_getsize (&conf);
+		return do_getsize(&conf);
 
 	if ((sock_path = log_config_get(&conf, "pipe_control_socket")) == NULL) {
 		printf("Error: dlog config is broken, lacks the pipe_control_socket entry\n");
 		return 1;
 	}
 
-	log_config_free (&conf);
+	log_config_free(&conf);
 
-	if ((sock_fd = connect_sock (sock_path)) < 0) {
+	if ((sock_fd = connect_sock(sock_path)) < 0) {
 		printf("Error: socket connection failed\n");
 		return 1;
 	}
 
 	if (should_clear)
-		return do_clear ();
+		return do_clear();
 
-	if (!send_logger_request (argc, argv)) {
+	if (!send_logger_request(argc, argv)) {
 		printf("Error: could not send request to logger daemon\n");
 		return 1;
 	}
 
 	if (into_file) {
-		close (sock_fd);
+		close(sock_fd);
 		return 0;
 	}
 
-	if ((pipe_fd = recv_file_descriptor (sock_fd)) < 0) {
+	if ((pipe_fd = recv_file_descriptor(sock_fd)) < 0) {
 		printf("Error: failed to receive a logging pipe\n");
 		return 1;
 	}
 
-	handle_pipe (pipe_fd);
+	handle_pipe(pipe_fd);
 
 	return 0;
 }

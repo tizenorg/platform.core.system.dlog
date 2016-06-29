@@ -45,12 +45,12 @@ static int create_kmsg_devs(int fd, struct log_config *conf)
 	};
 
 	for (i = 0; i < LOG_ID_MAX; i++) {
-		char key [MAX_CONF_KEY_LEN];
+		char key[MAX_CONF_KEY_LEN];
 		const char *size_str;
 		char *size_str_end;
 
-		snprintf (key, MAX_CONF_KEY_LEN, "%s_size", log_name_by_id(i));
-		size_str = log_config_get (conf, key);
+		snprintf(key, MAX_CONF_KEY_LEN, "%s_size", log_name_by_id(i));
+		size_str = log_config_get(conf, key);
 		errno = 0;
 
 		if (!size_str) {
@@ -88,8 +88,8 @@ int main()
 	struct log_config conf_in;
 	struct log_config conf_out;
 
-	log_config_read (&conf_in);
-	memset (&conf_out, 0, sizeof(struct log_config));
+	log_config_read(&conf_in);
+	memset(&conf_out, 0, sizeof(struct log_config));
 
 	kmsg_fd = open(DEV_KMSG, O_RDWR);
 	if (kmsg_fd < 0) {
@@ -101,18 +101,18 @@ int main()
 		goto error;
 
 	for (i = 0; i < LOG_ID_MAX; ++i) {
-		char key [MAX_CONF_KEY_LEN];
-		char val [MAX_CONF_VAL_LEN];
+		char key[MAX_CONF_KEY_LEN];
+		char val[MAX_CONF_VAL_LEN];
 
 		snprintf(key, MAX_CONF_KEY_LEN, "%s_size", log_name_by_id(i));
-		snprintf(val, MAX_CONF_VAL_LEN, "%s", log_config_get (&conf_in, key));
-		log_config_push (&conf_out, key, val);
+		snprintf(val, MAX_CONF_VAL_LEN, "%s", log_config_get(&conf_in, key));
+		log_config_push(&conf_out, key, val);
 
 		snprintf(val, MAX_CONF_VAL_LEN, "%s%d", DEV_KMSG, g_minors[i]);
-		log_config_push (&conf_out, log_name_by_id(i), val);
+		log_config_push(&conf_out, log_name_by_id(i), val);
 	}
 
-	log_config_write (&conf_out, get_config_filename (CONFIG_TYPE_KMSG));
+	log_config_write(&conf_out, get_config_filename(CONFIG_TYPE_KMSG));
 
 	return 0;
 

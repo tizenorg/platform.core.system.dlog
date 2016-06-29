@@ -53,7 +53,7 @@ static int __config_iteration(const char* key, const char* value)
 {
 	const int prefix_len = strlen("limiter|");
 	char * delimiter_pos;
-	char limiter_tag [MAX_CONF_KEY_LEN];
+	char limiter_tag[MAX_CONF_KEY_LEN];
 	int limit;
 
 	if (!strcmp(key, "limiter|"))
@@ -67,7 +67,7 @@ static int __config_iteration(const char* key, const char* value)
 
 	if (!strcmp(value, "allow"))
 		limit = __LOG_LIMITER_LIMIT_MAX + 1;
-	else if (!strcmp(value, "deny" ))
+	else if (!strcmp(value, "deny"))
 		limit = 0;
 	else
 		limit = atoi(value);
@@ -87,18 +87,18 @@ static void __configure(void)
 	if (!log_config_read(&conf))
 		return;
 
-	conf_value = log_config_get (&conf, "plog");
+	conf_value = log_config_get(&conf, "plog");
 	if (!conf_value)
 		return;
-	plog = atoi (conf_value);
+	plog = atoi(conf_value);
 
-	conf_value = log_config_get (&conf, "limiter");
+	conf_value = log_config_get(&conf, "limiter");
 	if (!conf_value)
 		return;
-	limiter = atoi (conf_value);
+	limiter = atoi(conf_value);
 
 	log_config_foreach(&conf, __config_iteration);
-	log_config_free (&conf);
+	log_config_free(&conf);
 
 	if (limiter && (0 > __log_limiter_initialize()))
 		limiter = 0;
@@ -145,7 +145,7 @@ static int dlog_should_log(log_id_t log_id, const char* tag, int prio)
 			return DLOG_ERROR_NOT_PERMITTED;
 		} else if (should_log < 0) {
 			write_to_log(log_id, prio, tag,
-			             "Your log has been blocked due to limit of log lines per minute.");
+					"Your log has been blocked due to limit of log lines per minute.");
 			return DLOG_ERROR_NOT_PERMITTED;
 		}
 		// LCOV_EXCL_STOP

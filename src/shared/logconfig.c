@@ -7,7 +7,7 @@
 #define TZ_SYS_ETC "/opt/etc"
 #endif
 
-const char * get_config_filename (config_type type)
+const char * get_config_filename(config_type type)
 {
 	switch (type) {
 	case CONFIG_TYPE_COMMON:
@@ -20,12 +20,12 @@ const char * get_config_filename (config_type type)
 }
 
 struct log_conf_entry {
-	char key [MAX_CONF_KEY_LEN];
-	char value [MAX_CONF_VAL_LEN];
-	struct log_conf_entry * next;
+	char key[MAX_CONF_KEY_LEN];
+	char value[MAX_CONF_VAL_LEN];
+	struct log_conf_entry *next;
 };
 
-const char * log_config_get (struct log_config* c, const char* key)
+const char * log_config_get(struct log_config* c, const char* key)
 {
 	struct log_conf_entry * e;
 
@@ -34,7 +34,7 @@ const char * log_config_get (struct log_config* c, const char* key)
 
 	e = c->begin;
 	while (e)
-		if (!strcmp (e->key, key))
+		if (!strcmp(e->key, key))
 			return e->value;
 		else
 			e = e->next;
@@ -42,7 +42,7 @@ const char * log_config_get (struct log_config* c, const char* key)
 	return NULL;
 }
 
-int log_config_set (struct log_config* c, const char* key, const char* value)
+int log_config_set(struct log_config* c, const char* key, const char* value)
 {
 	struct log_conf_entry * e;
 
@@ -51,8 +51,8 @@ int log_config_set (struct log_config* c, const char* key, const char* value)
 
 	e = c->begin;
 	while (e) {
-		if (!strcmp (e->key, key)) {
-			strncpy (e->value, value, MAX_CONF_VAL_LEN);
+		if (!strcmp(e->key, key)) {
+			strncpy(e->value, value, MAX_CONF_VAL_LEN);
 			return 1;
 		}
 		e = e->next;
@@ -60,7 +60,7 @@ int log_config_set (struct log_config* c, const char* key, const char* value)
 	return 0;
 }
 
-int log_config_read (struct log_config* config)
+int log_config_read(struct log_config* config)
 {
 	int ret = 0;
 	char const * override;
@@ -70,66 +70,66 @@ int log_config_read (struct log_config* config)
 
 	config->begin = config->last = NULL;
 
-	override = getenv ("DLOG_CONFIG_PATH");
+	override = getenv("DLOG_CONFIG_PATH");
 	if (override)
-		return log_config_read_file (config, override);
+		return log_config_read_file(config, override);
 #ifdef DLOG_BACKEND_KMSG
-	ret |= log_config_read_file (config, get_config_filename (CONFIG_TYPE_KMSG)); // fixme: ugly
+	ret |= log_config_read_file(config, get_config_filename(CONFIG_TYPE_KMSG)); // fixme: ugly
 #endif
-	ret |= log_config_read_file (config, get_config_filename (CONFIG_TYPE_COMMON));
+	ret |= log_config_read_file(config, get_config_filename(CONFIG_TYPE_COMMON));
 
 	return ret;
 }
 
-int log_config_read_file (struct log_config* config, const char* filename)
+int log_config_read_file(struct log_config* config, const char* filename)
 {
 	FILE * file;
-	char line [MAX_CONF_ENTRY_LEN];
+	char line[MAX_CONF_ENTRY_LEN];
 	char * tok;
 
 	if (!config)
 		return 0;
 
-	file = fopen (filename, "r");
+	file = fopen(filename, "r");
 	if (!file)
 		return 0;
 
 	while (fgets(line, MAX_CONF_ENTRY_LEN, file)) {
-		int len = strlen (line);
-		char key [MAX_CONF_KEY_LEN];
+		int len = strlen(line);
+		char key[MAX_CONF_KEY_LEN];
 
 		if (len <= 1 || line[0] == '#')
 			continue;
 
 		if (line[len - 1] == '\n')
-			line [len - 1] = '\0';
+			line[len - 1] = '\0';
 
-		tok = strchr (line, '=');
+		tok = strchr(line, '=');
 		if (!tok || (tok - line > MAX_CONF_KEY_LEN))
 			continue;
 		++tok;
 
-		snprintf (key, tok - line, "%s", line);
-		if (!log_config_get (config, key))
-			log_config_push (config, key, tok);
+		snprintf(key, tok - line, "%s", line);
+		if (!log_config_get(config, key))
+			log_config_push(config, key, tok);
 	}
 
-	fclose (file);
+	fclose(file);
 	return 1;
 }
 
-void log_config_free (struct log_config* config)
+void log_config_free(struct log_config* config)
 {
 	struct log_conf_entry * current = config->begin, * prev;
 
 	while (current) {
 		prev = current;
 		current = current->next;
-		free (prev);
+		free(prev);
 	}
 }
 
-int log_config_write (struct log_config* config, char const * filename)
+int log_config_write(struct log_config* config, char const * filename)
 {
 	FILE * file;
 	int r;
@@ -138,14 +138,14 @@ int log_config_write (struct log_config* config, char const * filename)
 	if (!config)
 		return 0;
 
-	file = fopen (filename, "w");
+	file = fopen(filename, "w");
 	if (!file)
 		return 0;
 
 	e = config->begin;
 
 	while (e) {
-		r = fprintf (file, "%s=%s\n", e->key, e->value);
+		r = fprintf(file, "%s=%s\n", e->key, e->value);
 		if (r < 0) {
 			fclose(file);
 			return 0;
@@ -154,25 +154,25 @@ int log_config_write (struct log_config* config, char const * filename)
 		e = e->next;
 	}
 
-	fclose (file);
+	fclose(file);
 	return 1;
 }
 
-void log_config_print_out (struct log_config* config)
+void log_config_print_out(struct log_config* config)
 {
 	struct log_conf_entry* e = config->begin;
 	while (e) {
-		printf ("[%s] = %s\n", e->key, e->value);
+		printf("[%s] = %s\n", e->key, e->value);
 		e = e->next;
 	}
 }
 
-int log_config_print_key (struct log_config* config, const char* key)
+int log_config_print_key(struct log_config* config, const char* key)
 {
 	struct log_conf_entry* e = config->begin;
 	while (e) {
 		if (!strcmp(key, e->key)) {
-			printf ("%s\n", e->value);
+			printf("%s\n", e->value);
 			return 1;
 		}
 		e = e->next;
@@ -180,9 +180,9 @@ int log_config_print_key (struct log_config* config, const char* key)
 	return 0;
 }
 
-void log_config_push (struct log_config* config, const char* key, const char* value)
+void log_config_push(struct log_config* config, const char* key, const char* value)
 {
-	struct log_conf_entry* e = calloc (1, sizeof(struct log_conf_entry));
+	struct log_conf_entry* e = calloc(1, sizeof(struct log_conf_entry));
 	snprintf(e->key, MAX_CONF_KEY_LEN, "%s", key);
 	snprintf(e->value, MAX_CONF_VAL_LEN, "%s", value);
 
@@ -195,7 +195,7 @@ void log_config_push (struct log_config* config, const char* key, const char* va
 	config->last = e;
 }
 
-int log_config_remove (struct log_config* config, const char* key)
+int log_config_remove(struct log_config* config, const char* key)
 {
 	struct log_conf_entry* prev;
 	struct log_conf_entry* e = config->begin;
@@ -210,7 +210,7 @@ int log_config_remove (struct log_config* config, const char* key)
 			if (e == config->last)
 				config->last = prev;
 
-			free (e);
+			free(e);
 			return 1;
 		}
 		prev = e;
@@ -220,12 +220,11 @@ int log_config_remove (struct log_config* config, const char* key)
 	return 0;
 }
 
-int log_config_foreach (struct log_config* config, int (*func)(const char* key, const char* value))
+int log_config_foreach(struct log_config* config, int (*func)(const char* key, const char* value))
 {
 	int r = -1;
 	struct log_conf_entry* e = config->begin;
-	while (e)
-	{
+	while(e) {
 		if (!(r = func(e->key, e->value)))
 			break;
 
