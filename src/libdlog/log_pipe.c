@@ -33,7 +33,7 @@
 extern int (*write_to_log)(log_id_t, log_priority, const char *tag, const char *msg);
 extern pthread_mutex_t log_init_lock;
 static int pipe_fd = -1;
-static char log_pipe_path [PATH_MAX];
+static char log_pipe_path[PATH_MAX];
 
 
 static int connect_pipe(const char * path)
@@ -47,17 +47,17 @@ static int connect_pipe(const char * path)
 	if (fd < 0)
 		return -errno;
 
-	strncpy(sa.sun_path, path, sizeof (sa.sun_path));
+	strncpy(sa.sun_path, path, sizeof(sa.sun_path));
 
 	r = connect(fd, (struct sockaddr *) &sa, sizeof(sa));
 	if (r < 0) {
-		close (fd);
+		close(fd);
 		return -errno;
 	}
 
-	r = write (fd, &ctrl_msg, ctrl_msg.length);
+	r = write(fd, &ctrl_msg, ctrl_msg.length);
 	if (r < 0) {
-		close (fd);
+		close(fd);
 		return -errno;
 	}
 	fd = recv_file_descriptor(fd);
@@ -68,7 +68,7 @@ static int connect_pipe(const char * path)
 static int __write_to_log_pipe(log_id_t log_id, log_priority prio, const char *tag, const char *msg)
 {
 	ssize_t ret;
-	char buf [LOG_MAX_SIZE];
+	char buf[LOG_MAX_SIZE];
 	struct logger_entry* le = (struct logger_entry*)buf;
 	struct timespec ts;
 	int len;
@@ -90,7 +90,7 @@ static int __write_to_log_pipe(log_id_t log_id, log_priority prio, const char *t
 	if (len > LOG_MAX_SIZE)
 		return DLOG_ERROR_INVALID_PARAMETER;
 
-	clock_gettime (CLOCK_MONOTONIC, &ts);
+	clock_gettime(CLOCK_MONOTONIC, &ts);
 	le->sec = ts.tv_sec;
 	le->nsec = ts.tv_nsec;
 	le->buf_id = log_id;
@@ -104,13 +104,13 @@ static int __write_to_log_pipe(log_id_t log_id, log_priority prio, const char *t
 
 	if (le->len % 2)
 		le->len += 1;
-	ret = write (pipe_fd, buf, le->len);
+	ret = write(pipe_fd, buf, le->len);
 	if (ret < 0 && errno == EPIPE) {
 		pthread_mutex_lock(&log_init_lock);
-		close (pipe_fd);
+		close(pipe_fd);
 		pipe_fd = connect_pipe(log_pipe_path);
 		pthread_mutex_unlock(&log_init_lock);
-		ret = write (pipe_fd, buf, le->len);
+		ret = write(pipe_fd, buf, le->len);
 	}
 	return ret;
 }
@@ -127,14 +127,14 @@ void __dlog_init_backend()
 	 */
 	signal(SIGPIPE, SIG_IGN);
 
-	log_config_read (&conf);
+	log_config_read(&conf);
 	pipe_path_temp = log_config_get(&conf, "pipe_control_socket");
 	if (!pipe_path_temp) {
-		syslog_critical_failure ("THERE IS NO PATH TO pipe_control_socket IN THE CONFIG!");
+		syslog_critical_failure("THERE IS NO PATH TO pipe_control_socket IN THE CONFIG!");
 		return;
 	}
 	sprintf(log_pipe_path, "%s", pipe_path_temp);
-	log_config_free (&conf);
+	log_config_free(&conf);
 
 	pipe_fd = connect_pipe(log_pipe_path);
 	write_to_log = __write_to_log_pipe;
