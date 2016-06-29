@@ -42,7 +42,7 @@
 #include <logconfig.h>
 
 #define LIST_FOREACH(head, i)					\
-	for((i) = (head); i; (i) = (i)->next)
+	for ((i) = (head); i; (i) = (i)->next)
 
 #define LIST_REMOVE(head, i, type)					\
 	{												\
@@ -85,7 +85,7 @@
 #define DELIMITER " "
 
 enum reader_type {
-	READER_SOCKET=1,
+	READER_SOCKET = 1,
 	READER_FILE
 };
 
@@ -156,15 +156,15 @@ struct control {
 	struct fd_entity   _entity;
 	int                fd;
 	struct epoll_event event;
-	struct log_buffer* buf_ptr;
+	struct log_buffer *buf_ptr;
 	int                is_control;
-	char               path [PATH_MAX];
+	char               path[PATH_MAX];
 };
 
 struct logger {
 	int                 epollfd;
-	struct control      socket_wr  [LOG_ID_MAX];
-	struct control      socket_ctl [LOG_ID_MAX];
+	struct control      socket_wr[LOG_ID_MAX];
+	struct control      socket_ctl[LOG_ID_MAX];
 	struct writer*      writers;
 	struct reader**     readers;
 	struct log_buffer** buffers;
@@ -254,7 +254,7 @@ static int listen_fd_create (const char* path, int permissions)
 	return sd;
 
 failure:
-	close (sd);
+	close(sd);
 	return -errno;
 }
 
@@ -287,10 +287,10 @@ static void writer_free(struct writer* w)
 {
 	switch (w->state) {
 	case WRITER_SOCKET:
-		close (w->socket_fd);
+		close(w->socket_fd);
 		break;
 	case WRITER_PIPE:
-		close (w->pipe_fd[0]);
+		close(w->pipe_fd[0]);
 		break;
 	default:
 		break;
@@ -361,7 +361,7 @@ static void buffer_append(const struct logger_entry* entry, struct log_buffer* b
 		struct logger_entry* t = (struct logger_entry*)(b->buffer + b->head);
 		b->head += t->len;
 		b->head %= b->size;
-		-- b->lines;
+		--b->lines;
 		LIST_FOREACH(reader_head, reader)
 			if (reader->current == old_head)
 				reader->current = b->head;
@@ -372,7 +372,7 @@ static void buffer_append(const struct logger_entry* entry, struct log_buffer* b
 	b->tail %= b->size;
 	b->buffered_len += entry->len;
 	b->not_empty = 1;
-	++ b->lines;
+	++b->lines;
 }
 
 static void add_misc_file_info (int fd)
@@ -440,7 +440,7 @@ static int print_out_logs(struct reader* reader, struct log_buffer* buffer)
 			continue;
 
 		tag = ple->msg + 1;
-		if (!strlen (tag))
+		if (!strlen(tag))
 			continue;
 
 		if (!log_should_print_line(reader->file.format, tag, priority))
@@ -478,8 +478,8 @@ cleanup:
 static int send_pipe(int socket, int wr_pipe, int type)
 {
 	int r;
-	struct dlog_control_msg tmp =
-		{sizeof(struct dlog_control_msg), DLOG_REQ_PIPE, DLOG_FLAG_ANSW | type};
+	struct dlog_control_msg tmp = {
+		sizeof(struct dlog_control_msg), DLOG_REQ_PIPE, DLOG_FLAG_ANSW | type};
 	struct msghdr msg = { 0 };
 	char buf[CMSG_SPACE(sizeof(wr_pipe))];
 	memset(buf, '\0', sizeof(buf));
@@ -502,7 +502,7 @@ static int send_pipe(int socket, int wr_pipe, int type)
 	if ((r = sendmsg(socket, &msg, 0)) < 0)
 		return r;
 
-	close (wr_pipe);
+	close(wr_pipe);
 	return 0;
 }
 
@@ -511,11 +511,11 @@ static void writer_close_fd(struct logger* server, struct writer* wr)
 	switch (wr->state) {
 	case WRITER_SOCKET:
 		remove_fd_loop(server->epollfd, wr->socket_fd);
-		close (wr->socket_fd);
+		close(wr->socket_fd);
 		break;
 	case WRITER_PIPE:
 		remove_fd_loop(server->epollfd, wr->pipe_fd[0]);
-		close (wr->pipe_fd[0]);
+		close(wr->pipe_fd[0]);
 		break;
 	default:
 		break;
@@ -546,7 +546,7 @@ static int parse_command_line(const char* cmdl, struct logger* server, struct wr
 {
 	char cmdline[512];
 	int option, argc;
-	char *argv [ARG_MAX];
+	char *argv[ARG_MAX];
 	char *tok;
 	char *tok_sv;
 	int retval = 0;
@@ -555,7 +555,7 @@ static int parse_command_line(const char* cmdl, struct logger* server, struct wr
 
 	if (!server || !cmdl) return EINVAL;
 
-	strncpy (cmdline, cmdl, 512);
+	strncpy(cmdline, cmdl, 512);
 
 	reader = calloc(1, sizeof(struct reader));
 	if (!reader) return ENOMEM;
@@ -599,7 +599,7 @@ static int parse_command_line(const char* cmdl, struct logger* server, struct wr
 				retval = -1;
 				goto cleanup;
 			}
-			reader->buf_id = log_id_by_name (optarg);
+			reader->buf_id = log_id_by_name(optarg);
 			break;
 		case 'r':
 			if (!optarg || !isdigit(optarg[0])) {
@@ -630,8 +630,8 @@ static int parse_command_line(const char* cmdl, struct logger* server, struct wr
 	}
 
 	if (reader->file.path != NULL) {
-		reader->file.fd = open (reader->file.path, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
-		add_misc_file_info (reader->file.fd);
+		reader->file.fd = open(reader->file.path, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
+		add_misc_file_info(reader->file.fd);
 	} else {
 		reader->file.rotate_size_kbytes = 0;
 		reader->file.max_rotated = 0;
@@ -660,7 +660,7 @@ cleanup:
 	optind = 0;
 	optopt = 0;
 
-	if (retval) reader_free (reader);
+	if (retval) reader_free(reader);
 
 	return retval;
 }
@@ -808,7 +808,7 @@ static int service_writer_socket(struct logger* server, struct writer* wr, struc
 			return r;
 
 		r = read(wr->socket_fd, wr->buffer + wr->readed, LOG_MAX_SIZE - wr->readed);
-	} while (r > 0 || ((wr->readed >= sizeof(msg->length) && wr->readed >= msg->length)) );
+	} while (r > 0 || ((wr->readed >= sizeof(msg->length) && wr->readed >= msg->length)));
 
 	return (r >= 0 || (r < 0 && errno == EAGAIN))  ? 0 : r;
 }
@@ -819,11 +819,11 @@ static int service_writer_pipe(struct logger* server, struct writer* wr, struct 
 	int r = 0;
 
 	if (event->events & EPOLLIN) {
-		r = read (wr->pipe_fd[0], wr->buffer + wr->readed, LOG_MAX_SIZE - wr->readed);
+		r = read(wr->pipe_fd[0], wr->buffer + wr->readed, LOG_MAX_SIZE - wr->readed);
 
 		if (r == -1 && errno == EAGAIN)
 			return 0;
-		else if ((r == 0 || r== -1) && event->events & EPOLLHUP)
+		else if ((r == 0 || r == -1) && event->events & EPOLLHUP)
 			return EINVAL;
 		else if (r == 0)
 			return -EBADF;
@@ -888,7 +888,7 @@ static struct logger* logger_create (struct log_config *conf)
 	struct logger* l = calloc(1, sizeof(struct logger));
 	int i = 0;
 	int size = 0;
-	char conf_key [MAX_CONF_KEY_LEN];
+	char conf_key[MAX_CONF_KEY_LEN];
 	const char *conf_value, *conf_value2;
 	int permissions;
 
@@ -910,15 +910,14 @@ static struct logger* logger_create (struct log_config *conf)
 		goto err4;
 
 	for (i = 0; i < LOG_ID_MAX; i++) {
-
-		snprintf (conf_key, MAX_CONF_KEY_LEN, "%s_ctl_sock", log_name_by_id (i));
-		conf_value = log_config_get (conf, conf_key);
+		snprintf(conf_key, MAX_CONF_KEY_LEN, "%s_ctl_sock", log_name_by_id(i));
+		conf_value = log_config_get(conf, conf_key);
 		if (!conf_value)
 			goto err5;
 		strncpy (l->socket_ctl[i].path, conf_value, sizeof(l->socket_ctl[i].path));
 
-		snprintf (conf_key, MAX_CONF_KEY_LEN, "%s_ctl_sock_rights", log_name_by_id (i));
-		conf_value = log_config_get (conf, conf_key);
+		snprintf(conf_key, MAX_CONF_KEY_LEN, "%s_ctl_sock_rights", log_name_by_id(i));
+		conf_value = log_config_get(conf, conf_key);
 
 		permissions = parse_permissions (conf_value);
 		if (!permissions)
@@ -1021,7 +1020,7 @@ static void logger_free(struct logger* l)
 
 	for (j = 0; j < LOG_ID_MAX; j++) {
 		struct writer* i;
-		while((i = l->writers)) {
+		while ((i = l->writers)) {
 			LIST_REMOVE(l->writers, i, writer);
 			writer_free(i);
 		}
@@ -1029,7 +1028,7 @@ static void logger_free(struct logger* l)
 
 	for (j = 0; j < LOG_ID_MAX; j++) {
 		struct reader* reader;
-		while((reader = l->readers[j])) {
+		while ((reader = l->readers[j])) {
 			LIST_REMOVE(l->readers[j], reader, reader);
 			reader_free(reader);
 		}
@@ -1072,11 +1071,11 @@ static int add_reader(struct logger* server, int buf_id, int fd, enum reader_typ
 static int dispatch_event(struct logger* server, struct fd_entity* entity, struct epoll_event* event)
 {
 	int r = 1;
-	switch(entity->type) {
+	switch (entity->type) {
 	case ENTITY_WRITER:
 		r = service_writer(server, (struct writer*)entity, event);
 		if (r) {
-			LIST_REMOVE (server->writers, ((struct writer*)entity), writer);
+			LIST_REMOVE(server->writers, ((struct writer*)entity), writer);
 			writer_free((struct writer*)entity);
 		}
 		break;
@@ -1091,7 +1090,7 @@ static int dispatch_event(struct logger* server, struct fd_entity* entity, struc
 				LIST_ADD(server->writers, writer);
 				add_fd_loop(server->epollfd, writer->socket_fd, &writer->event);
 			} else
-				close (sock_pipe);
+				close(sock_pipe);
 		}
 		break;
 	}
@@ -1163,41 +1162,41 @@ err:
 static int parse_configs(struct logger** server)
 {
 	struct log_config conf;
-	const char * conf_val;
-	char conf_key [MAX_CONF_KEY_LEN];
+	const char *conf_val;
+	char conf_key[MAX_CONF_KEY_LEN];
 	int i = 0;
 	if (*server)
 		logger_free(*server);
 
-	log_config_read (&conf);
+	log_config_read(&conf);
 
 	*server = logger_create (&conf);
 	if (!(*server))
 		return EINVAL;
 
 	while (1) {
-		sprintf (conf_key, "dlog_logger_conf_%d", i++);
-		conf_val = log_config_get (&conf, conf_key);
+		sprintf(conf_key, "dlog_logger_conf_%d", i++);
+		conf_val = log_config_get(&conf, conf_key);
 		if (!conf_val)
 			break;
-		parse_command_line (conf_val, *server, NULL);
+		parse_command_line(conf_val, *server, NULL);
 	}
 
-	log_config_free (&conf);
+	log_config_free(&conf);
 	return 0;
 }
 
-static void help () {
-	printf
-		( "Usage: %s [options]\n"
+static void help()
+{
+	printf("Usage: %s [options]\n"
 		  "\t-h	   Show this help\n"
 		  "\t-b N  Set the size of the log buffer (in bytes)\n"
-		  "\t-t N  Set time between writes to file (in seconds)\n"
-		, program_invocation_short_name
-	);
+		  "\t-t N  Set time between writes to file (in seconds)\n",
+		  program_invocation_short_name
+		  );
 }
 
-static int parse_args (int argc, char ** argv, struct logger * server)
+static int parse_args(int argc, char ** argv, struct logger * server)
 {
 	int temp, option;
 	while ((option = getopt(argc, argv, "hb:t:")) != -1) {
@@ -1247,13 +1246,13 @@ int main(int argc, char** argv)
 
 	r = parse_configs(&server);
 	if (r) {
-		logger_free (server);
+		logger_free(server);
 		return r;
 	}
 
-	r = parse_args (argc, argv, server);
+	r = parse_args(argc, argv, server);
 	if (r) {
-		logger_free (server);
+		logger_free(server);
 		return r;
 	}
 
