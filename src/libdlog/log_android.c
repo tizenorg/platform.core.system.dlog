@@ -48,26 +48,26 @@ void __dlog_init_backend()
 	struct log_config conf;
 	log_id_t buf_id;
 
-	if (!log_config_read (&conf))
+	if (!log_config_read(&conf))
 		return;
 
 	for (buf_id = 0; buf_id < LOG_ID_MAX; ++buf_id) {
 		const char * const buffer_name = log_config_get(&conf, log_name_by_id(buf_id));
 
 		if (!buffer_name) {
-			char err_message [MAX_CONF_VAL_LEN + 64];
-			snprintf (err_message, MAX_CONF_VAL_LEN + 64, "LOG BUFFER #%d %s HAS NO PATH SET IN CONFIG", buf_id, buffer_name);
-			syslog_critical_failure (err_message);
+			char err_message[MAX_CONF_VAL_LEN + 64];
+			snprintf(err_message, MAX_CONF_VAL_LEN + 64, "LOG BUFFER #%d %s HAS NO PATH SET IN CONFIG", buf_id, buffer_name);
+			syslog_critical_failure(err_message);
 			return;
 		}
 
 		log_fds[buf_id] = open(buffer_name, O_WRONLY);
 	}
 
-	log_config_free (&conf);
+	log_config_free(&conf);
 
 	if (log_fds[LOG_ID_MAIN] < 0) {
-		syslog_critical_failure ("COULD NOT OPEN MAIN LOG");
+		syslog_critical_failure("COULD NOT OPEN MAIN LOG");
 		return;
 	}
 

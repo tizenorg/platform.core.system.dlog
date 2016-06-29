@@ -721,17 +721,17 @@ exit_free:
 static int parse_command(struct log_command *command_list)
 {
 	struct log_config conf;
-	char conf_key [MAX_CONF_KEY_LEN];
+	char conf_key[MAX_CONF_KEY_LEN];
 	const char * conf_val;
 	int ncmd;
 
-	if (!log_config_read (&conf))
+	if (!log_config_read(&conf))
 		return 0;
 
 	ncmd = 0;
 	while (1) {
 		snprintf(conf_key, MAX_CONF_KEY_LEN, "dlog_logger_conf_%d", ncmd);
-		conf_val = log_config_get (&conf, conf_key);
+		conf_val = log_config_get(&conf, conf_key);
 		if (!conf_val)
 			break;
 		if (parse_command_line(conf_val, &command_list[ncmd]) == 0)
@@ -740,7 +740,7 @@ static int parse_command(struct log_command *command_list)
 			break;
 	}
 
-	log_config_free (&conf);
+	log_config_free(&conf);
 
 	return ncmd;
 }
@@ -861,7 +861,7 @@ int main(int argc, char **argv)
 	if (!ncmd)
 		goto exit;
 
-	if (!log_config_read (&conf))
+	if (!log_config_read(&conf))
 		goto exit;
 
 	/* create log device */

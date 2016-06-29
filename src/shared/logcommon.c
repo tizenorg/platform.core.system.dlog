@@ -31,7 +31,7 @@
 static struct {
 	log_id_t id;
 	char * name;
-} logid_map [] = {
+} logid_map[] = {
 	{ .id = LOG_ID_MAIN,   .name = "main" },
 	{ .id = LOG_ID_RADIO,  .name = "radio" },
 	{ .id = LOG_ID_SYSTEM, .name = "system" },
@@ -43,13 +43,13 @@ log_id_t log_id_by_name(const char *name)
 	log_id_t i;
 
 	for (i = 0; i < LOG_ID_MAX; ++i)
-		if (!strcmp (name, logid_map[i].name))
+		if (!strcmp(name, logid_map[i].name))
 			return logid_map[i].id;
 
 	return LOG_ID_INVALID;
 }
 
-char * log_name_by_id (log_id_t id)
+char * log_name_by_id(log_id_t id)
 {
 	log_id_t i;
 
@@ -61,11 +61,11 @@ char * log_name_by_id (log_id_t id)
 }
 
 /* Sends a message to syslog in case dlog has a critical failure and cannot make its own log */
-void syslog_critical_failure (const char * message)
+void syslog_critical_failure(const char * message)
 {
-	openlog (NULL, LOG_PERROR | LOG_CONS | LOG_PID | LOG_NDELAY, 0);
-	syslog (LOG_CRIT, "DLOG CRITIAL FAILURE: %s", message);
-	closelog ();
+	openlog(NULL, LOG_PERROR | LOG_CONS | LOG_PID | LOG_NDELAY, 0);
+	syslog(LOG_CRIT, "DLOG CRITIAL FAILURE: %s", message);
+	closelog();
 }
 
 int recv_file_descriptor(int socket)
@@ -91,12 +91,12 @@ int recv_file_descriptor(int socket)
 	message.msg_iov = iov;
 	message.msg_iovlen = 1;
 
-	if((res = recvmsg(socket, &message, 0)) <= 0)
+	if ((res = recvmsg(socket, &message, 0)) <= 0)
 	return res;
 
 	/* Iterate through header to find if there is a file descriptor */
-	for(control_message = CMSG_FIRSTHDR(&message); control_message != NULL; control_message = CMSG_NXTHDR(&message, control_message)) {
-		if( (control_message->cmsg_level == SOL_SOCKET) && (control_message->cmsg_type == SCM_RIGHTS) )
+	for (control_message = CMSG_FIRSTHDR(&message); control_message != NULL; control_message = CMSG_NXTHDR(&message, control_message)) {
+		if ((control_message->cmsg_level == SOL_SOCKET) && (control_message->cmsg_type == SCM_RIGHTS))
 			return *(CMSG_DATA(control_message));
 	}
 	return -1;

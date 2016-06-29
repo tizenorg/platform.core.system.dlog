@@ -56,24 +56,24 @@ static int __write_to_log_journal(log_id_t log_id, log_priority prio, const char
 
 	pid_t tid = (pid_t)gettid();
 
-	if(!msg)
+	if (!msg)
 		return DLOG_ERROR_INVALID_PARAMETER;
 
-	if(strncmp(lid_str, "UNKNOWN", 7) == 0)
+	if (strncmp(lid_str, "UNKNOWN", 7) == 0)
 		return DLOG_ERROR_INVALID_PARAMETER;
 
-	if(prio < DLOG_VERBOSE || prio >= DLOG_PRIO_MAX)
+	if (prio < DLOG_VERBOSE || prio >= DLOG_PRIO_MAX)
 		return DLOG_ERROR_INVALID_PARAMETER;
 
-	if(!tag)
+	if (!tag)
 		tag = "";
 
 	struct iovec vec[5];
-	char _msg   [LOG_MAX_SIZE + 8];
-	char _prio  [LOG_INFO_SIZE + 9];
-	char _tag   [LOG_BUF_SIZE + 8];
+	char _msg[LOG_MAX_SIZE + 8];
+	char _prio[LOG_INFO_SIZE + 9];
+	char _tag[LOG_BUF_SIZE + 8];
 	char _log_id[LOG_INFO_SIZE + 7];
-	char _tid   [LOG_INFO_SIZE + 4];
+	char _tid[LOG_INFO_SIZE + 4];
 
 	snprintf(_msg, LOG_MAX_SIZE + 8, "MESSAGE=%s", msg);
 	vec[0].iov_base = (void *)_msg;

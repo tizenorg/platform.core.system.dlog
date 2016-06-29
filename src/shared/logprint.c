@@ -192,8 +192,7 @@ log_format *log_format_from_format(log_format *p_format)
 	while (p_info != NULL) {
 		FilterInfo *p_tmp;
 		p_tmp = filterinfo_new(p_info->mTag, p_info->mPri);
-		if (!p_tmp)
-		{
+		if (!p_tmp) {
 			log_format_free(p_ret);
 			return NULL;
 		}

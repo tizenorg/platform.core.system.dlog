@@ -23,7 +23,7 @@
 
 #include <systemd/sd-journal.h>
 
-int main (int argc, char **argv)
+int main(int argc, char **argv)
 {
 	int r;
 	sd_journal *j;
