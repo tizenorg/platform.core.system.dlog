@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <time.h>
+#include <getopt.h>
 
 #include <linux/limits.h>
 #include <sys/epoll.h>
@@ -198,11 +199,13 @@ static void handle_pipe(int pipe_fd, int dump)
 	int accepting_logs = 1;
 	struct timespec start_time;
 
-	int epollfd;
+	int epollfd, is_file = 0;
 	struct epoll_event ev = { .events = EPOLLIN, .data.fd = pipe_fd };
 
 	epollfd = epoll_create1(0);
-	epoll_ctl (epollfd, EPOLL_CTL_ADD, pipe_fd, &ev);
+	r = epoll_ctl (epollfd, EPOLL_CTL_ADD, pipe_fd, &ev);
+	if (r == -1 && errno == EPERM)
+		is_file = 1;
 
 	clock_gettime (CLOCK_MONOTONIC, &start_time);
 
@@ -240,8 +243,7 @@ static void handle_pipe(int pipe_fd, int dump)
 				continue;
 		}
 
-		r = epoll_wait(epollfd, &ev, 1, 100);
-		if (r < 1) {
+		if (!is_file && epoll_wait(epollfd, &ev, 1, 100) < 1) {
 			filled = 0;
 			continue;
 		}
@@ -279,13 +281,17 @@ static void handle_pipe(int pipe_fd, int dump)
 	}
 }
 
-int handle_stdin(int dump)
+int handle_file (char const * filename)
 {
 	fd_set readfds;
 	int endian, version;
 	int r;
+	int fd;
+
+	fd = open (filename, O_RDONLY);
+
 	FD_ZERO(&readfds);
-	FD_SET(STDIN_FILENO, &readfds);
+	FD_SET(fd, &readfds);
 
 	struct timeval timeout;
 	timeout.tv_sec = 0;
@@ -294,10 +300,10 @@ int handle_stdin(int dump)
 	/* Check whether stdin contains anything.
 	read() would be blocking if nothing was redirected into stdin
 	ergo we need to know about that beforehand. */
-	if (!select(1, &readfds, NULL, NULL, &timeout))
+	if (!select(fd + 1, &readfds, NULL, NULL, &timeout))
 		return 0;
 
-	r = read(STDIN_FILENO, &endian, 4);
+	r = read(fd, &endian, 4);
 	if (r <= 0)
 		return 0;
 
@@ -306,7 +312,7 @@ int handle_stdin(int dump)
 		return 0;
 	}
 
-	r = read(STDIN_FILENO, &version, 4);
+	r = read(fd, &version, 4);
 	if (r <= 0)
 		return 0;
 
@@ -315,13 +321,14 @@ int handle_stdin(int dump)
 		return 0;
 	}
 
-	handle_pipe(STDIN_FILENO, dump);
+	handle_pipe(fd, -1);
 	return 1;
 }
 
 int main(int argc, char ** argv)
 {
 	char buffer_name[MAX_CONF_VAL_LEN] = "";
+	char file_input_name[MAX_CONF_VAL_LEN] = "";
 	const char * sock_path;
 	const char * conf_value;
 	int pipe_fd;
@@ -333,21 +340,25 @@ int main(int argc, char ** argv)
 	int silence = 0;
 	char conf_key [MAX_CONF_KEY_LEN];
 
-	if (argc == 2 && !strcmp ("--help", argv[1])) {
-		show_help (argv[0]);
-		return 1;
-	}
-
 	log_fmt = log_format_new ();
 	log_set_print_format (log_fmt, FORMAT_KERNELTIME);
 
 	while (1) {
-		int option = getopt(argc, argv, "cdt:gsf:r:n:v:b:h");
+		static struct option long_options [] = {
+			{"dumpfile", required_argument, 0, 0},
+			{"help", no_argument, 0, 'h'},
+			{0, 0, 0, 0}
+		};
+		int long_option_id = -1;
+		int option = getopt_long (argc, argv, "cdt:gsf:r:n:v:b:h", long_options, &long_option_id);
 
 		if (option < 0)
 			break;
 
 		switch (option) {
+		case 0:
+			strncpy (file_input_name, optarg, MAX_CONF_VAL_LEN);
+			break;
 		case 'h':
 			show_help (argv[0]);
 			return 1;
@@ -418,7 +429,7 @@ int main(int argc, char ** argv)
 
 	log_config_free(&conf);
 
-	if (handle_stdin(dump))
+	if (strlen (file_input_name) > 0 && handle_file (file_input_name))
 		return 0;
 
 	if ((sock_fd = connect_sock(sock_path)) < 0) {
