@@ -264,6 +264,8 @@ static void handle_pipe (int pipe_fd, int dump)
 		index += r;
 
 		e = (struct logger_entry *) buff;
+		if (!e->len)
+			break;
 		while (index > 2 && index >= e->len) {
 			struct logger_entry * temp = malloc (e->len);
 			memcpy (temp, buff, e->len);
@@ -294,11 +296,17 @@ int handle_stdin (int dump)
 
 	r = read (STDIN_FILENO, &endian, 4);
 	if (r <= 0)
-		return 1;
+		return 0;
+
+	if (endian != 0x12345678 && endian != 0x78563412)
+		return 0;
 
 	r = read (STDIN_FILENO, &version, 4);
 	if (r <= 0)
-		return 1;
+		return 0;
+
+	if (version != 1)
+		return 0;
 
 	handle_pipe (STDIN_FILENO, dump);
 	return 1;
