@@ -453,8 +453,13 @@ static int print_out_logs(struct reader* reader, struct log_buffer* buffer)
 			r = write (reader->file.fd, ple, ple->len);
 		} while (r < 0 && errno == EINTR);
 
-		if (r > 0)
-			reader->file.size += r;
+		if (r < 0) {
+			if (errno == EPIPE)
+				ret = 1;
+			goto cleanup;
+		}
+
+		reader->file.size += r;
 
 		if (r < ple->len) {
 			reader->partial_log_size = ple->len - r;
@@ -832,6 +837,8 @@ static int service_writer_pipe(struct logger* server, struct writer* wr, struct 
 
 		entry = (struct logger_entry*)wr->buffer;
 		while ((wr->readed >= sizeof(entry->len)) && (entry->len <= wr->readed)) {
+			if (entry->len < sizeof(struct logger_entry))
+				return EINVAL;
 			buffer_append(entry, server->buffers[entry->buf_id], server->readers[entry->buf_id]);
 			wr->readed -= entry->len;
 			server->should_timeout |= (1<<entry->buf_id);
