@@ -47,6 +47,9 @@
 /* How large (in bytes) the pipe receiving buffer is. */
 #define RECEIVE_BUFFER_SIZE 16384
 
+/* Magic constant for checking file correctness */
+#define ENDIANNESS_CHECK 0x12345678
+
 static int buf_id = 0;
 static int sock_fd = -1;
 static int sort_timeout = 1000; // ms
@@ -266,6 +269,8 @@ static void handle_pipe(int pipe_fd, int dump)
 		e = (struct logger_entry *)buff;
 		while (index > 2 && index >= e->len) {
 			struct logger_entry *temp = malloc(e->len);
+			if (!e->len)
+				break;
 			memcpy(temp, buff, e->len);
 			index -= e->len;
 			memmove(buff, buff + e->len, RECEIVE_BUFFER_SIZE - e->len);
@@ -294,11 +299,21 @@ int handle_stdin(int dump)
 
 	r = read(STDIN_FILENO, &endian, 4);
 	if (r <= 0)
-		return 1;
+		return 0;
+
+	if (endian != ENDIANNESS_CHECK) {
+		fprintf (stderr, "Unsupported endianness!\n");
+		return 0;
+	}
 
 	r = read(STDIN_FILENO, &version, 4);
 	if (r <= 0)
-		return 1;
+		return 0;
+
+	if (version != PIPE_FILE_FORMAT_VERSION) {
+		fprintf (stderr, "Obsolete file format version!\n");
+		return 0;
+	}
 
 	handle_pipe(STDIN_FILENO, dump);
 	return 1;

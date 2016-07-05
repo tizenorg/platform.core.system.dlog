@@ -92,7 +92,7 @@ static int __write_to_log_pipe(log_id_t log_id, log_priority prio, const char *t
 	clock_gettime(CLOCK_MONOTONIC, &ts);
 	le->sec = ts.tv_sec;
 	le->nsec = ts.tv_nsec;
-	le->buf_id = log_id;
+	le->padding = 0;
 	le->len = len;
 	le->pid = getpid();
 	le->tid = gettid();

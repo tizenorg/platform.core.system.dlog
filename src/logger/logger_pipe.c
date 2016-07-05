@@ -453,8 +453,13 @@ static int print_out_logs(struct reader* reader, struct log_buffer* buffer)
 			r = write (reader->file.fd, ple, ple->len);
 		} while (r < 0 && errno == EINTR);
 
-		if (r > 0)
-			reader->file.size += r;
+		if (r < 0) {
+			if (errno == EPIPE)
+				ret = 1;
+			goto cleanup;
+		}
+
+		reader->file.size += r;
 
 		if (r < ple->len) {
 			reader->partial_log_size = ple->len - r;
@@ -468,6 +473,8 @@ static int print_out_logs(struct reader* reader, struct log_buffer* buffer)
 
 	if (reader->dumpcount)
 		ret = 1;
+	else
+		ret = -1;
 
 cleanup:
 	close (epoll_fd);
@@ -539,6 +546,9 @@ static int service_reader(struct logger* server, struct reader* reader)
 	int r = 0;
 
 	r = print_out_logs(reader, buffer);
+	if (!r)
+		server->should_timeout |= (1 << LOG_ID_MAX);
+
 	return r;
 }
 
@@ -630,8 +640,10 @@ static int parse_command_line(const char* cmdl, struct logger* server, struct wr
 	}
 
 	if (reader->file.path != NULL) {
-		reader->file.fd = open(reader->file.path, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
-		add_misc_file_info(reader->file.fd);
+		int file_already_exists = !access (reader->file.path, F_OK);
+		reader->file.fd = open(reader->file.path, O_WRONLY | O_CREAT | O_APPEND, S_IRUSR | S_IWUSR);
+		if (!file_already_exists)
+			add_misc_file_info(reader->file.fd);
 	} else {
 		reader->file.rotate_size_kbytes = 0;
 		reader->file.max_rotated = 0;
@@ -832,9 +844,11 @@ static int service_writer_pipe(struct logger* server, struct writer* wr, struct 
 
 		entry = (struct logger_entry*)wr->buffer;
 		while ((wr->readed >= sizeof(entry->len)) && (entry->len <= wr->readed)) {
-			buffer_append(entry, server->buffers[entry->buf_id], server->readers[entry->buf_id]);
+			if (entry->len < sizeof(struct logger_entry))
+				return EINVAL;
+			buffer_append(entry, server->buffers[wr->buf_ptr->id], server->readers[wr->buf_ptr->id]);
 			wr->readed -= entry->len;
-			server->should_timeout |= (1<<entry->buf_id);
+			server->should_timeout |= (1<<wr->buf_ptr->id);
 			memmove(wr->buffer, wr->buffer + entry->len, LOG_MAX_SIZE - entry->len);
 		}
 	} else if (event->events & EPOLLHUP)
@@ -862,13 +876,14 @@ static void service_all_readers(struct logger* server, int time_elapsed)
 	struct log_buffer** buffers = server->buffers;
 	struct reader* reader = NULL;
 
+	server->should_timeout &= ~(1 << LOG_ID_MAX);
 	for (i = 0; i < LOG_ID_MAX; i++) {
 		buffers[i]->elapsed += time_elapsed;
 		if (buffers[i]->buffered_len >= server->max_buffered_bytes ||
 			buffers[i]->elapsed >= server->max_buffered_time) {
 			LIST_FOREACH(server->readers[i], reader) {
 				r = service_reader(server, reader);
-				if (r) {
+				if (r > 0) {
 					LIST_REMOVE(server->readers[i], reader, reader);
 					LIST_ITEM_FREE(reader, reader);
 					if (!reader)
@@ -1117,11 +1132,16 @@ static int logger_get_timeout(struct logger* server)
 	if (!server->should_timeout)
 		return timeout;
 
+	if (server->should_timeout & (1 << LOG_ID_MAX))
+		timeout = server->max_buffered_time;
+
+
 	for (i = 0; i < LOG_ID_MAX; i++) {
 		int diff = server->max_buffered_time - server->buffers[i]->elapsed;
 		if (diff >= 0 && (diff < timeout || timeout == -1))
 			timeout = diff;
 	}
+
 	return timeout;
 }
 
