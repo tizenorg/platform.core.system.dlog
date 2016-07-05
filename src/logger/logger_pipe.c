@@ -635,7 +635,7 @@ static int parse_command_line(const char* cmdl, struct logger* server, struct wr
 	}
 
 	if (reader->file.path != NULL) {
-		reader->file.fd = open(reader->file.path, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
+		reader->file.fd = open(reader->file.path, O_WRONLY | O_CREAT | O_APPEND, S_IRUSR | S_IWUSR);
 		add_misc_file_info(reader->file.fd);
 	} else {
 		reader->file.rotate_size_kbytes = 0;
