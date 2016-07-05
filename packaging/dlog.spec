@@ -30,7 +30,7 @@ Source502:  packaging/01-dlog.rules.logger
 %define backend_pipe	OFF
 %endif
 
-%if "%{?profile}" == "wearable" || "%{?_with_emulator}" == "1"
+%if "%{?profile}" == "wearable" || "%{?_with_emulator}" == "1" || "%{?profile}" == "common"
 %define backend_journal	OFF
 %define backend_kmsg	OFF
 %define backend_logger	ON
