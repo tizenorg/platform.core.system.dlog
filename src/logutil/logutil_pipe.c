@@ -36,7 +36,7 @@
 #include <log_file.h>
 #include <logconfig.h>
 #include <queued_entry.h>
-
+#include <sys/inotify.h>
 #include "logutil_doc.h"
 
 /* should fit a whole command line with concatenated arguments (reasonably) */
@@ -55,6 +55,7 @@ static int buf_id = 0;
 static int sock_fd = -1;
 static int sort_timeout = 1000; // ms
 static log_format * log_fmt;
+static char inotify_buffer [sizeof (struct inotify_event) + NAME_MAX + 1];
 
 static struct sorting_vector {
 	struct logger_entry * data [SORT_BUFFER_SIZE];
@@ -190,26 +191,30 @@ static int process_log(struct logger_entry *e, const struct timespec *now)
 		return 0;
 }
 
-static void handle_pipe(int pipe_fd, int dump)
+static void handle_input(int input_fd, int dump, int inotify_fd)
 {
 	char buff[RECEIVE_BUFFER_SIZE];
 	int index = 0;
 	int filled = 1;
 	int r;
+	int eof_is_real = (inotify_fd == -1);
 	int accepting_logs = 1;
 	struct timespec start_time;
 
 	int epollfd, is_file = 0;
-	struct epoll_event ev = { .events = EPOLLIN, .data.fd = pipe_fd };
+	struct epoll_event ev = { .events = EPOLLIN, .data.fd = input_fd };
 
 	epollfd = epoll_create1(0);
-	r = epoll_ctl (epollfd, EPOLL_CTL_ADD, pipe_fd, &ev);
-	if (r == -1 && errno == EPERM)
+	r = epoll_ctl (epollfd, EPOLL_CTL_ADD, input_fd, &ev);
+	if (r == -1 && errno == EPERM) {
 		is_file = 1;
+		if (inotify_fd != -1)
+			epoll_ctl(epollfd, EPOLL_CTL_ADD, inotify_fd, &ev);
+	}
 
 	clock_gettime (CLOCK_MONOTONIC, &start_time);
 
-	fcntl (pipe_fd, F_SETFL, fcntl (pipe_fd, F_GETFL, 0) | O_NONBLOCK);
+	fcntl (input_fd, F_SETFL, fcntl (input_fd, F_GETFL, 0) | O_NONBLOCK);
 
 	for (;;) {
 		struct logger_entry *e;
@@ -248,7 +253,14 @@ static void handle_pipe(int pipe_fd, int dump)
 			continue;
 		}
 
-		r = read(pipe_fd, buff + index, RECEIVE_BUFFER_SIZE - index);
+		if (is_file && epoll_wait(epollfd, &ev, 1, 0) == 1) {
+			r = read(inotify_fd, inotify_buffer, sizeof(inotify_buffer));
+			struct inotify_event * ievent = (struct inotify_event *)inotify_buffer;
+			if (r >= sizeof(struct inotify_event) && (ievent->mask & IN_MOVE_SELF))
+				eof_is_real = 1;
+		}
+
+		r = read(input_fd, buff + index, RECEIVE_BUFFER_SIZE - index);
 
 		if (r < 0) {
 			if (errno != EAGAIN)
@@ -261,7 +273,8 @@ static void handle_pipe(int pipe_fd, int dump)
 
 		if (r == 0) {
 			filled = 0;
-			accepting_logs = 0;
+			if (eof_is_real)
+				accepting_logs = 0;
 			continue;
 		}
 
@@ -281,7 +294,7 @@ static void handle_pipe(int pipe_fd, int dump)
 	}
 }
 
-int handle_file (char const * filename)
+int handle_file (char const * filename, int dump, int inotify_fd)
 {
 	fd_set readfds;
 	int endian, version;
@@ -321,14 +334,85 @@ int handle_file (char const * filename)
 		return 0;
 	}
 
-	handle_pipe(fd, -1);
+	handle_input(fd, dump, inotify_fd);
 	return 1;
+}
+
+int handle_continuous (char const *filename)
+{
+	int inotify_fd = inotify_init1(IN_NONBLOCK);
+	if (inotify_fd < 0) {
+		printf("inotify has failed!\n");
+		return 1;
+	}
+
+	while (1) {
+		int wd = inotify_add_watch(inotify_fd, filename, IN_MOVE_SELF);
+		handle_file(filename, -1, inotify_fd);
+		inotify_rm_watch(inotify_fd, wd);
+	}
+}
+
+void get_file_info (char *filename, struct log_config *conf, int buf_id)
+{
+	int i = 0;
+	char conf_key[MAX_CONF_KEY_LEN];
+	char const *conf_val;
+	char command_line[MAX_CONF_VAL_LEN];
+	int argc;
+	char *argv[ARG_MAX];
+	char *tok, *tok_sv;
+	int option;
+	int current_buf_id;
+
+	while (1) {
+		snprintf(conf_key, sizeof(conf_key), "dlog_logger_conf_%d", i++);
+		conf_val = log_config_get(conf, conf_key);
+		if (!conf_val)
+			break;
+
+		strncpy(command_line, conf_val, MAX_CONF_VAL_LEN);
+		argc = 0;
+		tok = strtok_r(command_line, " ", &tok_sv);
+		while (tok && argc < ARG_MAX) {
+			argv[argc++] = strdup(tok);
+			tok = strtok_r(NULL, " ", &tok_sv);
+		}
+
+		optarg = NULL;
+		optopt = 0;
+		optind = 0;
+
+		current_buf_id = -123;
+		while ((option = getopt(argc, argv, "cdt:gsf:r:n:v:b:")) != -1) {
+			switch (option) {
+				case 'f':
+					strncpy(filename, optarg, MAX_CONF_VAL_LEN);
+					break;
+				case 'b':
+					current_buf_id = log_id_by_name(optarg);
+					break;
+				default:
+					break;
+			}
+		}
+		if (current_buf_id == -123)
+			current_buf_id = 0;
+
+		while (argc--)
+			free(argv[argc]);
+
+		if (current_buf_id == buf_id)
+			return;
+		else
+			filename[0] = '\0';
+	}
 }
 
 int main(int argc, char ** argv)
 {
 	char buffer_name[MAX_CONF_VAL_LEN] = "";
-	char file_input_name[MAX_CONF_VAL_LEN] = "";
+	char file_input_name [MAX_CONF_VAL_LEN] = "";
 	const char * sock_path;
 	const char * conf_value;
 	int pipe_fd;
@@ -416,6 +500,9 @@ int main(int argc, char ** argv)
 		return 1;
 	}
 
+	if (strlen (file_input_name) && !dump)
+		dump = -1;
+
 	log_config_read(&conf);
 
 	conf_value = log_config_get (&conf, "util_sorting_time_window");
@@ -434,9 +521,17 @@ int main(int argc, char ** argv)
 		return 1;
 	}
 
+	if (!dump)
+		get_file_info(file_input_name, &conf, buf_id);
+
 	log_config_free(&conf);
 
-	if (strlen (file_input_name) > 0 && handle_file (file_input_name))
+	if (!dump && strlen(file_input_name)) {
+		handle_continuous(file_input_name);
+		return 0;
+	}
+
+	if (strlen(file_input_name) && handle_file(file_input_name, dump, -1))
 		return 0;
 
 	if ((sock_fd = connect_sock(sock_path)) < 0) {
@@ -462,7 +557,7 @@ int main(int argc, char ** argv)
 		return 1;
 	}
 
-	handle_pipe(pipe_fd, dump);
+	handle_input(pipe_fd, dump, -1);
 
 	return 0;
 }
