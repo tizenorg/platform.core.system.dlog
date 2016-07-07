@@ -55,7 +55,9 @@ int cmp(struct queued_entry_t* a, struct queued_entry_t* b);
 
 struct logger_entry {
     uint16_t    len;    /* length of the payload */
+#ifndef DLOG_BACKEND_PIPE
     uint16_t    buf_id; /* ID of the log buffer */
+#endif
     int32_t     pid;    /* generating process's pid */
     int32_t     tid;    /* generating process's tid */
     int32_t     sec;    /* seconds since Epoch */
