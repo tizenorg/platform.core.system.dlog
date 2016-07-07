@@ -839,9 +839,9 @@ static int service_writer_pipe(struct logger* server, struct writer* wr, struct 
 		while ((wr->readed >= sizeof(entry->len)) && (entry->len <= wr->readed)) {
 			if (entry->len < sizeof(struct logger_entry))
 				return EINVAL;
-			buffer_append(entry, server->buffers[entry->buf_id], server->readers[entry->buf_id]);
+			buffer_append(entry, server->buffers[wr->buf_ptr->id], server->readers[wr->buf_ptr->id]);
 			wr->readed -= entry->len;
-			server->should_timeout |= (1<<entry->buf_id);
+			server->should_timeout |= (1<<wr->buf_ptr->id);
 			memmove(wr->buffer, wr->buffer + entry->len, LOG_MAX_SIZE - entry->len);
 		}
 	} else if (event->events & EPOLLHUP)
