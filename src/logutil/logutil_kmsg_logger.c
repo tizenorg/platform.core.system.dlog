@@ -83,9 +83,8 @@ static void processBuffer(struct log_device_t* dev, struct logger_entry *buf)
 
 	err = log_process_log_buffer(buf, &entry);
 
-	if (err < 0) {
+	if (err < 0)
 		goto error;
-	}
 
 	if ((!ignore_time_reversal || (start_sec < entry.tv_sec) ||
 		((start_sec == entry.tv_sec) && (start_nsec < entry.tv_nsec))) &&
@@ -115,11 +114,10 @@ static void processBuffer(struct log_device_t* dev, struct logger_entry *buf)
 	g_log_file.size += bytes_written;
 
 	if (g_log_file.rotate_size_kbytes > 0 && (g_log_file.size / 1024) >= g_log_file.rotate_size_kbytes) {
-		if (g_nonblock) {
+		if (g_nonblock)
 			exit(0);
-		} else if (g_log_file.path) {
+		else if (g_log_file.path)
 			rotate_logs(&g_log_file);
-		}
 	}
 
 error:
@@ -177,18 +175,16 @@ static void read_log_lines(struct log_device_t* devices)
 	fd_set readset;
 
 	for (dev = devices; dev; dev = dev->next) {
-		if (dev->fd > max) {
+		if (dev->fd > max)
 			max = dev->fd;
-		}
 	}
 
 	while (1) {
 		do {
 			struct timeval timeout = { 0, 5000 /* 5ms */ }; // If we oversleep it's ok, i.e. ignore EINTR.
 			FD_ZERO(&readset);
-			for (dev = devices; dev; dev = dev->next) {
+			for (dev = devices; dev; dev = dev->next)
 				FD_SET(dev->fd, &readset);
-			}
 			result = select(max + 1, &readset, NULL, NULL, sleep ? NULL : &timeout);
 		} while (result == -1 && errno == EINTR);
 
@@ -238,34 +234,29 @@ static void read_log_lines(struct log_device_t* devices)
 				sleep = true;
 				while (true) {
 					chooseFirst(devices, &dev);
-					if (dev == NULL) {
+					if (dev == NULL)
 						break;
-					}
-					if (g_tail_lines == 0 || queued_lines <= g_tail_lines) {
+					if (g_tail_lines == 0 || queued_lines <= g_tail_lines)
 						printNextEntry(dev);
-					} else {
+					else
 						skipNextEntry(dev);
-					}
 					--queued_lines;
 				}
 
 				/* the caller requested to just dump the log and exit */
-				if (g_nonblock) {
+				if (g_nonblock)
 					exit(0);
-				}
 			} else {
 				/* print all that aren't the last in their list */
 				sleep = false;
 				while (g_tail_lines == 0 || queued_lines > g_tail_lines) {
 					chooseFirst(devices, &dev);
-					if (dev == NULL || dev->queue->next == NULL) {
+					if (dev == NULL || dev->queue->next == NULL)
 						break;
-					}
-					if (g_tail_lines == 0) {
+					if (g_tail_lines == 0)
 						printNextEntry(dev);
-					} else {
+					else
 						skipNextEntry(dev);
-					}
 					--queued_lines;
 				}
 			}
@@ -400,7 +391,7 @@ void set_dlog_time_history(void)
 	int fd = open(START_TIME_PATH, (O_WRONLY | O_TRUNC | O_CREAT), 0777);
 	int dlogutil_pid = getpid();
 
-	if( fd < 0 ) {
+	if (fd < 0) {
 		printf("\n[dlogutil][%d][%s:%d] error to open (errno:%d)\n",
 				dlogutil_pid, __func__, __LINE__, errno);
 		return;
@@ -408,7 +399,7 @@ void set_dlog_time_history(void)
 
 	snprintf(buf, START_TIME_BUF_SIZE, "%d %d", start_sec, start_nsec);
 	size = strlen(buf);
-	if(write(fd, buf, size) < 0)
+	if (write(fd, buf, size) < 0)
 		printf("\n[dlogutil][%d][%s:%d] error to write (errno:%d)\n",
 				dlogutil_pid, __func__, __LINE__, errno);
 	close(fd);
@@ -427,7 +418,7 @@ void get_dlog_time_history()
 {
 	char buf[START_TIME_BUF_SIZE] = {0,};
 	struct sigaction act;
-	int fd = open(START_TIME_PATH, ( O_RDONLY ), 0777);
+	int fd = open(START_TIME_PATH, (O_RDONLY), 0777);
 	int dlogutil_pid = getpid();
 
 	if (fd < 0 && errno != ENOENT)

@@ -42,9 +42,9 @@
 
 #define gettid() syscall(SYS_gettid)
 
-char * log_name_by_id (log_id_t id);
-log_id_t log_id_by_name (const char *name);
+char * log_name_by_id(log_id_t id);
+log_id_t log_id_by_name(const char *name);
 
-void syslog_critical_failure (const char * message);
+void syslog_critical_failure(const char * message);
 int recv_file_descriptor(int socket);
 #endif /* _LOGCOMMON_H */

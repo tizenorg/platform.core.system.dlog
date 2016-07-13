@@ -31,37 +31,36 @@ extern "C" {
 #endif
 
 typedef enum {
-    FORMAT_OFF = 0,
-    FORMAT_BRIEF,
-    FORMAT_PROCESS,
-    FORMAT_TAG,
-    FORMAT_THREAD,
-    FORMAT_RAW,
-    FORMAT_TIME,
-    FORMAT_THREADTIME,
-    FORMAT_KERNELTIME,
-    FORMAT_LONG,
+	FORMAT_OFF = 0,
+	FORMAT_BRIEF,
+	FORMAT_PROCESS,
+	FORMAT_TAG,
+	FORMAT_THREAD,
+	FORMAT_RAW,
+	FORMAT_TIME,
+	FORMAT_THREADTIME,
+	FORMAT_KERNELTIME,
+	FORMAT_LONG,
 } log_print_format;
 
 typedef struct log_format_t log_format;
 
 typedef struct log_entry_t {
-    time_t tv_sec;
-    long tv_nsec;
-    log_priority priority;
-    pid_t pid;
-    pthread_t tid;
-    char * tag;
-    size_t messageLen;
-    char * message;
+	time_t tv_sec;
+	long tv_nsec;
+	log_priority priority;
+	pid_t pid;
+	pthread_t tid;
+	char * tag;
+	size_t messageLen;
+	char * message;
 } log_entry;
 
 log_format *log_format_new();
 
 void log_format_free(log_format *p_format);
 
-void log_set_print_format(log_format *p_format,
-        log_print_format format);
+void log_set_print_format(log_format *p_format, log_print_format format);
 
 /**
  * Returns a deep copy of the passed object.
@@ -83,9 +82,7 @@ log_print_format log_format_from_string(const char *s);
  *
  */
 
-int log_add_filter_rule(log_format *p_format,
-        const char *filterExpression);
-
+int log_add_filter_rule(log_format *p_format, const char *filterExpression);
 
 /**
  * filterString: a whitespace-separated set of filter expressions
@@ -97,17 +94,14 @@ int log_add_filter_rule(log_format *p_format,
  *
  */
 
-int log_add_filter_string(log_format *p_format,
-        const char *filterString);
-
+int log_add_filter_string(log_format *p_format, const char *filterString);
 
 /**
  * returns 1 if this log line should be printed based on its priority
  * and tag, and 0 if it should not
  */
 int log_should_print_line(
-        log_format *p_format, const char *tag, log_priority pri);
-
+		log_format *p_format, const char *tag, log_priority pri);
 
 /**
  * Splits a wire-format buffer into an log_entry
@@ -116,8 +110,7 @@ int log_should_print_line(
  * Returns 0 on success and -1 on invalid wire format (entry will be
  * in unspecified state)
  */
-int log_process_log_buffer(struct logger_entry *entry_raw,
-                                 log_entry *entry);
+int log_process_log_buffer(struct logger_entry *entry_raw, log_entry *entry);
 
 /**
  * Formats a log message into a buffer
@@ -128,12 +121,11 @@ int log_process_log_buffer(struct logger_entry *entry_raw,
  */
 
 char *log_format_log_line(
-    log_format *p_format,
-    char *defaultBuffer,
-    size_t defaultBufferSize,
-    const log_entry *p_line,
-    size_t *p_outLength);
-
+		log_format *p_format,
+		char *defaultBuffer,
+		size_t defaultBufferSize,
+		const log_entry *p_line,
+		size_t *p_outLength);
 
 /**
  * Either print or do not print log line, based on filter
@@ -142,9 +134,9 @@ char *log_format_log_line(
  *
  */
 int log_print_log_line(
-    log_format *p_format,
-    int fd,
-    const log_entry *entry);
+		log_format *p_format,
+		int fd,
+		const log_entry *entry);
 
 /**
  * logprint test furction

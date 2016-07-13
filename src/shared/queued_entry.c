@@ -240,9 +240,9 @@ int read_queued_entry_from_dev(int fd, struct queued_entry_t *entry, uint32_t fo
 int cmp(struct queued_entry_t* a, struct queued_entry_t* b)
 {
 	int n = a->entry.sec - b->entry.sec;
-	if (n != 0) {
+	if (n != 0)
 		return n;
-	}
+
 	return a->entry.nsec - b->entry.nsec;
 }
 

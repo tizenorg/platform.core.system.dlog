@@ -25,7 +25,7 @@
 #define DLOG_CTRL_REQ_PIPE {sizeof(struct dlog_control_msg), DLOG_REQ_PIPE, 0}
 
 enum {
-	DLOG_REQ_PIPE=1,
+	DLOG_REQ_PIPE = 1,
 	DLOG_REQ_CLEAR,
 	DLOG_REQ_HANDLE_LOGUTIL,
 	DLOG_REQ_MAX
