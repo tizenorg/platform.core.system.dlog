@@ -34,9 +34,8 @@ int main(int argc, char **argv)
 		LOGE("%s", huge_buffer);
 
 		// check garbage data
-		for (i = 0; i < LOG_MAX_SIZE; ++i) {
+		for (i = 0; i < LOG_MAX_SIZE; ++i)
 			buffer[i] = rand() & 255;
-		}
 
 		LOGE("%s", buffer);
 

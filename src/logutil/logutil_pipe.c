@@ -57,22 +57,22 @@ static int sort_timeout = 1000; // ms
 static log_format * log_fmt;
 
 static struct sorting_vector {
-	struct logger_entry * data [SORT_BUFFER_SIZE];
+	struct logger_entry *data[SORT_BUFFER_SIZE];
 	int size;
 	int last_processed;
 } logs;
 
-static void push_log (struct logger_entry * p)
+static void push_log(struct logger_entry * p)
 {
 	int i;
 	log_entry entry;
 
-	log_process_log_buffer (p, & entry);
-	if (!log_should_print_line (log_fmt, entry.tag, entry.priority))
+	log_process_log_buffer(p, &entry);
+	if (!log_should_print_line(log_fmt, entry.tag, entry.priority))
 		return;
 
 	if ((logs.size + 1) % SORT_BUFFER_SIZE == logs.last_processed) {
-		free (logs.data [logs.last_processed]);
+		free(logs.data[logs.last_processed]);
 		logs.last_processed = (logs.last_processed + 1) % SORT_BUFFER_SIZE;
 	}
 
@@ -178,7 +178,7 @@ static int process_log(struct logger_entry *e, const struct timespec *now)
 
 	if (ns < 0) {
 		ns += 1000000000;
-		-- s;
+		--s;
 	}
 
 	if (sort_timeout < (s*1000 + ns/1000000)) {
@@ -203,13 +203,14 @@ static void handle_pipe(int pipe_fd, int dump)
 	struct epoll_event ev = { .events = EPOLLIN, .data.fd = pipe_fd };
 
 	epollfd = epoll_create1(0);
+
 	r = epoll_ctl (epollfd, EPOLL_CTL_ADD, pipe_fd, &ev);
 	if (r == -1 && errno == EPERM)
 		is_file = 1;
 
-	clock_gettime (CLOCK_MONOTONIC, &start_time);
+	clock_gettime(CLOCK_MONOTONIC, &start_time);
 
-	fcntl (pipe_fd, F_SETFL, fcntl (pipe_fd, F_GETFL, 0) | O_NONBLOCK);
+	fcntl(pipe_fd, F_SETFL, fcntl(pipe_fd, F_GETFL, 0) | O_NONBLOCK);
 
 	for (;;) {
 		struct logger_entry *e;
@@ -230,7 +231,7 @@ static void handle_pipe(int pipe_fd, int dump)
 			}
 		} else
 			while (!filled && logs.last_processed != logs.size)
-				if (process_log (logs.data[logs.last_processed], &now)) {
+				if (process_log(logs.data[logs.last_processed], &now)) {
 					free(logs.data[logs.last_processed]);
 					logs.last_processed = (logs.last_processed + 1) % SORT_BUFFER_SIZE;
 				} else
@@ -308,7 +309,7 @@ int handle_file (char const * filename)
 		return 0;
 
 	if (endian != ENDIANNESS_CHECK) {
-		fprintf (stderr, "Unsupported endianness!\n");
+		fprintf(stderr, "Unsupported endianness!\n");
 		return 0;
 	}
 
@@ -317,7 +318,7 @@ int handle_file (char const * filename)
 		return 0;
 
 	if (version != PIPE_FILE_FORMAT_VERSION) {
-		fprintf (stderr, "Obsolete file format version!\n");
+		fprintf(stderr, "Obsolete file format version!\n");
 		return 0;
 	}
 
@@ -338,7 +339,7 @@ int main(int argc, char ** argv)
 	int dump = 0;
 	int into_file = 0;
 	int silence = 0;
-	char conf_key [MAX_CONF_KEY_LEN];
+	char conf_key[MAX_CONF_KEY_LEN];
 
 	log_fmt = log_format_new ();
 	log_set_print_format (log_fmt, FORMAT_KERNELTIME);
@@ -367,13 +368,13 @@ int main(int argc, char ** argv)
 			}
 			break;
 		case 'h':
-			show_help (argv[0]);
+			show_help(argv[0]);
 			return 1;
 		case 'd':
 			dump = -1;
 			break;
 		case 't':
-			dump = atoi (optarg);
+			dump = atoi(optarg);
 			break;
 		case 'c':
 			should_clear = 1;
@@ -388,7 +389,7 @@ int main(int argc, char ** argv)
 			into_file = 1;
 			break;
 		case 'v':
-			log_set_print_format (log_fmt, log_format_from_string (optarg));
+			log_set_print_format(log_fmt, log_format_from_string(optarg));
 			break;
 		case 's':
 			silence = 1;
@@ -411,23 +412,23 @@ int main(int argc, char ** argv)
 	logs.size = 0;
 	logs.last_processed = 0;
 
-	if (strlen(buffer_name) && (((buf_id = log_id_by_name (buffer_name)) < 0) || (buf_id >= LOG_ID_MAX))) {
-		printf ("There is no buffer \"%s\"\n", buffer_name);
+	if (strlen(buffer_name) && (((buf_id = log_id_by_name(buffer_name)) < 0) || (buf_id >= LOG_ID_MAX))) {
+		printf("There is no buffer \"%s\"\n", buffer_name);
 		return 1;
 	}
 
 	log_config_read(&conf);
 
-	conf_value = log_config_get (&conf, "util_sorting_time_window");
+	conf_value = log_config_get(&conf, "util_sorting_time_window");
 	if (conf_value)
-		sort_timeout = strtol (conf_value, NULL, 10);
+		sort_timeout = strtol(conf_value, NULL, 10);
 	if (sort_timeout <= 0)
 		sort_timeout = 1000;
 
 	if (should_getsize)
 		return do_getsize(&conf);
 
-	snprintf (conf_key, sizeof(conf_key), "%s_ctl_sock", log_name_by_id (buf_id));
+	snprintf(conf_key, sizeof(conf_key), "%s_ctl_sock", log_name_by_id(buf_id));
 
 	if ((sock_path = log_config_get(&conf, conf_key)) == NULL) {
 		printf("Error: dlog config is broken, lacks the \"%s\" entry\n", conf_key);

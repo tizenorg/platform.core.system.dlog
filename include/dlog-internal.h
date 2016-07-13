@@ -359,7 +359,7 @@ static inline int __dlog_no_print(const char *fmt __attribute__((unused)), ...) 
  * @internal
  * @brief     Send log.
  * @details   Use LOG(), SLOG(), RLOG() family
- *            not to use __dlog_print() directly
+ *			  not to use __dlog_print() directly
  * @remarks   Must not use this API directly. use macros instead.
  * @param[in] log_id log device id
  * @param[in] prio priority
@@ -383,7 +383,7 @@ int __dlog_print(log_id_t log_id, int prio, const char *tag, const char *fmt, ..
  * @internal
  * @brief     Send log with va_list.
  * @details   Use LOG_VA(), SLOG_VA(), RLOG_VA() family
-              not to use __dlog_vprint() directly
+ *			  not to use __dlog_vprint() directly
  * @remarks   Must not use this API directly. use macros instead.
  * @param[in] log_id log device id
  * @param[in] prio priority

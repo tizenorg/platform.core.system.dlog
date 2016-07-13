@@ -20,7 +20,7 @@ int validate(struct options o)
 	int valid = 1;
 
 	if (!o.has_key && !o.print_all && !o.help) {
-		printf ("Having either -i, -p, or -k is mandatory!\n");
+		printf("Having either -i, -p, or -k is mandatory!\n");
 		valid = 0;
 	}
 	if (o.has_key && !(o.should_get || o.should_set || o.should_clear)) {
@@ -28,7 +28,7 @@ int validate(struct options o)
 		valid = 0;
 	}
 	if ((o.has_key + o.print_all + o.help) > 1) {
-		printf ("-i, -p and -k preclude each other!\n");
+		printf("-i, -p and -k preclude each other!\n");
 		valid = 0;
 	}
 	if (o.should_set + o.should_get + o.should_clear > 1) {
