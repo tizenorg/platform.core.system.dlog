@@ -906,9 +906,8 @@ int main(int argc, char **argv)
 		/* 5. attatch the work to device task for logging */
 		dev = devices;
 		while (dev) {
-			if (command_list[i].devices[dev->id] == true) {
+			if (command_list[i].devices[dev->id] == true)
 				work_add_to_device(dev, work);
-			}
 			dev = dev->next;
 		}
 	}

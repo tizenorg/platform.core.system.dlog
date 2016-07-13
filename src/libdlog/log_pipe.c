@@ -117,7 +117,7 @@ static int __write_to_log_pipe(log_id_t log_id, log_priority prio, const char *t
 void __dlog_init_backend()
 {
 	const char * conf_val;
-	char conf_key [MAX_CONF_KEY_LEN];
+	char conf_key[MAX_CONF_KEY_LEN];
 	struct log_config conf;
 	int i;
 

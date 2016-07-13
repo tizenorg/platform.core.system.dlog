@@ -1,6 +1,6 @@
-void print_help ()
+void print_help()
 {
-	printf ("dlogctrl - provides control over dlog configuration. Options:\n"
+	printf("dlogctrl - provides control over dlog configuration. Options:\n"
 		"\t-p        Precludes -kh. Prints all entries in the config.\n"
 		"\t-k key    Precludes -ph and requires one of -gs.  Specifies a config key.\n"
 		"\t-g        Requires -k, precludes -cs. Gets and prints the value of the entry assigned to the key.\n"
@@ -11,9 +11,9 @@ void print_help ()
 	);
 }
 
-void print_extended_help ()
+void print_extended_help()
 {
-	printf ("Important entries:\n"
+	printf("Important entries:\n"
 		"\tplog: enable platform logging, ie. whether any logging happens at all. Values are 0 or 1.\n"
 		"\tlimiter: enable log limiting. Values are 0 or 1.\n\n"
 		"Limiter rules:\n"

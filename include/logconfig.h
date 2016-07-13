@@ -35,19 +35,19 @@ struct log_config {
 	struct log_conf_entry *last;
 };
 
-const char * get_config_filename (config_type type);
+const char *get_config_filename(config_type type);
 
-int log_config_set (struct log_config* config, const char* key, const char* value);
-const char* log_config_get (struct log_config* config, const char* key);
-int log_config_read (struct log_config* config);
-int log_config_read_file (struct log_config* config, char const* filename);
+int log_config_set(struct log_config* config, const char* key, const char* value);
+const char* log_config_get(struct log_config* config, const char* key);
+int log_config_read(struct log_config* config);
+int log_config_read_file(struct log_config* config, char const* filename);
 int log_config_write(struct log_config* config, char const* filename);
-void log_config_free (struct log_config* config);
+void log_config_free(struct log_config* config);
 
-void log_config_print_out (struct log_config* config);
-int log_config_print_key (struct log_config* config, const char* key);
-void log_config_push (struct log_config* config, const char* key, const char* value);
-int log_config_remove (struct log_config* config, const char* key);
-int log_config_foreach (struct log_config* config, int (*func)(const char* key, const char* value));
+void log_config_print_out(struct log_config* config);
+int log_config_print_key(struct log_config* config, const char* key);
+void log_config_push(struct log_config* config, const char* key, const char* value);
+int log_config_remove(struct log_config* config, const char* key);
+int log_config_foreach(struct log_config* config, int (*func)(const char* key, const char* value));
 
 #endif /* _LOGCONFIG_H_ */

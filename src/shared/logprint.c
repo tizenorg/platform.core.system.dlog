@@ -144,9 +144,8 @@ void dump_filters(log_format *p_format)
 
 	for (p_fi = p_format->filters ; p_fi != NULL ; p_fi = p_fi->p_next) {
 		char cPri = filter_pri_to_char(p_fi->mPri);
-		if (p_fi->mPri == DLOG_DEFAULT) {
+		if (p_fi->mPri == DLOG_DEFAULT)
 			cPri = filter_pri_to_char(p_format->global_pri);
-		}
 		_E("%s:%c\n", p_fi->mTag, cPri);
 	}
 
@@ -274,9 +273,8 @@ int log_add_filter_rule(log_format *p_format,
 
 	tagNameLength = strcspn(filterExpression, ":");
 
-	if (tagNameLength == 0) {
+	if (tagNameLength == 0)
 		goto error;
-	}
 
 	if (filterExpression[tagNameLength] == ':') {
 		pri = filter_char_to_pri(filterExpression[tagNameLength+1]);
@@ -298,9 +296,8 @@ int log_add_filter_rule(log_format *p_format,
 		/* for filter expressions that don't refer to the global
 		 * filter, the default is verbose if the priority is unspecified
 		 */
-		if (pri == DLOG_DEFAULT) {
+		if (pri == DLOG_DEFAULT)
 			pri = DLOG_VERBOSE;
-		}
 
 		char *tagName;
 		tagName = strndup(filterExpression, tagNameLength);
@@ -621,9 +618,8 @@ char *log_format_log_line(
 	} else {
 		ret = (char *)malloc(bufferSize);
 
-		if (ret == NULL) {
+		if (ret == NULL)
 			return ret;
-		}
 	}
 
 	ret[0] = '\0';       /* to start strcat off */
@@ -662,9 +658,8 @@ char *log_format_log_line(
 		}
 	}
 
-	if (p_outLength != NULL) {
+	if (p_outLength != NULL)
 		*p_outLength = p - ret;
-	}
 
 	return ret;
 }
@@ -708,9 +703,8 @@ int log_print_log_line(
 	}
 
 done:
-	if (outBuffer != defaultBuffer) {
+	if (outBuffer != defaultBuffer)
 		free(outBuffer);
-	}
 
 	return ret;
 }

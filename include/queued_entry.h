@@ -54,13 +54,13 @@ int cmp(struct queued_entry_t* a, struct queued_entry_t* b);
 #include <dlog_ioctl.h>
 
 struct logger_entry {
-    uint16_t    len;    /* length of the payload */
-    uint16_t    padding;/* padding for alignment */
-    int32_t     pid;    /* generating process's pid */
-    int32_t     tid;    /* generating process's tid */
-    int32_t     sec;    /* seconds since Epoch */
-    int32_t     nsec;   /* nanoseconds */
-    char        msg[];  /* the entry's payload */
+	uint16_t    len;    /* length of the payload */
+	uint16_t    padding;/* padding for alignment */
+	int32_t     pid;    /* generating process's pid */
+	int32_t     tid;    /* generating process's tid */
+	int32_t     sec;    /* seconds since Epoch */
+	int32_t     nsec;   /* nanoseconds */
+	char        msg[];  /* the entry's payload */
 };
 
 struct queued_entry_t {
