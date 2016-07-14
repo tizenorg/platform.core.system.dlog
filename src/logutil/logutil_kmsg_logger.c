@@ -400,7 +400,7 @@ void set_dlog_time_history(void)
 	int fd = open(START_TIME_PATH, (O_WRONLY | O_TRUNC | O_CREAT), 0777);
 	int dlogutil_pid = getpid();
 
-	if( fd < 0 ) {
+	if (fd < 0) {
 		printf("\n[dlogutil][%d][%s:%d] error to open (errno:%d)\n",
 				dlogutil_pid, __func__, __LINE__, errno);
 		return;
@@ -408,7 +408,7 @@ void set_dlog_time_history(void)
 
 	snprintf(buf, START_TIME_BUF_SIZE, "%d %d", start_sec, start_nsec);
 	size = strlen(buf);
-	if(write(fd, buf, size) < 0)
+	if (write(fd, buf, size) < 0)
 		printf("\n[dlogutil][%d][%s:%d] error to write (errno:%d)\n",
 				dlogutil_pid, __func__, __LINE__, errno);
 	close(fd);
@@ -427,7 +427,7 @@ void get_dlog_time_history()
 {
 	char buf[START_TIME_BUF_SIZE] = {0,};
 	struct sigaction act;
-	int fd = open(START_TIME_PATH, ( O_RDONLY ), 0777);
+	int fd = open(START_TIME_PATH, O_RDONLY, 0777);
 	int dlogutil_pid = getpid();
 
 	if (fd < 0 && errno != ENOENT)

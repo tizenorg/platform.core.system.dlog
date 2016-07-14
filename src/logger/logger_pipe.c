@@ -133,7 +133,7 @@ struct reader {
 	struct reader*     next;
 	struct reader*     prev;
 	int                partial_log_size;
-	char               partial_log [LOG_MAX_SIZE];
+	char               partial_log[LOG_MAX_SIZE];
 };
 
 struct log_buffer {
@@ -179,7 +179,7 @@ struct file_buffer {
 
 static struct file_buffer g_file_buffer;
 
-static int parse_permissions (const char * str)
+static int parse_permissions(const char * str)
 {
 	int ret, parsed;
 	char * parse_safety;
@@ -187,8 +187,8 @@ static int parse_permissions (const char * str)
 	if (!str)
 		return S_IWUSR | S_IWGRP | S_IWOTH; // 0222: everyone can write
 
-	parsed = strtol (str, & parse_safety, 8); // note, rights are octal
-	if (parse_safety != (str + strlen (str)))
+	parsed = strtol(str, & parse_safety, 8); // note, rights are octal
+	if (parse_safety != (str + strlen(str)))
 		return 0;
 
 	ret = 0;
@@ -210,7 +210,7 @@ static int parse_permissions (const char * str)
 	return ret;
 }
 
-static int change_owners (const char * file, const char * user, const char * group)
+static int change_owners(const char * file, const char * user, const char * group)
 {
 	uid_t uid = -1;
 	gid_t gid = -1;
@@ -218,21 +218,21 @@ static int change_owners (const char * file, const char * user, const char * gro
 	struct group  * grp = NULL;
 
 	if (user)
-		pwd = getpwnam (user);
+		pwd = getpwnam(user);
 
 	if (pwd)
 		uid = pwd->pw_uid;
 
 	if (group)
-		grp = getgrnam (group);
+		grp = getgrnam(group);
 
 	if (grp)
 		gid = grp->gr_gid;
 
-	return! chown (file, uid, gid); // ideally would be fchown, but that is broken
+	return !chown(file, uid, gid); // ideally would be fchown, but that is broken
 }
 
-static int listen_fd_create (const char* path, int permissions)
+static int listen_fd_create(const char* path, int permissions)
 {
 	struct sockaddr_un server_addr;
 	int sd;
@@ -250,7 +250,7 @@ static int listen_fd_create (const char* path, int permissions)
 		goto failure;
 
 	if (permissions)
-		if (chmod (path, permissions) < 0) // ideally, fchmod would be used, but that does not work
+		if (chmod(path, permissions) < 0) // ideally, fchmod would be used, but that does not work
 			goto failure;
 
 	if (listen(sd, MAX_CONNECTION_Q) < 0)
@@ -380,27 +380,27 @@ static void buffer_append(const struct logger_entry* entry, struct log_buffer* b
 	++b->lines;
 }
 
-static void add_misc_file_info (int fd)
+static void add_misc_file_info(int fd)
 {
 	const int32_t version = PIPE_FILE_FORMAT_VERSION;
 	const int32_t endian = 0x12345678;
 	int r;
 
-	r = write (fd, &endian, 4);
+	r = write(fd, &endian, 4);
 	if (r <= 0)
 		return;
 
-	r = write (fd, &version, 4);
+	r = write(fd, &version, 4);
 	if (r <= 0)
 		return;
 }
 
-static int write_blob_to_file (struct reader* reader, struct file_buffer* buffer)
+static int write_blob_to_file(struct reader* reader, struct file_buffer* buffer)
 {
 	int w = 0;
 	int r = 0;
 	while (w < buffer->len) {
-		r =  write (reader->file.fd, buffer->buffer + r, buffer->len - r);
+		r =  write(reader->file.fd, buffer->buffer + r, buffer->len - r);
 		if (r <= 0 && errno != EINTR)
 			return -1;
 		else
@@ -414,7 +414,7 @@ static int print_out_logs(struct reader* reader, struct log_buffer* buffer)
 {
 	int r, ret = 0;
 	struct logger_entry* ple;
-	char tmp [LOG_MAX_SIZE];
+	char tmp[LOG_MAX_SIZE];
 	int priority;
 	char * tag;
 	struct epoll_event ev = { .events = EPOLLOUT, .data.fd = reader->file.fd };
@@ -422,17 +422,17 @@ static int print_out_logs(struct reader* reader, struct log_buffer* buffer)
 	int from = reader->current;
 	int is_file = 0;
 
-	epoll_fd = epoll_create1 (0);
-	r = epoll_ctl (epoll_fd, EPOLL_CTL_ADD, reader->file.fd, &ev);
+	epoll_fd = epoll_create1(0);
+	r = epoll_ctl(epoll_fd, EPOLL_CTL_ADD, reader->file.fd, &ev);
 	if (r == -1 && errno == EPERM)
 		is_file = 1;
 
 	if (reader->partial_log_size) {
-		if (!is_file && epoll_wait (epoll_fd, &ev, 1, 0) < 1)
+		if (!is_file && epoll_wait(epoll_fd, &ev, 1, 0) < 1)
 			goto cleanup;
 
 		do {
-			r = write (reader->file.fd, reader->partial_log, reader->partial_log_size);
+			r = write(reader->file.fd, reader->partial_log, reader->partial_log_size);
 		} while (r < 0 && errno == EINTR);
 
 		if (r <= 0)
@@ -440,7 +440,7 @@ static int print_out_logs(struct reader* reader, struct log_buffer* buffer)
 
 		if (r < reader->partial_log_size) {
 			reader->partial_log_size -= r;
-			memmove (reader->partial_log, reader->partial_log + r, reader->partial_log_size);
+			memmove(reader->partial_log, reader->partial_log + r, reader->partial_log_size);
 			goto cleanup;
 		}
 
@@ -467,11 +467,11 @@ static int print_out_logs(struct reader* reader, struct log_buffer* buffer)
 			continue;
 
 		if (!is_file) {
-			if(epoll_wait (epoll_fd, &ev, 1, 0) < 1)
+			if (epoll_wait(epoll_fd, &ev, 1, 0) < 1)
 				goto cleanup;
 
 			do {
-				r = write (reader->file.fd, ple, ple->len);
+				r = write(reader->file.fd, ple, ple->len);
 			} while (r < 0 && errno == EINTR);
 
 			if (r < 0) {
@@ -493,14 +493,14 @@ static int print_out_logs(struct reader* reader, struct log_buffer* buffer)
 
 		if (r < ple->len) {
 			reader->partial_log_size = ple->len - r;
-			memcpy (reader->partial_log, ple + r, reader->partial_log_size);
+			memcpy(reader->partial_log, ple + r, reader->partial_log_size);
 			goto cleanup;
 		} else if ((reader->file.rotate_size_kbytes > 0) && ((reader->file.size / 1024) >= reader->file.rotate_size_kbytes)) {
 			if (write_blob_to_file(reader, &g_file_buffer) < 0)
 				goto cleanup;
 
 			rotate_logs(&reader->file);
-			add_misc_file_info (reader->file.fd);
+			add_misc_file_info(reader->file.fd);
 		}
 	}
 
@@ -513,7 +513,7 @@ static int print_out_logs(struct reader* reader, struct log_buffer* buffer)
 		ret = -1;
 
 cleanup:
-	close (epoll_fd);
+	close(epoll_fd);
 	reader->current = from;
 	return ret;
 }
@@ -671,7 +671,7 @@ static int parse_command_line(const char* cmdl, struct logger* server, struct wr
 	}
 
 	if (reader->file.path != NULL) {
-		int file_already_exists = !access (reader->file.path, F_OK);
+		int file_already_exists = !access(reader->file.path, F_OK);
 		reader->file.fd = open(reader->file.path, O_WRONLY | O_CREAT | O_APPEND, S_IRUSR | S_IWUSR);
 		if (!file_already_exists)
 			add_misc_file_info(reader->file.fd);
@@ -921,7 +921,7 @@ static void service_all_readers(struct logger* server, int force_push)
 	}
 }
 
-static struct logger* logger_create (struct log_config *conf)
+static struct logger* logger_create(struct log_config *conf)
 {
 	struct logger* l = calloc(1, sizeof(struct logger));
 	int i = 0;
@@ -952,24 +952,24 @@ static struct logger* logger_create (struct log_config *conf)
 		conf_value = log_config_get(conf, conf_key);
 		if (!conf_value)
 			goto err5;
-		strncpy (l->socket_ctl[i].path, conf_value, sizeof(l->socket_ctl[i].path));
+		strncpy(l->socket_ctl[i].path, conf_value, sizeof(l->socket_ctl[i].path));
 
 		snprintf(conf_key, MAX_CONF_KEY_LEN, "%s_ctl_sock_rights", log_name_by_id(i));
 		conf_value = log_config_get(conf, conf_key);
 
-		permissions = parse_permissions (conf_value);
+		permissions = parse_permissions(conf_value);
 		if (!permissions)
 			goto err5;
 
 		if ((l->socket_ctl[i].fd = listen_fd_create(l->socket_ctl[i].path, permissions)) < 0)
 			goto err5;
 
-		snprintf (conf_key, MAX_CONF_KEY_LEN, "%s_ctl_sock_owner", log_name_by_id (i));
-		conf_value  = log_config_get (conf, conf_key);
-		snprintf (conf_key, MAX_CONF_KEY_LEN, "%s_ctl_sock_group", log_name_by_id (i));
-		conf_value2 = log_config_get (conf, conf_key);
+		snprintf(conf_key, MAX_CONF_KEY_LEN, "%s_ctl_sock_owner", log_name_by_id(i));
+		conf_value  = log_config_get(conf, conf_key);
+		snprintf(conf_key, MAX_CONF_KEY_LEN, "%s_ctl_sock_group", log_name_by_id(i));
+		conf_value2 = log_config_get(conf, conf_key);
 
-		if (!change_owners (l->socket_ctl[i].path, conf_value, conf_value2))
+		if (!change_owners(l->socket_ctl[i].path, conf_value, conf_value2))
 			goto err6;
 
 		l->socket_ctl[i]._entity.type = ENTITY_CONTROL;
@@ -977,30 +977,30 @@ static struct logger* logger_create (struct log_config *conf)
 		l->socket_ctl[i].event.events = EPOLLIN;
 		l->socket_ctl[i].is_control = 1;
 
-		add_fd_loop (l->epollfd, l->socket_ctl[i].fd, &l->socket_ctl[i].event);
+		add_fd_loop(l->epollfd, l->socket_ctl[i].fd, &l->socket_ctl[i].event);
 
-		snprintf (conf_key, MAX_CONF_KEY_LEN, "%s_write_sock", log_name_by_id (i));
-		conf_value = log_config_get (conf, conf_key);
+		snprintf(conf_key, MAX_CONF_KEY_LEN, "%s_write_sock", log_name_by_id(i));
+		conf_value = log_config_get(conf, conf_key);
 		if (!conf_value)
 			goto err6;
 		strncpy(l->socket_wr[i].path, conf_value, sizeof(l->socket_wr[i].path));
 
-		snprintf (conf_key, MAX_CONF_KEY_LEN, "%s_write_sock_rights", log_name_by_id (i));
-		conf_value = log_config_get (conf, conf_key);
+		snprintf(conf_key, MAX_CONF_KEY_LEN, "%s_write_sock_rights", log_name_by_id(i));
+		conf_value = log_config_get(conf, conf_key);
 
-		permissions = parse_permissions (conf_value);
+		permissions = parse_permissions(conf_value);
 		if (!permissions)
 			goto err6;
 
 		if ((l->socket_wr[i].fd = listen_fd_create(l->socket_wr[i].path, permissions)) < 0)
 			goto err6;
 
-		snprintf (conf_key, MAX_CONF_KEY_LEN, "%s_write_sock_owner", log_name_by_id (i));
-		conf_value  = log_config_get (conf, conf_key);
-		snprintf (conf_key, MAX_CONF_KEY_LEN, "%s_write_sock_group", log_name_by_id (i));
-		conf_value2 = log_config_get (conf, conf_key);
+		snprintf(conf_key, MAX_CONF_KEY_LEN, "%s_write_sock_owner", log_name_by_id(i));
+		conf_value  = log_config_get(conf, conf_key);
+		snprintf(conf_key, MAX_CONF_KEY_LEN, "%s_write_sock_group", log_name_by_id(i));
+		conf_value2 = log_config_get(conf, conf_key);
 
-		if (!change_owners (l->socket_ctl[i].path, conf_value, conf_value2))
+		if (!change_owners(l->socket_ctl[i].path, conf_value, conf_value2))
 			goto err7;
 
 		l->socket_wr[i]._entity.type = ENTITY_CONTROL;
@@ -1008,14 +1008,14 @@ static struct logger* logger_create (struct log_config *conf)
 		l->socket_wr[i].event.events = EPOLLIN;
 		l->socket_wr[i].is_control = 0;
 
-		add_fd_loop (l->epollfd, l->socket_wr[i].fd, &l->socket_wr[i].event);
+		add_fd_loop(l->epollfd, l->socket_wr[i].fd, &l->socket_wr[i].event);
 
-		snprintf (conf_key, MAX_CONF_KEY_LEN, "%s_size", log_name_by_id(i));
-		conf_value = log_config_get (conf, conf_key);
+		snprintf(conf_key, MAX_CONF_KEY_LEN, "%s_size", log_name_by_id(i));
+		conf_value = log_config_get(conf, conf_key);
 		if (!conf_value)
 			goto err7;
 
-		size = atoi (conf_value);
+		size = atoi(conf_value);
 
 		if (!(l->buffers[i] = buffer_create(i, size)))
 			goto err7;
@@ -1027,22 +1027,22 @@ static struct logger* logger_create (struct log_config *conf)
 	return l;
 
 err7:
-	close (l->socket_wr[i].fd);
+	close(l->socket_wr[i].fd);
 err6:
-	close (l->socket_ctl[i].fd);
+	close(l->socket_ctl[i].fd);
 err5:
 	while (i--) {
-		close (l->socket_ctl[i].fd);
-		close (l->socket_wr[i].fd);
-		buffer_free (&l->buffers[i]);
+		close(l->socket_ctl[i].fd);
+		close(l->socket_wr[i].fd);
+		buffer_free(&l->buffers[i]);
 	}
-	free (l->readers);
+	free(l->readers);
 err4:
-	free (l->buffers);
+	free(l->buffers);
 err3:
-	log_format_free (l->default_format);
+	log_format_free(l->default_format);
 err2:
-	close (l->epollfd);
+	close(l->epollfd);
 err1:
 	free(l);
 	return NULL;
@@ -1073,8 +1073,8 @@ static void logger_free(struct logger* l)
 	}
 
 	for (j = 0; j < LOG_ID_MAX; j++) {
-		close (l->socket_ctl[j].fd);
-		close (l->socket_wr[j].fd);
+		close(l->socket_ctl[j].fd);
+		close(l->socket_wr[j].fd);
 		buffer_free(&l->buffers[j]);
 	}
 
@@ -1154,7 +1154,7 @@ static int do_logger(struct logger* server)
 	const int max_events = 1024;
 	struct epoll_event events[1024];
 
-	for(;;) {
+	for (;;) {
 		do {
 			nfds = epoll_wait(server->epollfd, events, max_events, server->max_buffered_time);
 		} while (nfds < 0 && errno == EINTR);
@@ -1187,7 +1187,7 @@ static int parse_configs(struct logger** server)
 
 	log_config_read(&conf);
 
-	*server = logger_create (&conf);
+	*server = logger_create(&conf);
 	if (!(*server))
 		return EINVAL;
 

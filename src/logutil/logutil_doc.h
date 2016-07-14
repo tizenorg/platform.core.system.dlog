@@ -1,6 +1,6 @@
 static void show_help(const char *cmd)
 {
-	fprintf ( stderr,
+	fprintf( stderr,
 		"Usage: %s [options] [filterspecs]"
 #ifdef DLOG_BACKEND_PIPE
 		" [ < filename.raw ]"
