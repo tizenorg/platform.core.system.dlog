@@ -868,6 +868,9 @@ int main(int argc, char **argv)
 	device_add(LOG_ID_MAIN);
 	device_add(LOG_ID_SYSTEM);
 	device_add(LOG_ID_RADIO);
+#if DLOG_BACKEND_KMSG
+	device_add(LOG_ID_APPS);
+#endif
 
 	/* create work from the parsed command */
 	for (i = 0; i < ncmd; i++) {
