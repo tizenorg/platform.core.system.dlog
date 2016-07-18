@@ -663,6 +663,62 @@ char *log_format_log_line(
 
 	return ret;
 }
+enum sc_state {
+	SC_NONE = 0,
+	SC_SLASH,
+	SC_X
+};
+void log_special_character_filter(char* buf_in)
+{
+	int i = 0;
+	int state = SC_NONE;
+	char sc = 0;
+	char n = 0;
+	for (; buf_in[i] != '\0'; i++) {
+		switch (state) {
+		case SC_NONE:
+			if (buf_in[i] == '\\')
+				state = SC_SLASH;
+			break;
+		case SC_SLASH:
+			if (buf_in[i] == 'x') {
+				sc = 0;
+				n = 1;
+				state = SC_X;
+			} else
+				state = SC_NONE;
+			break;
+		case SC_X:
+			if (buf_in[i] >= '0' && buf_in[i] <= '9')
+				sc |= (buf_in[i]-'0') << n;
+			else if ((buf_in[i] >= 'a' && buf_in[i] <= 'f'))
+				sc |= (0x0A + buf_in[i]-'a') << n;
+			else if ((buf_in[i] >= 'A' && buf_in[i] <= 'F'))
+				sc |= (0x0A + buf_in[i]-'A') << n;
+			else
+				state = SC_NONE;
+			--n;
+			if (n < 0) {
+				switch (sc) {
+				case '\t':
+					buf_in[i-3] = ' ';
+					buf_in[i-2] = ' ';
+					buf_in[i-1] = ' ';
+					buf_in[i] = ' ';
+					break;
+				case '\n':
+					buf_in[i-3] = ' ';
+					buf_in[i-2] = ' ';
+					buf_in[i-1] = ' ';
+					buf_in[i] = '\n';
+					break;
+				}
+				state = SC_NONE;
+			}
+			break;
+		}
+	}
+}
 
 /**
  * Either print or do not print log line, based on filter
@@ -686,6 +742,7 @@ int log_print_log_line(
 	if (!outBuffer)
 		return -1;
 
+	log_special_character_filter(outBuffer);
 	do {
 		ret = write(fd, outBuffer, totalLen);
 	} while (ret < 0 && errno == EINTR);
