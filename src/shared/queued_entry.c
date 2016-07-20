@@ -117,12 +117,11 @@ static int parse_entry_raw(struct logger_entry *entry)
 	*entry->msg_begin = '\0';
 	entry->msg_begin++;
 
-	entry->msg_end = strchr(entry->msg_begin, '\n');
+	entry->msg_end = strchr(entry->msg_begin, '\0');
 	if (entry->msg_end == NULL)
 		return -1;
-	*entry->msg_end = '\0';
 
-	cptr = parse_dict_val(entry->msg_end+1, &entry->pid_begin);
+	cptr = parse_dict_val(entry->msg_end+2, &entry->pid_begin);
 	if (cptr == NULL)
 		return -1;
 
