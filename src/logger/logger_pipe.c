@@ -207,6 +207,9 @@ static int parse_permissions(const char * str)
 	if (parsed & 02000) ret |= S_ISGID;
 	if (parsed & 04000) ret |= S_ISUID;
 
+	if (parsed & ~07777)
+		printf("Warning: useless bits in permissions %s!", str);
+
 	return ret;
 }
 
@@ -1094,6 +1097,10 @@ static int add_reader(struct logger* server, int buf_id, int fd, enum reader_typ
 	r->buf_id = buf_id;
 	if (path != NULL) {
 		r->file.path = calloc(1, strlen(path));
+		if (!r->file.path) {
+			free(r);
+			return ENOMEM;
+		}
 		strcpy(r->file.path, path);
 	}
 	r->file.format = log_format_from_format(server->default_format);
