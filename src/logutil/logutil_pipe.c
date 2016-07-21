@@ -353,7 +353,7 @@ int main(int argc, char ** argv)
 			{0, 0, 0, 0}
 		};
 		int long_option_id = -1;
-		int option = getopt_long (argc, argv, "cdt:gsf:r:n:v:b:h", long_options, &long_option_id);
+		int option = getopt_long(argc, argv, "cdt:gsf:r:n:v:b:h", long_options, &long_option_id);
 
 		if (option < 0)
 			break;
