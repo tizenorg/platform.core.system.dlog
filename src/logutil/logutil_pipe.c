@@ -339,6 +339,11 @@ int main(int argc, char ** argv)
 	char conf_key[MAX_CONF_KEY_LEN];
 
 	log_fmt = log_format_new();
+	if (!log_fmt) {
+		printf("Error: could not allocate memory!\n");
+		return 1;
+	}
+
 	log_set_print_format(log_fmt, FORMAT_KERNELTIME);
 
 	while (1) {
@@ -414,13 +419,18 @@ int main(int argc, char ** argv)
 		return 1;
 	}
 
-	log_config_read(&conf);
+	if (!log_config_read(&conf)) {
+		printf("Error: config could not be read!\n");
+		return 1;
+	}
 
 	conf_value = log_config_get(&conf, "util_sorting_time_window");
 	if (conf_value)
 		sort_timeout = strtol(conf_value, NULL, 10);
-	if (sort_timeout <= 0)
+	if (sort_timeout <= 0) {
+		printf("Warning: util_sorting_time_window should be positive! Defaulting to 1000.\n");
 		sort_timeout = 1000;
+	}
 
 	if (should_getsize)
 		return do_getsize(&conf);
