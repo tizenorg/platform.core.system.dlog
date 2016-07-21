@@ -63,6 +63,16 @@ static int connect_pipe(const char * path)
 	return fd;
 }
 
+static int __reconnect_pipe(log_id_t log_id)
+{
+	pthread_mutex_lock(&log_init_lock);
+	if (pipe_fd[log_id] >= 0)
+		close(pipe_fd[log_id]);
+	pipe_fd[log_id] = connect_pipe(log_pipe_path[log_id]);
+	pthread_mutex_unlock(&log_init_lock);
+
+	return (pipe_fd[log_id] >= 0);
+}
 
 static int __write_to_log_pipe(log_id_t log_id, log_priority prio, const char *tag, const char *msg)
 {
@@ -103,12 +113,14 @@ static int __write_to_log_pipe(log_id_t log_id, log_priority prio, const char *t
 
 	if (le->len % 2)
 		le->len += 1;
+
+	if (pipe_fd[log_id] < 0 && !__reconnect_pipe(log_id))
+		return -1;
+
 	ret = write(pipe_fd[log_id], buf, le->len);
 	if (ret < 0 && errno == EPIPE) {
-		pthread_mutex_lock(&log_init_lock);
-		close(pipe_fd[log_id]);
-		pipe_fd[log_id] = connect_pipe(log_pipe_path[log_id]);
-		pthread_mutex_unlock(&log_init_lock);
+		if (!__reconnect_pipe(log_id))
+			return -1;
 		ret = write(pipe_fd[log_id], buf, le->len);
 	}
 	return ret;
