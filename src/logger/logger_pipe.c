@@ -704,7 +704,8 @@ cleanup:
 	optind = 0;
 	optopt = 0;
 
-	if (retval) reader_free(reader);
+	if (retval)
+		reader_free(reader);
 
 	return retval;
 }
