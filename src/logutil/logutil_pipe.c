@@ -298,9 +298,6 @@ int handle_file(char const * filename)
 	timeout.tv_sec = 0;
 	timeout.tv_usec = 0;
 
-	/* Check whether stdin contains anything.
-	read() would be blocking if nothing was redirected into stdin
-	ergo we need to know about that beforehand. */
 	if (!select(fd + 1, &readfds, NULL, NULL, &timeout))
 		return 0;
 
@@ -437,8 +434,8 @@ int main(int argc, char ** argv)
 
 	log_config_free(&conf);
 
-	if (strlen(file_input_name) > 0 && handle_file(file_input_name))
-		return 0;
+	if (strlen(file_input_name) > 0)
+		return !handle_file(file_input_name);
 
 	if ((sock_fd = connect_sock(sock_path)) < 0) {
 		printf("Error: socket connection failed\n");
