@@ -172,6 +172,13 @@ struct logger {
 	log_format*         default_format;
 };
 
+struct file_buffer {
+	int  len;
+	char buffer[BUFFER_MAX];
+};
+
+static struct file_buffer g_file_buffer;
+
 static int parse_permissions(const char * str)
 {
 	int ret, parsed;
@@ -388,6 +395,21 @@ static void add_misc_file_info(int fd)
 		return;
 }
 
+static int write_blob_to_file(struct reader* reader, struct file_buffer* buffer)
+{
+	int w = 0;
+	int r = 0;
+	while (w < buffer->len) {
+		r =  write(reader->file.fd, buffer->buffer + r, buffer->len - r);
+		if (r <= 0 && errno != EINTR)
+			return -1;
+		else
+			w += r;
+	}
+	buffer->len = 0;
+	return 0;
+}
+
 static int print_out_logs(struct reader* reader, struct log_buffer* buffer)
 {
 	int r, ret = 0;
@@ -444,17 +466,27 @@ static int print_out_logs(struct reader* reader, struct log_buffer* buffer)
 		if (!log_should_print_line(reader->file.format, tag, priority))
 			continue;
 
-		if (!is_file && epoll_wait(epoll_fd, &ev, 1, 0) < 1)
-			goto cleanup;
+		if (!is_file) {
+			if (epoll_wait(epoll_fd, &ev, 1, 0) < 1)
+				goto cleanup;
 
-		do {
-			r = write(reader->file.fd, ple, ple->len);
-		} while (r < 0 && errno == EINTR);
+			do {
+				r = write(reader->file.fd, ple, ple->len);
+			} while (r < 0 && errno == EINTR);
 
-		if (r < 0) {
-			if (errno == EPIPE)
-				ret = 1;
-			goto cleanup;
+			if (r < 0) {
+				if (errno == EPIPE)
+					ret = 1;
+				goto cleanup;
+			}
+		} else {
+			if (g_file_buffer.len + ple->len >= BUFFER_MAX)
+				if (write_blob_to_file(reader, &g_file_buffer) < 0)
+					goto cleanup;
+
+			memcpy(g_file_buffer.buffer + g_file_buffer.len, ple, ple->len);
+			g_file_buffer.len += ple->len;
+			r = ple->len;
 		}
 
 		reader->file.size += r;
@@ -464,10 +496,16 @@ static int print_out_logs(struct reader* reader, struct log_buffer* buffer)
 			memcpy(reader->partial_log, ple + r, reader->partial_log_size);
 			goto cleanup;
 		} else if ((reader->file.rotate_size_kbytes > 0) && ((reader->file.size / 1024) >= reader->file.rotate_size_kbytes)) {
+			if (write_blob_to_file(reader, &g_file_buffer) < 0)
+				goto cleanup;
+
 			rotate_logs(&reader->file);
 			add_misc_file_info(reader->file.fd);
 		}
 	}
+
+	if (is_file)
+		ret = write_blob_to_file(reader, &g_file_buffer);
 
 	if (reader->dumpcount)
 		ret = 1;
