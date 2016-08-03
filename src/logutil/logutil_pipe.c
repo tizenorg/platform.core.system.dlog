@@ -344,8 +344,6 @@ int main(int argc, char ** argv)
 		return 1;
 	}
 
-	log_set_print_format(log_fmt, FORMAT_KERNELTIME);
-
 	while (1) {
 		static struct option long_options[] = {
 			{"dumpfile", required_argument, 0, 0},
