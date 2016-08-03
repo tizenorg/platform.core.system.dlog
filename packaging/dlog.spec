@@ -16,22 +16,19 @@ Source501:  packaging/01-dlog.rules.kmsg
 Source502:  packaging/01-dlog.rules.logger
 
 # Choose dlog backend log device
-# Warning : MUST be only one "ON" in below four switches
-%define backend_journal	ON
+# Warning : MUST be only one "ON" in below three switches
 %define backend_kmsg	OFF
 %define backend_logger	OFF
-%define backend_pipe	OFF
+%define backend_pipe	ON
 
 # Do NOT touch switches below
 %if "%{?tizen_target_name}" == "TM1" || "%{?tizen_target_name}" == "hawkp"
-%define backend_journal	OFF
 %define backend_kmsg	ON
 %define backend_logger	OFF
 %define backend_pipe	OFF
 %endif
 
 %if "%{?profile}" == "wearable" || "%{?_with_emulator}" == "1"
-%define backend_journal	OFF
 %define backend_kmsg	OFF
 %define backend_logger	ON
 %define backend_pipe	OFF
@@ -90,9 +87,6 @@ cp %{SOURCE102} .
 %autogen --disable-static
 %configure --disable-static \
 			--enable-fatal_on \
-		%if %{?backend_journal} == ON
-			--enable-journal \
-		%endif
 		%if %{?backend_pipe} == ON
 			--enable-pipe \
 		%endif
@@ -115,8 +109,6 @@ mkdir -p %{buildroot}/usr/bin/
 
 mkdir -p %{buildroot}%{TZ_SYS_ETC}
 
-%if %{?backend_journal} == OFF
-
 mkdir -p %{buildroot}%{_unitdir}/multi-user.target.wants/
 install -m 0644 %SOURCE301 %{buildroot}%{_unitdir}
 
@@ -132,8 +124,6 @@ ln -s ../dlog_logger.path %{buildroot}%{_unitdir}/multi-user.target.wants/dlog_l
 install -m 0644 %SOURCE304 %{buildroot}%{_unitdir}/dlog_logger.path
 ln -s ../dlog_logger.service %{buildroot}%{_unitdir}/multi-user.target.wants/dlog_logger.service
 sed -e '/^Nice=/ d' -i %{buildroot}%{_unitdir}/dlog_logger.service
-%endif
-
 %endif
 
 %if %{?backend_kmsg} == ON
@@ -184,13 +174,11 @@ chsmack -a System /var/log/dlog
 %attr(755,log,log) %{_bindir}/dlogctrl
 %if %{?backend_pipe} == OFF
 %attr(755,log,log) /var/log/dlog
-%if %{?backend_journal} == OFF
 %attr(750,log,log) %{_bindir}/dlog_logger
 %{_unitdir}/dlog_logger.service
 %{_unitdir}/dlog_logger.path
 %{_udevrulesdir}/01-dlog.rules
 %{_unitdir}/multi-user.target.wants/dlog_logger.path
-%endif
 %endif
 
 %files  -n libdlog
