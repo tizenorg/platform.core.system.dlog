@@ -17,10 +17,10 @@ Source502:  packaging/01-dlog.rules.logger
 
 # Choose dlog backend log device
 # Warning : MUST be only one "ON" in below four switches
-%define backend_journal	ON
+%define backend_journal	OFF
 %define backend_kmsg	OFF
 %define backend_logger	OFF
-%define backend_pipe	OFF
+%define backend_pipe	ON
 
 # Do NOT touch switches below
 %if "%{?tizen_target_name}" == "TM1" || "%{?tizen_target_name}" == "hawkp"
