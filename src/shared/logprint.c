@@ -550,9 +550,9 @@ char *log_format_log_line(
 		break;
 	case FORMAT_KERNELTIME:
 		prefixLen = snprintf(prefixBuf, sizeof(prefixBuf),
-				"%5lu.%03ld%s %c/%-8s(P%5d, T%5d): ",
+				"%5lu.%03ld %c/%-8s(P%5d, T%5d): ",
 				entry->tv_sec, entry->tv_nsec / 1000000,
-				tzBuf, priChar, entry->tag, (int)entry->pid, (int)entry->tid);
+				priChar, entry->tag, (int)entry->pid, (int)entry->tid);
 		strncpy(suffixBuf, "\n", 2);
 		suffixLen = 1;
 		break;
